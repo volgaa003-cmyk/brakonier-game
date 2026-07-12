@@ -150,8 +150,31 @@
   ];
   const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-  let GOAL_HEARTS = 12;
+ // --- НАСТРОЙКА УРОВНЕЙ ---
+  let currentLevelId = 1; // Начинаем с 1-го уровня
+  let GOAL_HEARTS = 12;   // Эти цифры теперь будут меняться сами
   let START_MOVES = 20;
+
+  // Функция, которая берет нужный уровень из файла levels.js и настраивает игру
+  function loadLevel(levelId) {
+    // В программировании списки начинаются с 0, поэтому уровень 1 — это элемент [0]
+    const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
+    
+    if (levelData) {
+      currentLevelId = levelId;
+      GOAL_HEARTS = levelData.heartsGoal;
+      START_MOVES = levelData.moves;
+      
+      // Загружаем первый уровень при старте
+  loadLevel(1); 
+  buildInitialGrid();
+      document.title = `Браконьер — Уровень ${currentLevelId}`;
+      
+      // Если есть заголовок игры, можно дописать туда уровень
+      const titleEl = document.querySelector('h1');
+      if (titleEl) titleEl.textContent = `БРАКОНЬЕР (УРОВЕНЬ ${currentLevelId})`;
+    }
+  }
   const SWAP_MS = 240;
   const CLEAR_MS = 260;
   const FALL_MS = 300;
@@ -702,10 +725,26 @@
 
   document.getElementById('helpBtn').addEventListener('click', () => helpOverlay.classList.remove('hidden'));
   document.getElementById('closeHelpBtn').addEventListener('click', () => helpOverlay.classList.add('hidden'));
-  document.getElementById('overlayBtn').addEventListener('click', ()=>{
+ document.getElementById('overlayBtn').addEventListener('click', ()=>{
     overlay.classList.add('hidden');
-    hearts=0; moves=START_MOVES; cash=0;
-    heartsVal.textContent=0; movesVal.textContent=moves; cashVal.textContent='0₽';
+    
+    // Если игрок победил (сердец больше или столько же, сколько нужно)
+    if (hearts >= GOAL_HEARTS) {
+      // Переходим на следующий уровень
+      loadLevel(currentLevelId + 1); 
+    } else {
+      // Если проиграл — просто перезапускаем текущий уровень
+      loadLevel(currentLevelId);
+    }
+    
+    // Сбрасываем счетчики для новой игры
+    hearts = 0; 
+    moves = START_MOVES; 
+    cash = 0;
+    heartsVal.textContent = 0; 
+    movesVal.textContent = moves; 
+    cashVal.textContent = '0₽';
+    
     buildInitialGrid();
   });
 
