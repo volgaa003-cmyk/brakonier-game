@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Браконьер — Охота на сердца</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Пробуем подключить внешние файлы -->
+<!-- Пробуем подключить внешние файлы, если они есть -->
 <script src="levels.js"></script>
 <script src="dialogs.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,20 +40,26 @@
   }
   h1{font-family:'Bangers', cursive;letter-spacing:2px;font-size:34px;color:var(--blood);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);margin:6px 0 2px 0;text-align:center;}
   .subtitle{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--paper);opacity:.7;margin-bottom:10px;}
-  .hud{display:flex;gap:8px;width:100%;max-width:420px;margin-bottom:10px;}
-  .stat{flex:1;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:6px 8px;text-align:center;}
-  .stat .label{font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:.6;font-weight:600;}
-  .stat .value{font-family:'Bangers',cursive;font-size:22px;line-height:1;}
+  
+  /* Верхняя панель (HUD) */
+  .hud{display:flex;gap:6px;width:100%;max-width:440px;margin-bottom:10px;}
+  .stat{flex:1;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:4px 6px;text-align:center;}
+  .stat .label{font-size:8px;text-transform:uppercase;letter-spacing:1px;opacity:.6;font-weight:600;}
+  .stat .value{font-family:'Bangers',cursive;font-size:18px;line-height:1.1;}
+  .stat.stars-stat .value{color:var(--gold);}
   .stat.hearts .value{color:var(--blood-dark);}
   .stat.moves .value{color:var(--violet);}
   .stat.cash .value{color:#8a6a1a;}
-  .help-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;box-shadow:var(--panel-shadow);cursor:pointer;flex-shrink:0;}
+  .help-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;box-shadow:var(--panel-shadow);cursor:pointer;flex-shrink:0;}
+  
   .goal{width:100%;max-width:420px;background:var(--blood);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
   .goal b{font-family:'Bangers',cursive;font-size:16px;letter-spacing:1px;}
   .legend{display:flex;gap:6px;width:100%;max-width:420px;margin-bottom:10px;font-size:9px;flex-wrap:wrap;justify-content:center;opacity:.85;}
   .legend span{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:8px;padding:3px 6px;white-space:nowrap;}
   #boardWrap{background:var(--ink);border:4px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 rgba(0,0,0,.5);padding:6px;width:min(420px, 94vw);}
   #board{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;transition:opacity 0.3s ease;}
+  
+  /* Фишки */
   .tile{position:absolute;width:calc(100% / var(--size));height:calc(100% / var(--size));transition:left .24s cubic-bezier(.34,1.2,.4,1),top .28s cubic-bezier(.5,0,.25,1),transform .15s ease;cursor:pointer;z-index:1;}
   .tile-inner{position:absolute;inset:3px;display:flex;align-items:center;justify-content:center;font-size:5.6vw;background:var(--paper);border-radius:8px;border:2px solid var(--ink);transition:transform .18s ease, opacity .2s ease, background .2s ease, box-shadow .2s ease;}
   @media(min-width:460px){.tile-inner{font-size:24px;}}
@@ -77,12 +83,39 @@
   /* Всплывающие окна */
   .overlay{position:fixed;inset:0;background:rgba(13,11,15,.92);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto;}
   .overlay.hidden{display:none;}
-  .card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:16px;box-shadow:8px 8px 0 var(--blood);padding:24px;max-width:380px;text-align:left;}
+  .card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:16px;box-shadow:8px 8px 0 var(--blood);padding:24px;max-width:380px;text-align:left;width:100%;}
   .card h2{font-family:'Bangers',cursive;font-size:28px;color:var(--blood-dark);margin:0 0 16px 0;text-align:center;}
   .card h3{font-family:'Bangers',cursive;color:var(--blood);margin:18px 0 8px 0;font-size:20px;}
   .card p{font-size:14px;line-height:1.5;margin-bottom:12px;}
-  .btn{font-family:'Bangers',cursive;letter-spacing:1px;font-size:18px;background:var(--blood);color:var(--paper);border:3px solid var(--ink);border-radius:10px;box-shadow:4px 4px 0 var(--ink);padding:10px 24px;margin-top:20px;cursor:pointer;transition:transform .1s;width:100%;}
+  .btn{font-family:'Bangers',cursive;letter-spacing:1px;font-size:18px;background:var(--blood);color:var(--paper);border:3px solid var(--ink);border-radius:10px;box-shadow:4px 4px 0 var(--ink);padding:10px 24px;margin-top:18px;cursor:pointer;transition:transform .1s;width:100%;}
   .btn:active{transform:translate(2px,2px); box-shadow:2px 2px 0 var(--ink);}
+
+  /* Стилизация окон старта под Homescapes */
+  .pre-card {
+    border: 4px solid var(--ink);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    color: var(--ink);
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.5);
+    transition: background 0.3s ease;
+  }
+  .diff-normal { background: #ffd369; } /* Обычный - Желтый */
+  .diff-medium { background: #5ab6ff; } /* Сложный - Синий */
+  .diff-hard { background: #ff5a6e; } /* Очень сложный - Красный */
+  .diff-extreme { background: #3ad2ce; } /* Ультра-сложный - Бирюзовый */
+  .diff-challenge { background: #ff9f43; } /* Испытание - Оранжевый */
+
+  .pre-title { font-family:'Bangers', cursive; font-size: 32px; margin-bottom: 6px; letter-spacing: 1.5px; -webkit-text-stroke: 1px var(--ink); text-shadow: 2px 2px 0 rgba(255,255,255,0.4); }
+  .pre-subtitle { font-size: 11px; text-transform: uppercase; font-weight: 800; opacity: 0.8; margin-bottom: 20px; letter-spacing: 1px; }
+  .pre-goal-box { background: rgba(255,255,255,0.4); border: 2.5px dashed var(--ink); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
+  .pre-goal-title { font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.7; }
+  .pre-goal-val { font-size: 18px; font-weight: 800; margin-top: 4px; }
+  .pre-reward-title { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; }
+  .pre-rewards { display: flex; justify-content: center; gap: 14px; margin-bottom: 16px; }
+  .reward-item { background: var(--paper); border: 2.5px solid var(--ink); border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; box-shadow: 3px 3px 0 var(--ink); }
 
   /* Окно новеллы */
   .dialogue-overlay {
@@ -134,9 +167,10 @@
   <div class="subtitle">Охота на сердца · Пролог</div>
  
   <div class="hud">
-    <div class="stat hearts"><div class="label">Сердца</div><div class="value" id="heartsVal">0</div></div>
-    <div class="stat moves"><div class="label">Ходы</div><div class="value" id="movesVal">20</div></div>
-    <div class="stat cash"><div class="label">Выручка</div><div class="value" id="cashVal">0₽</div></div>
+    <div class="stat stars-stat"><div class="label">⭐ Звезды</div><div class="value" id="starsVal">0</div></div>
+    <div class="stat hearts"><div class="label">❤️ Сердца</div><div class="value" id="heartsVal">0</div></div>
+    <div class="stat moves"><div class="label">🎬 Ходы</div><div class="value" id="movesVal">20</div></div>
+    <div class="stat cash"><div class="label">💰 Выручка</div><div class="value" id="cashVal">0₽</div></div>
     <div class="help-btn" id="helpBtn">?</div>
   </div>
  
@@ -156,8 +190,29 @@
   <div class="footer">Свапни два бонуса — получи мощное комбо!</div>
  
   <div id="toast"></div>
+
+  <!-- ОКНО СТАРТА УРОВНЯ (В стиле Homescapes) -->
+  <div class="overlay hidden" id="preLevelOverlay">
+    <div class="pre-card" id="preCard">
+      <div class="pre-title" id="preTitle">Уровень 1</div>
+      <div class="pre-subtitle" id="preDifficultyText">Обычный уровень</div>
+      
+      <div class="pre-goal-box">
+        <div class="pre-goal-title">Цель уровня</div>
+        <div class="pre-goal-val" id="preGoalVal">12 ❤️ Вампирских Сердец</div>
+      </div>
+
+      <div class="pre-reward-title">Награда за победу</div>
+      <div class="pre-rewards">
+        <div class="reward-item" id="preRewardStars">⭐ +1</div>
+        <div class="reward-item" id="preRewardCoins">💰 +100₽</div>
+      </div>
+
+      <button class="btn" id="prePlayBtn" style="background:var(--toxic); box-shadow:4px 4px 0 var(--ink);">Начать охоту</button>
+    </div>
+  </div>
  
-  <!-- Экран результатов -->
+  <!-- Экран результатов (Конец игры) -->
   <div class="overlay hidden" id="overlay">
     <div class="card">
       <h2 id="overlayTitle">Заказ выполнен!</h2>
@@ -166,7 +221,7 @@
     </div>
   </div>
  
-  <!-- Справка -->
+  <!-- Справка по бонусам -->
   <div class="overlay hidden" id="helpOverlay">
     <div class="card">
       <h2>Комбинации бонусов</h2>
@@ -200,23 +255,44 @@
 
   // УМНАЯ СТРАХОВКА: Если внешние уровни не загрузились, генерируем их прямо здесь!
   if (!window.LEVELS || window.LEVELS.length === 0) {
-    console.log("Файл levels.js не найден. Включена автогенерация уровней.");
     window.LEVELS = [];
     for (let i = 1; i <= 300; i++) {
       let heartsGoal = 12;
       let moves = 22;
+      let difficulty = "normal";
+
       if (i <= 30) {
           heartsGoal = 12 + Math.floor(i * 1.2);
           moves = 22 - Math.floor(i / 8);
-      } else {
+          difficulty = "normal";
+      } else if (i <= 80) {
           heartsGoal = 25 + Math.floor((i - 30) * 1.8);
           moves = 19 - Math.floor((i - 30) / 12);
+          difficulty = "medium";
+      } else if (i <= 150) {
+          heartsGoal = 60 + Math.floor((i - 80) * 2.3);
+          moves = 17 - Math.floor((i - 80) / 15);
+          difficulty = "hard";
+      } else {
+          heartsGoal = 100 + Math.floor((i - 150) * 3.1);
+          moves = 15 - Math.floor((i - 150) / 20);
+          difficulty = "extreme";
       }
+
+      // Каждые 10 уровней делаем "Уровнем-испытанием" (Challenge, Orange)
+      if (i % 10 === 0) {
+        difficulty = "challenge";
+        heartsGoal = Math.floor(heartsGoal * 1.2);
+        moves = Math.max(10, moves - 2);
+      }
+
       if (moves < 10) moves = 10;
+
       window.LEVELS.push({
           id: i,
           heartsGoal: heartsGoal,
           moves: moves,
+          difficulty: difficulty,
           completed: false,
           bestScore: 0,
           stars: 0
@@ -224,9 +300,8 @@
     }
   }
 
-  // УМНАЯ СТРАХОВКА: Если файл с сюжетом не найден, создаем базовый сюжет прямо здесь!
+  // УМНАЯ СТРАХОВКА: Базовые диалоги для старта
   if (!window.DIALOGS) {
-    console.log("Файл dialogs.js не найден. Включены базовые диалоги.");
     window.DIALOGS = {
       1: {
         intro: [
@@ -259,13 +334,19 @@
   const CLEAR_MS = 260;
   const FALL_MS = 300;
 
+  // Глобальное состояние профиля игрока
+  let globalStars = 0;
+  let globalCash = 0;
+
+  // Состояние текущего уровня
   let currentLevelId = 1;
   let GOAL_HEARTS = 12;
   let START_MOVES = 20;
+  let levelDifficulty = "normal";
 
   let grid = [];
   let selected = null;
-  let hearts = 0, moves = 20, cash = 0;
+  let hearts = 0, moves = 20;
   let busy = false;
   let tileIdCounter = 0;
 
@@ -276,12 +357,14 @@
   const boardEl = document.getElementById('board');
   boardEl.style.setProperty('--size', SIZE);
 
+  const starsVal = document.getElementById('starsVal');
   const heartsVal = document.getElementById('heartsVal');
   const movesVal = document.getElementById('movesVal');
   const cashVal = document.getElementById('cashVal');
   const toastEl = document.getElementById('toast');
   const overlay = document.getElementById('overlay');
   const helpOverlay = document.getElementById('helpOverlay');
+  const preLevelOverlay = document.getElementById('preLevelOverlay');
 
   const isSpecial = t => SPECIALS.includes(t);
   const randType = () => TYPES[Math.floor(Math.random()*TYPES.length)].id;
@@ -714,13 +797,12 @@
   function clearAndContinue(clearSet, specialSpawns, scoreSet){
     specialSpawns = specialSpawns || [];
     const scoring = scoreSet || clearSet;
-    let heartsGained=0, cashGained=0;
+    let heartsGained=0;
     scoring.forEach(k=>{
       const [r,c] = k.split(',').map(Number);
       const t = grid[r] && grid[r][c];
       if(!t) return;
       if(t.type==='heart') heartsGained++;
-      if(t.type==='coin') cashGained += 5;
     });
     clearSet.forEach(k=>{
       const [r,c] = k.split(',').map(Number);
@@ -728,9 +810,7 @@
       if(t) t.el.classList.add('clearing');
     });
     hearts += heartsGained;
-    cash += cashGained + heartsGained*15;
     heartsVal.textContent = hearts;
-    cashVal.textContent = cash + '₽';
     if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
     
     setTimeout(()=>{
@@ -788,14 +868,6 @@
     }
   }
 
-  function pulseToast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(pulseToast._t);
-    pulseToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1200);
-  }
-
-  // Окно диалога
   function runDialogue(dialogueLines, onEnd) {
     if (!dialogueLines || dialogueLines.length === 0) {
       onEnd();
@@ -826,60 +898,135 @@
     }
   });
 
-  // Загрузка уровня из LEVELS
-  function loadLevel(levelId) {
-    const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
-    if (levelData) {
-      currentLevelId = levelId;
-      GOAL_HEARTS = levelData.heartsGoal;
-      START_MOVES = levelData.moves;
-      
-      hearts = 0;
-      moves = START_MOVES;
-      heartsVal.textContent = 0;
-      movesVal.textContent = moves;
-      
-      document.getElementById('goalText').textContent = `${GOAL_HEARTS} ❤️ вампирских сердец`;
-      document.title = `Браконьер — Уровень ${currentLevelId}`;
-      
-      const titleEl = document.querySelector('h1');
-      if (titleEl) titleEl.textContent = `БРАКОНЬЕР (УРОВЕНЬ ${currentLevelId})`;
+  // ВЫЧИСЛЕНИЕ НАГРАДЫ (Homescapes)
+  function getRewards(diff) {
+    let starsGained = 1;
+    let baseCoins = 100;
 
-      // Показываем новеллу перед игрой (если прописан intro диалог)
-      if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].intro) {
-        boardEl.style.opacity = "0.15"; 
-        runDialogue(window.DIALOGS[currentLevelId].intro, () => {
-          boardEl.style.opacity = "1";
-          buildInitialGrid();
-        });
-      } else {
+    if (diff === "medium") {
+      baseCoins = 150;
+    } else if (diff === "hard") {
+      baseCoins = 250;
+    } else if (diff === "extreme") {
+      baseCoins = 400;
+    } else if (diff === "challenge") {
+      starsGained = 3;
+      baseCoins = 300;
+    }
+
+    // Бонус за ходы: каждые сэкономленные ходы дают по 10 рублей!
+    let bonusCoins = moves * 10; 
+    let totalCoins = baseCoins + bonusCoins;
+
+    return { stars: starsGained, coins: totalCoins, base: baseCoins, bonus: bonusCoins };
+  }
+
+  // ЭКРАН ПОДГОТОВКИ К УРОВНЮ (Homescapes)
+  function openPreLevelScreen(levelId) {
+    const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
+    if (!levelData) return;
+
+    currentLevelId = levelId;
+    GOAL_HEARTS = levelData.heartsGoal;
+    START_MOVES = levelData.moves;
+    levelDifficulty = levelData.difficulty;
+
+    // Сбрасываем внешний вид карточки под сложность
+    const preCard = document.getElementById('preCard');
+    preCard.className = 'pre-card';
+
+    let diffName = "Обычный уровень";
+    if (levelDifficulty === "normal") {
+      preCard.classList.add('diff-normal');
+      diffName = "Обычный уровень 🟡";
+    } else if (levelDifficulty === "medium") {
+      preCard.classList.add('diff-medium');
+      diffName = "Сложный уровень 🔵";
+    } else if (levelDifficulty === "hard") {
+      preCard.classList.add('diff-hard');
+      diffName = "Очень сложный уровень 🔴";
+    } else if (levelDifficulty === "extreme") {
+      preCard.classList.add('diff-extreme');
+      diffName = "Ультра-сложный уровень 🟢🔵";
+    } else if (levelDifficulty === "challenge") {
+      preCard.classList.add('diff-challenge');
+      diffName = "Испытание! 🟠";
+    }
+
+    // Заполняем данные
+    document.getElementById('preTitle').textContent = `Уровень ${currentLevelId}`;
+    document.getElementById('preDifficultyText').textContent = diffName;
+    document.getElementById('preGoalVal').textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
+    
+    // Показываем награды
+    const r = getRewards(levelDifficulty);
+    document.getElementById('preRewardStars').textContent = `⭐ +${r.stars}`;
+    document.getElementById('preRewardCoins').textContent = `💰 +${r.base}₽`;
+
+    // Открываем оверлей
+    preLevelOverlay.classList.remove('hidden');
+    boardEl.style.opacity = "0.15"; // Гасим игровое поле сзади
+  }
+
+  // Клик на кнопку "Начать охоту" на пре-экране
+  document.getElementById('prePlayBtn').addEventListener('click', () => {
+    preLevelOverlay.classList.add('hidden');
+
+    // Настраиваем счетчики уровня
+    hearts = 0;
+    moves = START_MOVES;
+    heartsVal.textContent = 0;
+    movesVal.textContent = moves;
+    document.getElementById('goalText').textContent = `${GOAL_HEARTS} ❤️ вампирских сердец`;
+
+    // Проверяем вводный диалог
+    if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].intro) {
+      runDialogue(window.DIALOGS[currentLevelId].intro, () => {
         boardEl.style.opacity = "1";
         buildInitialGrid();
-      }
+      });
     } else {
-      console.error("Не удалось найти данные для уровня: " + levelId);
+      boardEl.style.opacity = "1";
+      buildInitialGrid();
     }
-  }
+  });
 
   // Проверка конца игры
   function checkEndConditions(){
     if(hearts >= GOAL_HEARTS){
+      const rewards = getRewards(levelDifficulty);
+      
+      // Начисляем заработанное в глобальный профиль
+      globalStars += rewards.stars;
+      globalCash += rewards.coins;
+
+      // Обновляем панель игрока (HUD)
+      starsVal.textContent = globalStars;
+      cashVal.textContent = globalCash + '₽';
+
+      // Выигрышный сюжет
       if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].win) {
         runDialogue(window.DIALOGS[currentLevelId].win, () => {
-          showOverlay('Заказ выполнен!', `Ты насобирал ${hearts} сердец и заработал ${cash}₽.`);
+          showOverlay(
+            'Победа!', 
+            `Заказ выполнен!\nПолучено: ⭐ +${rewards.stars}\nНаграда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`
+          );
         });
       } else {
-        showOverlay('Заказ выполнен!', `Ты насобирал ${hearts} сердец и заработал ${cash}₽.`);
+        showOverlay(
+          'Победа!', 
+          `Заказ выполнен!\nПолучено: ⭐ +${rewards.stars}\nНаграда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`
+        );
       }
       return;
     }
     if(moves <= 0){
       if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].lose) {
         runDialogue(window.DIALOGS[currentLevelId].lose, () => {
-          showOverlay('Ходы закончились', `Собрано ${hearts} из ${GOAL_HEARTS} сердец.`);
+          showOverlay('Поражение', `Не удалось набрать сердца. Собрано ${hearts} из ${GOAL_HEARTS}. Попробуй еще раз!`);
         });
       } else {
-        showOverlay('Ходы закончились', `Собрано ${hearts} из ${GOAL_HEARTS} сердец.`);
+        showOverlay('Поражение', `Не удалось набрать сердца. Собрано ${hearts} из ${GOAL_HEARTS}. Попробуй еще раз!`);
       }
     }
   }
@@ -893,19 +1040,21 @@
   document.getElementById('helpBtn').addEventListener('click', () => helpOverlay.classList.remove('hidden'));
   document.getElementById('closeHelpBtn').addEventListener('click', () => helpOverlay.classList.add('hidden'));
   
-  // Кнопка продолжения
+  // Кнопка продолжения на экране победы/поражения
   document.getElementById('overlayBtn').addEventListener('click', ()=>{
     overlay.classList.add('hidden');
     
     if (hearts >= GOAL_HEARTS) {
-      loadLevel(currentLevelId + 1); // Переходим на следующий уровень
+      // Игрок выиграл -> открываем пре-экран СЛЕДУЮЩЕГО уровня
+      openPreLevelScreen(currentLevelId + 1); 
     } else {
-      loadLevel(currentLevelId); // Переигрываем текущий
+      // Игрок проиграл -> открываем пре-экран ЭТОГО ЖЕ уровня для переигрывания
+      openPreLevelScreen(currentLevelId); 
     }
   });
 
-  // Запуск
-  loadLevel(1);
+  // Самый первый запуск при открытии страницы
+  openPreLevelScreen(1);
 })();
 </script>
 </body>
