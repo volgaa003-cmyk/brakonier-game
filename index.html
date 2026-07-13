@@ -38,7 +38,7 @@
     min-height:100vh;
     padding:10px;
   }
-  h1{font-family:'Bangers', cursive;letter-spacing:2px;font-size:34px;color:var(--blood);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);margin:4px 0 2px 0;text-align:center;}
+  h1{font-family:'Bangers', cursive;letter-spacing:2px;font-size:34px;color:var(--blood);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);margin:6px 0 2px 0;text-align:center;}
   .subtitle{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--paper);opacity:.7;margin-bottom:8px;}
   
   /* Верхняя панель (HUD) */
@@ -71,7 +71,7 @@
     cursor:pointer;
     z-index:1;
     will-change: left, top;
-    touch-action: none; /* Отключаем стандартный скролл при перетаскивании фишек */
+    touch-action: none;
   }
   .tile-inner{
     position:absolute;
@@ -297,7 +297,7 @@
     </div>
   </div>
 
-  <!-- ОКНО ЗАДАНИЙ СЮЖЕТА (Для продвижения по новелле) -->
+  <!-- ОКНО ЗАДАНИЙ СЮЖЕТА -->
   <div class="overlay hidden" id="tasksOverlay">
     <div class="card" style="max-width: 400px;">
       <h2>🧾 Дела браконьера</h2>
@@ -323,81 +323,86 @@
     if(tg){ tg.ready(); tg.expand(); }
   }catch(e){}
 
-  // Уровни
-  if (!window.LEVELS || window.LEVELS.length === 0) {
-    window.LEVELS = [];
-    for (let i = 1; i <= 300; i++) {
-      let heartsGoal = 12;
-      let moves = 22;
-      let difficulty = "normal";
+  // 1. Создаем дефолтные уровни прямо здесь (если levels.js не загрузился или пустой)
+  let gameLevels = [];
+  for (let i = 1; i <= 300; i++) {
+    let heartsGoal = 12;
+    let moves = 22;
+    let difficulty = "normal";
 
-      if (i <= 30) {
-          heartsGoal = 12 + Math.floor(i * 1.2);
-          moves = 22 - Math.floor(i / 8);
-          difficulty = "normal";
-      } else if (i <= 80) {
-          heartsGoal = 25 + Math.floor((i - 30) * 1.8);
-          moves = 19 - Math.floor((i - 30) / 12);
-          difficulty = "medium";
-      } else if (i <= 150) {
-          heartsGoal = 60 + Math.floor((i - 80) * 2.3);
-          moves = 17 - Math.floor((i - 80) / 15);
-          difficulty = "hard";
-      } else {
-          heartsGoal = 100 + Math.floor((i - 150) * 3.1);
-          moves = 15 - Math.floor((i - 150) / 20);
-          difficulty = "extreme";
-      }
-
-      if (i % 10 === 0) {
-        difficulty = "challenge";
-        heartsGoal = Math.floor(heartsGoal * 1.2);
-        moves = Math.max(10, moves - 2);
-      }
-
-      if (moves < 10) moves = 10;
-
-      window.LEVELS.push({
-          id: i,
-          heartsGoal: heartsGoal,
-          moves: moves,
-          difficulty: difficulty,
-          completed: false,
-          bestScore: 0,
-          stars: 0
-      });
+    if (i <= 30) {
+        heartsGoal = 12 + Math.floor(i * 1.2);
+        moves = 22 - Math.floor(i / 8);
+        difficulty = "normal";
+    } else if (i <= 80) {
+        heartsGoal = 25 + Math.floor((i - 30) * 1.8);
+        moves = 19 - Math.floor((i - 30) / 12);
+        difficulty = "medium";
+    } else if (i <= 150) {
+        heartsGoal = 60 + Math.floor((i - 80) * 2.3);
+        moves = 17 - Math.floor((i - 80) / 15);
+        difficulty = "hard";
+    } else {
+        heartsGoal = 100 + Math.floor((i - 150) * 3.1);
+        moves = 15 - Math.floor((i - 150) / 20);
+        difficulty = "extreme";
     }
+
+    if (i % 10 === 0) {
+      difficulty = "challenge";
+      heartsGoal = Math.floor(heartsGoal * 1.2);
+      moves = Math.max(10, moves - 2);
+    }
+
+    if (moves < 10) moves = 10;
+
+    gameLevels.push({
+        id: i,
+        heartsGoal: heartsGoal,
+        moves: moves,
+        difficulty: difficulty,
+        completed: false,
+        bestScore: 0,
+        stars: 0
+    });
   }
 
-  // Диалоги
-  if (!window.DIALOGS) {
-    window.DIALOGS = {
-      1: {
-        intro: [
-          { name: "Скупщик", text: "Здорово, браконьер! Нам сделали крупный заказ на вампирские сердца." },
-          { name: "Ты", text: "Опять марать руки... Ладно, платишь нормально?" },
-          { name: "Скупщик", text: "Обижаешь! Собери мне 12 штук для затравки. Погнали!" }
-        ],
-        win: [
-          { name: "Скупщик", text: "Отличный улов! Все сердца целые. Держи монеты." }
-        ],
-        lose: [
-          { name: "Скупщик", text: "Эй! Ты упустил их! Нам теперь не поздоровится..." }
-        ]
-      },
-      // Диалоги, которые открываются за выполнение задач (Звезды)
-      "task_hideout": [
-        { name: "Ты", text: "Так, логово обустроено. Развесил сушиться чеснок, почистил серебряные пули." },
-        { name: "Скупщик", text: "Отлично. Безопасность превыше всего. В наших краях вампиры обнаглели." }
+  // Если внешние уровни загрузились успешно — берем их
+  if (window.LEVELS && window.LEVELS.length > 0) {
+    gameLevels = window.LEVELS;
+  }
+
+  // 2. Создаем дефолтные диалоги
+  let gameDialogs = {
+    1: {
+      intro: [
+        { name: "Скупщик", text: "Здорово, браконьер! Нам сделали крупный заказ на вампирские сердца." },
+        { name: "Ты", text: "Опять марать руки... Ладно, платишь нормально?" },
+        { name: "Скупщик", text: "Обижаешь! Собери мне 12 штук для затравки. Погнали!" }
       ],
-      "task_bar": [
-        { name: "Трактирщик", text: "Шепчутся, вчера у кладбища видели бледную девицу... береги шею, браконьер." },
-        { name: "Ты", text: "Девица, говоришь? Интересно. Надо проверить." }
+      win: [
+        { name: "Скупщик", text: "Отличный улов! Все сердца целые. Держи монеты." }
+      ],
+      lose: [
+        { name: "Скупщик", text: "Эй! Ты упустил их! Нам теперь не поздоровится..." }
       ]
-    };
+    },
+    "task_hideout": [
+      { name: "Ты", text: "Так, логово обустроено. Развесил сушиться чеснок, почистил серебряные пули." },
+      { name: "Скупщик", text: "Отлично. Безопасность превыше всего. В наших краях вампиры обнаглели." }
+    ],
+    "task_bar": [
+      { name: "Трактирщик", text: "Шепчутся, вчера у кладбища видели бледную девицу... береги шею, браконьер." },
+      { name: "Ты", text: "Девица, говоришь? Интересно. Надо проверить." }
+    ]
+  };
+
+  // Если внешний файл dialogs.js загрузился — объединяем
+  if (window.DIALOGS) {
+    gameDialogs = Object.assign(gameDialogs, window.DIALOGS);
   }
 
-  // СПИСОК ЗАДАНИЙ ДЛЯ ОБУСТРОЙСТВА / СЮЖЕТА (Как в Homescapes)
+  // Список заданий
   let playerTasks = [
     { id: "hideout", title: "Обустроить безопасное убежище", cost: 1, completed: false, dialog: "task_hideout" },
     { id: "bar", title: "Расспросить трактирщика о вампирах", cost: 2, completed: false, dialog: "task_bar" }
@@ -484,7 +489,7 @@
     el.style.top = (row*100/SIZE)+'%';
   }
 
-  // Считывание жестов (СВАЙПОВ) на мобилках и ПК
+  // Считывание жестов (СВАЙПОВ)
   function handleDragStart(e, tile) {
     if (busy) return;
     dragActiveTile = tile;
@@ -502,19 +507,16 @@
     const dy = clientY - dragStartY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist > 30) { // Движение пальца больше чем на 30 пикселей
+    if (dist > 30) { 
       let targetRow = dragActiveTile.row;
       let targetCol = dragActiveTile.col;
 
       if (Math.abs(dx) > Math.abs(dy)) {
-        // Движение по горизонтали
         if (dx > 0) targetCol++; else targetCol--;
       } else {
-        // Движение по вертикали
         if (dy > 0) targetRow++; else targetRow--;
       }
 
-      // Если свайпнули на допустимую соседнюю клетку — делаем обмен
       if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
         const partner = grid[targetRow][targetCol];
         if (partner) {
@@ -523,7 +525,7 @@
           performSwap(dragActiveTile, partner);
         }
       }
-      dragActiveTile = null; // Сброс жеста
+      dragActiveTile = null; 
     }
   }
 
@@ -531,7 +533,6 @@
     dragActiveTile = null;
   }
 
-  // Регистрация глобальных слушателей свайпа
   window.addEventListener('mousemove', handleDragMove);
   window.addEventListener('touchmove', handleDragMove, {passive: false});
   window.addEventListener('mouseup', handleDragEnd);
@@ -547,7 +548,10 @@
     inner.textContent = iconFor(type);
     el.appendChild(inner);
 
-    // Добавляем поддержку свайпов и тапов
+    // Сначала создаем объект фишки (Объявлен ДО слушателей событий)
+    const tile = {id, type, row, col, el, inner};
+
+    // Привязываем события
     el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
     el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
     el.addEventListener('click', onTileClick);
@@ -568,7 +572,6 @@
       }, 16); 
     }
     
-    const tile = {id, type, row, col, el, inner};
     applySpecialClass(tile);
     return tile;
   }
@@ -1019,7 +1022,7 @@
     }
   }
 
-  // ВЫЧИСЛЕНИЕ НАГРАДЫ ЗА УРОВЕНЬ
+  // ВЫЧИСЛЕНИЕ НАГРАДЫ
   function getRewards(diff) {
     let starsGained = 1;
     let baseCoins = 100;
@@ -1043,7 +1046,7 @@
 
   // ЭКРАН ПОДГОТОВКИ К УРОВНЮ
   function openPreLevelScreen(levelId) {
-    const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
+    const levelData = gameLevels ? gameLevels[levelId - 1] : null;
     if (!levelData) return;
 
     currentLevelId = levelId;
@@ -1093,8 +1096,8 @@
     movesVal.textContent = moves;
     document.getElementById('goalText').textContent = `${GOAL_HEARTS} ❤️ вампирских сердец`;
 
-    if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].intro) {
-      runDialogue(window.DIALOGS[currentLevelId].intro, () => {
+    if (gameDialogs && gameDialogs[currentLevelId] && gameDialogs[currentLevelId].intro) {
+      runDialogue(gameDialogs[currentLevelId].intro, () => {
         boardEl.style.opacity = "1";
         buildInitialGrid();
       });
@@ -1115,8 +1118,8 @@
       starsVal.textContent = globalStars;
       cashVal.textContent = globalCash + '₽';
 
-      if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].win) {
-        runDialogue(window.DIALOGS[currentLevelId].win, () => {
+      if (gameDialogs && gameDialogs[currentLevelId] && gameDialogs[currentLevelId].win) {
+        runDialogue(gameDialogs[currentLevelId].win, () => {
           showOverlay(
             'Победа!', 
             `Заказ выполнен!\nПолучено: ⭐ +${rewards.stars}\nНаграда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`
@@ -1131,8 +1134,8 @@
       return;
     }
     if(moves <= 0){
-      if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].lose) {
-        runDialogue(window.DIALOGS[currentLevelId].lose, () => {
+      if (gameDialogs && gameDialogs[currentLevelId] && gameDialogs[currentLevelId].lose) {
+        runDialogue(gameDialogs[currentLevelId].lose, () => {
           showOverlay('Поражение', `Не удалось набрать сердца. Собрано ${hearts} из ${GOAL_HEARTS}. Попробуй еще раз!`);
         });
       } else {
@@ -1179,7 +1182,6 @@
     });
   }
 
-  // Оформляем как глобальную функцию для вызова через onclick из HTML
   window.completeTask = function(taskId) {
     const task = playerTasks.find(t => t.id === taskId);
     if (!task) return;
@@ -1189,14 +1191,12 @@
       starsVal.textContent = globalStars;
       task.completed = true;
       
-      // Закрываем меню заданий
       tasksOverlay.classList.add('hidden');
 
-      // Показываем сюжетный диалог, привязанный к заданию
-      if (window.DIALOGS && window.DIALOGS[task.dialog]) {
-        runDialogue(window.DIALOGS[task.dialog], () => {
+      if (gameDialogs && gameDialogs[task.dialog]) {
+        runDialogue(gameDialogs[task.dialog], () => {
           pulseToast("Задание выполнено!");
-          openPreLevelScreen(currentLevelId); // Возвращаемся к игре
+          openPreLevelScreen(currentLevelId); 
         });
       } else {
         pulseToast("Задание выполнено!");
@@ -1219,7 +1219,6 @@
     openPreLevelScreen(currentLevelId);
   });
 
-  // Остальные кнопки
   document.getElementById('helpBtn').addEventListener('click', () => helpOverlay.classList.remove('hidden'));
   document.getElementById('closeHelpBtn').addEventListener('click', () => helpOverlay.classList.add('hidden'));
   
