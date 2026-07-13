@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ГРАВИТАЦИЯ ЯЩИКОВ ИСПРАВЛЕНА)
-// Движок "Три в ряд" с авто-перемешиванием и умным разрушением коробок
+// match3.js (СУПЕР-КОМБИНАЦИИ БОНУСОВ)
+// Движок "Три в ряд" со сложными комбо-эффектами Homescapes
 // ================================================
 
 (function() {
@@ -15,9 +15,9 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    const SWAP_MS = 180;  
-    const CLEAR_MS = 200; 
-    const FALL_MS = 240;  
+    const SWAP_MS = 240;  
+    const CLEAR_MS = 260; 
+    const FALL_MS = 300;  
 
     let currentLevelId = 1;
     let GOAL_HEARTS = 12;
@@ -82,7 +82,6 @@
         el.style.top = (row*100/SIZE)+'%';
     }
 
-    // Считывание жестов (СВАЙПОВ)
     function handleDragStart(e, tile) {
         if (busy || tile.type === 'box') return;
         dragActiveTile = tile;
@@ -534,12 +533,160 @@
         }, 500);
     }
 
+    // Умный поиск цели для Самолётика (Используется для авто-наведения)
+    function findBestTargetForPlane(excludeRow, excludeCol) {
+        let targetRow = excludeRow, targetCol = excludeCol;
+        let foundTarget = false;
+
+        // 1. Сначала ищем коробки-препятствия
+        for (let r=0; r<SIZE; r++) {
+            for (let c=0; c<SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'box') {
+                    targetRow = r; targetCol = c;
+                    foundTarget = true;
+                    break;
+                }
+            }
+            if (foundTarget) break;
+        }
+
+        // 2. Если коробок нет — летим в сердца
+        if (!foundTarget) {
+            for (let r=0; r<SIZE; r++) {
+                for (let c=0; c<SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type === 'heart') {
+                        targetRow = r; targetCol = c;
+                        foundTarget = true;
+                        break;
+                    }
+                }
+                if (foundTarget) break;
+            }
+        }
+
+        // 3. Иначе в любую случайную клетку на поле
+        if (!foundTarget) {
+            const candidates = [];
+            for (let r=0; r<SIZE; r++) {
+                for (let c=0; c<SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type !== 'box' && !(r === excludeRow && c === excludeCol)) {
+                        candidates.push([r, c]);
+                    }
+                }
+            }
+            if (candidates.length) {
+                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
+                targetRow = rnd[0]; targetCol = rnd[1];
+                foundTarget = true;
+            }
+        }
+
+        return foundTarget ? { r: targetRow, c: targetCol } : null;
+    }
+
+    // ==================== 2. СУПЕР-КОМБИНАЦИИ БУСТЕРОВ (НОВЫЙ БЛОК) ====================
+
     function comboFootprint(a, b){
-        const cells = new Set();
+        let cells = new Set();
         const kinds = [a.type, b.type];
         const has = t => kinds.includes(t);
         const isRocket = t => t === 'rocketRow' || t === 'rocketCol';
         
+        // КЛАССИКА 1: Радужный шар + любой Бустер (Ракеты, Бомбы, Самолётики)
+        if (has('rainbow') && (has('bomb') || has('rocketRow') || has('rocketCol') || has('plane'))) {
+            const boosterType = a.type === 'rainbow' ? b.type : a.type;
+            const colors = presentColors();
+            const color = colors.length ? colors[Math.floor(Math.random() * colors.length)] : null;
+            
+            if (color) {
+                const targets = [];
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (grid[r][c] && grid[r][c].type === color) {
+                            targets.push({ r, c });
+                        }
+                    }
+                }
+
+                // Превращаем все плитки этого цвета в данный бустер и последовательно взрываем!
+                targets.forEach(({r, c}) => {
+                    const tile = grid[r][c];
+                    if (tile) {
+                        tile.type = boosterType;
+                        tile.inner.textContent = iconFor(boosterType);
+                        applySpecialClass(tile);
+
+                        // Легкий разброс по времени взрыва для красивого хаотичного эффекта салюта
+                        setTimeout(() => {
+                            activateStandalone(tile);
+                        }, Math.random() * 200 + 50);
+                    }
+                });
+            }
+
+            cells.add(key(a.row, a.col));
+            cells.add(key(b.row, b.col));
+            pulseToast('🌈 СУПЕР-КОМБО: Парад бонусов!');
+            return cells;
+        }
+
+        // КЛАССИКА 2: Самолётик + Самолётик (Запуск эскадрильи из 3-х птиц!)
+        if (has('plane') && has('plane')) {
+            cells = computeActivationFootprint(a); // Очищаем крест в точке запуска
+            clearAndContinue(cells, []);
+
+            // По очереди отправляем 3 самолетика в разные важные цели!
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const target = findBestTargetForPlane(a.row, a.col);
+                    if (target) {
+                        animatePlaneEffect(a.row, a.col, target.r, target.c, () => {
+                            const targetCell = new Set([key(target.r, target.c)]);
+                            clearAndContinue(targetCell, []);
+                        });
+                    }
+                }, i * 120);
+            }
+
+            pulseToast('✈️ Эскадрилья самолётиков!');
+            return new Set(); // Возвращаем пустоту, так как запуск и очистку мы сделали вручную
+        }
+
+        // КЛАССИКА 3: Самолётик + Бомба / Ракета (Доставка взрывчатки в труднодоступное место)
+        if (has('plane') && (has('bomb') || has('rocketRow') || has('rocketCol'))) {
+            const boosterType = a.type === 'plane' ? b.type : a.type;
+            const plane = a.type === 'plane' ? a : b;
+
+            cells = computeActivationFootprint(plane); // Очищаем крест на старте
+            clearAndContinue(cells, []);
+
+            const target = findBestTargetForPlane(plane.row, plane.col);
+            if (target) {
+                // Самолётик летит и несёт бомбу/ракету с собой!
+                animatePlaneEffect(plane.row, plane.col, target.r, target.c, () => {
+                    // При приземлении подрываем перенесенный бустер на целевой клетке!
+                    const dummyTile = { type: boosterType, row: target.r, col: target.c, id: 'dummy' };
+                    let blastCells = new Set();
+
+                    if (boosterType === 'bomb') {
+                        animateBombEffect(target.r, target.c);
+                        footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                    } else if (boosterType === 'rocketRow') {
+                        animateRocketEffect(target.r, target.c, true);
+                        footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                    } else {
+                        animateRocketEffect(target.r, target.c, false);
+                        footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                    }
+                    clearAndContinue(blastCells, []);
+                });
+            }
+
+            pulseToast('📦 Доставка взрывчатки!');
+            return new Set();
+        }
+
+        // Обычные слияния (Бомба+Бомба, Ракета+Бомба, Ракета+Ракета)
         if(has('bomb') && has('bomb')){
             const center = a;
             animateBombEffect(center.row, center.col);
@@ -575,30 +722,12 @@
             pulseToast('🚀 Крестообразный удар!');
             return cells;
         }
-        if(has('plane')){
-            const plane = a.type==='plane' ? a : b;
-            footprintFor(plane).forEach(([r,c])=>cells.add(key(r,c)));
-            pulseToast('✈️ Самолётик активирован!');
-            return cells;
-        }
         if(has('rainbow') && has('rainbow')){
             for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(grid[r][c]) cells.add(key(r,c));
             pulseToast('🌈 Полная зачистка!');
             return cells;
         }
-        if(has('rainbow')){
-            const rainbow = a.type==='rainbow' ? a : b;
-            const other = rainbow===a ? b : a;
-            const colors = presentColors();
-            const color = colors.length ? colors[Math.floor(Math.random()*colors.length)] : null;
-            if(color){
-                for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-                    if(grid[r][c] && grid[r][c].type===color) cells.add(key(r,c));
-                }
-            }
-            pulseToast('🌈 Радужный шар сработал!');
-            return cells;
-        }
+
         footprintFor(a).forEach(([r,c])=>cells.add(key(r,c)));
         footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
         return cells;
@@ -625,53 +754,21 @@
             clearAndContinue(cells, []);
         } 
         else if (tile.type === 'plane') {
+            // Находим лучшую цель для самолетика через умный ИИ поиск
+            const target = findBestTargetForPlane(tile.row, tile.col);
             let targetRow = tile.row, targetCol = tile.col;
-            let foundTarget = false;
 
-            for (let r=0; r<SIZE; r++) {
-                for (let c=0; c<SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type === 'box') {
-                        targetRow = r; targetCol = c;
-                        foundTarget = true;
-                        break;
-                    }
-                }
-                if (foundTarget) break;
+            if (target) {
+                targetRow = target.r; targetCol = target.c;
             }
 
-            if (!foundTarget) {
-                for (let r=0; r<SIZE; r++) {
-                    for (let c=0; c<SIZE; c++) {
-                        if (grid[r][c] && grid[r][c].type === 'heart') {
-                            targetRow = r; targetCol = c;
-                            foundTarget = true;
-                            break;
-                        }
-                    }
-                    if (foundTarget) break;
-                }
-            }
-
-            if (!foundTarget) {
-                const candidates = [];
-                for (let r=0; r<SIZE; r++) {
-                    for (let c=0; c<SIZE; c++) {
-                        if (grid[r][c] && grid[r][c].type !== 'box' && !(r === tile.row && c === tile.col)) {
-                            candidates.push([r, c]);
-                        }
-                    }
-                }
-                if (candidates.length) {
-                    const rnd = candidates[Math.floor(Math.random() * candidates.length)];
-                    targetRow = rnd[0]; targetCol = rnd[1];
-                }
-            }
-
+            // Убираем соседние 4 фишки
             cells = computeActivationFootprint(tile);
             cells.delete(key(targetRow, targetCol)); 
 
             clearAndContinue(cells, []);
 
+            // Полет самолетика
             animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                 const finalCell = new Set([key(targetRow, targetCol)]);
                 clearAndContinue(finalCell, []);
@@ -703,7 +800,6 @@
         clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
-    // ИСПРАВЛЕНО: Теперь при поломке коробки мы ГАРАНТИРОВАННО меняем тип ячейки в карте уровня на 1!
     function checkAndBreakBoxes(clearSet) {
         const boxesToBreak = new Set();
 
@@ -727,7 +823,6 @@
             const [br, bc] = k.split(',').map(Number);
             const boxTile = grid[br][bc];
             if (boxTile) {
-                // ВАЖНЕЙШЕЕ ИСПРАВЛЕНИЕ: Превращаем ячейку ящика в обычное поле (1), чтобы гравитация знала, что сюда можно сыпать фишки!
                 levelLayout[br][bc] = 1;
 
                 boxTile.el.classList.add('clearing');
@@ -756,3 +851,361 @@
 
         clearSet.forEach(k=>{
             const [r,c] = k.split(',').map(Number);
+            const t = grid[r] && grid[r][c];
+            if(t) t.el.classList.add('clearing');
+        });
+        hearts += heartsGained;
+        
+        if (m3GoalText) m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        
+        if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
+        
+        setTimeout(()=>{
+            clearSet.forEach(k=>{
+                const [r,c] = k.split(',').map(Number);
+                const t = grid[r] && grid[r][c];
+                if(t){ t.el.remove(); grid[r][c]=null; }
+            });
+            specialSpawns.forEach(s=>{
+                const [r,c] = s.at;
+                if(!grid[r]) return;
+                let t = grid[r][c];
+                if(!t){
+                    t = createTile(r,c,s.type,r);
+                    grid[r][c] = t;
+                } else {
+                    t.type = s.type;
+                    t.inner.textContent = iconFor(s.type);
+                    applySpecialClass(t);
+                }
+            });
+            applyGravityAndRefill();
+            setTimeout(()=>{
+                const result = analyzeMatches();
+                const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+                if(!hasMore){
+                    busy = false;
+                    checkEndConditions();
+                } else {
+                    applyResolutionFull(result);
+                }
+            }, FALL_MS + 20); 
+        }, CLEAR_MS);
+    }
+
+    function applyGravityAndRefill(){
+        for(let c=0;c<SIZE;c++){
+            let pointer = SIZE-1;
+            for(let r=SIZE-1;r>=0;r--){
+                if (levelLayout[r][c] !== 0 && levelLayout[r][c] !== 2) {
+                    if(grid[r][c] !== null){
+                        const t = grid[r][c];
+                        if(pointer !== r){
+                            grid[pointer][c] = t;
+                            grid[r][c] = null;
+                            moveTileTo(t, pointer, c);
+                        }
+                        pointer--;
+                    }
+                } else {
+                    if (grid[r][c] === null) {
+                        pointer = Math.min(pointer, r - 1);
+                    }
+                }
+            }
+            let spawnOffset = 1;
+            for(let r=pointer;r>=0;r--){
+                if (levelLayout[r][c] !== 0 && levelLayout[r][c] !== 2) {
+                    grid[r][c] = createTile(r, c, randType(), -spawnOffset);
+                    spawnOffset++;
+                }
+            }
+        }
+    }
+
+    // ==================== АЛГОРИТМ ПРОВЕРКИ СВОБОДНЫХ ХОДОВ ====================
+    
+    function hasPossibleMoves() {
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && isSpecial(t.type)) return true;
+            }
+        }
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (!t || t.type === 'box') continue;
+
+                const neighbors = [[r + 1, c], [r, c + 1]];
+                for (const [nr, nc] of neighbors) {
+                    if (nr < SIZE && nc < SIZE) {
+                        const nt = grid[nr][nc];
+                        if (nt && nt.type !== 'box') {
+                            
+                            grid[r][c] = nt;
+                            grid[nr][nc] = t;
+
+                            const runs = collectRuns();
+                            const hasMatch = runs.length > 0;
+
+                            grid[r][c] = t;
+                            grid[nr][nc] = nt;
+
+                            if (hasMatch) return true; 
+                        }
+                    }
+                }
+            }
+        }
+        return false; 
+    }
+
+    // ==================== АЛГОРИТМ УМНОГО ПЕРЕМЕШИВАНИЯ ПОЛЯ ====================
+    
+    function shuffleBoard() {
+        busy = true;
+        pulseToast("🌀 Нет ходов! Перемешивание...");
+
+        const normalTiles = [];
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && !isSpecial(t.type) && t.type !== 'box') {
+                    normalTiles.push(t);
+                }
+            }
+        }
+
+        let shuffleSafetyGuard = 0;
+        do {
+            const types = normalTiles.map(t => t.type);
+            
+            for (let i = types.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = types[i];
+                types[i] = types[j];
+                types[j] = temp;
+            }
+
+            normalTiles.forEach((t, index) => {
+                t.type = types[index];
+                t.inner.textContent = iconFor(t.type);
+                applySpecialClass(t);
+                
+                t.el.style.transform = 'scale(0.3) rotate(180deg)';
+                t.el.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+            });
+
+            shuffleSafetyGuard++;
+            if (shuffleSafetyGuard > 15) break; 
+        } while (!hasPossibleMoves()); 
+
+        setTimeout(() => {
+            normalTiles.forEach(t => {
+                t.el.style.transform = 'scale(1) rotate(0deg)';
+                setTimeout(() => {
+                    t.el.style.transition = '';
+                }, 300);
+            });
+            busy = false;
+
+            const result = analyzeMatches();
+            const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+            if (hasMore) {
+                applyResolutionFull(result);
+            }
+        }, 450);
+    }
+
+    // ======================================================================================
+
+    function getRewards(diff) {
+        let starsGained = 1;
+        let baseCoins = 100;
+
+        if (diff === "medium") {
+            baseCoins = 150;
+        } else if (diff === "hard") {
+            baseCoins = 250;
+        } else if (diff === "extreme") {
+            baseCoins = 400;
+        } else if (diff === "challenge") {
+            starsGained = 3;
+            baseCoins = 300;
+        }
+
+        let bonusCoins = moves * 10; 
+        let totalCoins = baseCoins + bonusCoins;
+
+        return { stars: starsGained, coins: totalCoins, base: baseCoins, bonus: bonusCoins };
+    }
+
+    function updateMatch3HUD() {
+        if (m3MovesText) m3MovesText.textContent = moves;
+    }
+
+    function openPreLevelScreen(levelId) {
+        const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
+        if (!levelData) {
+            console.error("Не удалось найти данные уровня в window.LEVELS:", levelId);
+            return;
+        }
+
+        currentLevelId = levelId;
+        GOAL_HEARTS = levelData.heartsGoal;
+        START_MOVES = levelData.moves;
+        levelDifficulty = levelData.difficulty;
+        levelLayout = JSON.parse(JSON.stringify(levelData.layout)); 
+
+        const preCard = document.getElementById('preLevelCard');
+        if (preCard) {
+            preCard.className = 'pre-card';
+            let diffClass = 'diff-normal';
+            let diffName = 'Обычная сложность 🟡';
+            if (levelDifficulty === 'medium') { diffClass = 'diff-medium'; diffName = 'Сложная охота 🔵'; }
+            else if (levelDifficulty === 'hard') { diffClass = 'diff-hard'; diffName = 'Опасный бой 🔴'; }
+            else if (levelDifficulty === 'extreme') { diffClass = 'diff-extreme'; diffName = 'Ультра-сложная чистка 🟢'; }
+            else if (levelDifficulty === 'challenge') { diffClass = 'diff-challenge'; diffName = 'Сюжетное испытание! 🟠'; }
+
+            preCard.classList.add(diffClass);
+            
+            const badge = document.getElementById('preLevelDiffBadge');
+            if (badge) badge.textContent = diffName;
+        }
+
+        const title = document.getElementById('preLevelTitle');
+        if (title) title.textContent = `Уровень ${currentLevelId}`;
+
+        const goalVal = document.getElementById('preGoalVal');
+        if (goalVal) goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
+
+        const rewards = getRewards(levelDifficulty);
+        const preStars = document.getElementById('preRewardStars');
+        if (preStars) preStars.textContent = `⭐ +${rewards.stars}`;
+
+        const preCoins = document.getElementById('preRewardCoins');
+        if (preCoins) preCoins.textContent = `💰 +${rewards.base}₽`;
+
+        if (overlayPreLevel) overlayPreLevel.classList.remove('hidden');
+    }
+
+    const btnCancelPreLevel = document.getElementById('btnCancelPreLevel');
+    if (btnCancelPreLevel) {
+        btnCancelPreLevel.addEventListener('click', () => {
+            if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
+            if (window.showScreen) window.showScreen('screenMap');
+        });
+    }
+
+    const btnStartMatch3 = document.getElementById('btnStartMatch3');
+    if (btnStartMatch3) {
+        btnStartMatch3.addEventListener('click', () => {
+            if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
+            
+            if (window.showScreen) {
+                window.showScreen('screenMatch3');
+            }
+
+            hearts = 0;
+            moves = START_MOVES;
+            updateMatch3HUD();
+            if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
+
+            buildInitialGrid();
+
+            const dialogueIntro = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].intro : null;
+            if (window.NovelEngine && dialogueIntro) {
+                if (boardEl) boardEl.style.opacity = "0.2"; 
+                window.NovelEngine.run(dialogueIntro, () => {
+                    if (boardEl) boardEl.style.opacity = "1"; 
+                });
+            } else {
+                if (boardEl) boardEl.style.opacity = "1";
+            }
+        });
+    }
+
+    function checkEndConditions(){
+        if(hearts >= GOAL_HEARTS){
+            const rewards = getRewards(levelDifficulty);
+            
+            if (window.GameState) {
+                window.GameState.addStars(rewards.stars);
+                window.GameState.addCash(rewards.coins);
+            }
+
+            const winText = `Заказ выполнен!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
+
+            const dialogueWin = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].win : null;
+            if (window.NovelEngine && dialogueWin) {
+                window.NovelEngine.run(dialogueWin, () => {
+                    showOverlay('Успешный улов!', winText);
+                });
+            } else {
+                showOverlay('Успешный улов!', winText);
+            }
+            return;
+        }
+
+        if(moves <= 0){
+            if (window.GameState) {
+                window.GameState.loseLife(); 
+            }
+
+            const dialogueLose = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].lose : null;
+            const loseText = `Тебе не хватило ходов. Было собрано всего ${hearts} из ${GOAL_HEARTS} сердец.\n\nЖизнь: -1 ❤️`;
+
+            if (window.NovelEngine && dialogueLose) {
+                window.NovelEngine.run(dialogueLose, () => {
+                    showOverlay('Слитый бой...', loseText);
+                });
+            } else {
+                showOverlay('Слитый бой...', loseText);
+            }
+            return;
+        }
+
+        if (!hasPossibleMoves()) {
+            shuffleBoard();
+        }
+    }
+
+    function showOverlay(title, text) {
+        if (overlayResults) {
+            if (resultsTitle) resultsTitle.textContent = title;
+            if (resultsText) resultsText.textContent = text;
+            overlayResults.classList.remove('hidden');
+        }
+    }
+
+    function pulseToast(msg) {
+        if (toastEl) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(pulseToast._t);
+            pulseToast._t = setTimeout(() => toastEl.classList.remove('show'), 1200);
+        }
+    }
+
+    const btnResultsClose = document.getElementById('btnResultsClose');
+    if (btnResultsClose) {
+        btnResultsClose.addEventListener('click', () => {
+            if (overlayResults) overlayResults.classList.add('hidden');
+            
+            if (hearts >= GOAL_HEARTS) {
+                if (window.GameState) {
+                    window.GameState.nextLevel(); 
+                }
+            }
+
+            if (window.showScreen) {
+                window.showScreen('screenMap'); 
+            }
+        });
+    }
+
+    window.openPreLevelScreen = openPreLevelScreen;
+    console.log("match3.js: Супер-комбинации бустеров успешно настроены!");
+})();
