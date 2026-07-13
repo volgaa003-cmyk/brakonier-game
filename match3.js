@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ИСПРАВЛЕННЫЙ — УНИЧТОЖЕНИЕ ЯЩИКОВ ВЫВЕРЕНО)
-// Движок "Три в ряд" с авто-перемешиванием и умной гравитацией
+// match3.js (ИСПРАВЛЕННЫЙ — АВИА-КОНТРОЛЬ ПОЛЕТОВ)
+// Движок "Три в ряд" с блокировкой поля во время полета самолетов
 // ================================================
 
 (function() {
@@ -30,6 +30,9 @@
     let hearts = 0, moves = 20;
     let busy = false;
     let tileIdCounter = 0;
+
+    // Счетчик активных самолетов в воздухе для защиты от рассинхрона
+    let activePlanesCount = 0;
 
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
@@ -592,7 +595,7 @@
         return foundTarget ? { r: targetRow, c: targetCol } : null;
     }
 
-    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ ====================
+    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ (БЛОКИРОВКА АВИА-КОНТРОЛЕМ) ====================
 
     function comboFootprint(a, b){
         let cells = new Set();
@@ -600,6 +603,7 @@
         const has = t => kinds.includes(t);
         const isRocket = t => t === 'rocketRow' || t === 'rocketCol';
         
+        // КЛАССИКА 1: Радужный шар + любой Бустер (Ракеты, Бомбы, Самолётики)
         if (has('rainbow') && (has('bomb') || has('rocketRow') || has('rocketCol') || has('plane'))) {
             const boosterType = a.type === 'rainbow' ? b.type : a.type;
             const colors = presentColors();
@@ -615,6 +619,7 @@
                     }
                 }
 
+                // Превращаем все плитки этого цвета в данный бустер и последовательно взрываем!
                 targets.forEach(({r, c}) => {
                     const tile = grid[r][c];
                     if (tile) {
@@ -635,57 +640,94 @@
             return cells;
         }
 
+        // КЛАССИКА 2: Самолётик + Самолётик (Запуск эскадрильи из 3-х птиц!)
         if (has('plane') && has('plane')) {
-            cells = computeActivationFootprint(a); 
-            clearAndContinue(cells, []);
+            cells = computeActivationFootprint(a); // Очищаем крест в точке запуска
+            
+            // Включаем блокировку: летят 3 самолетика
+            activePlanesCount += 3;
 
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    const target = findBestTargetForPlane(a.row, a.col);
-                    if (target) {
-                        animatePlaneEffect(a.row, a.col, target.r, target.c, () => {
-                            const targetCell = new Set([key(target.r, target.c)]);
-                            clearAndContinue(targetCell, []);
-                        });
-                    }
-                }, i * 120);
-            }
+            clearAndContinue(cells, [], null, () => {
+                // По очереди отправляем 3 самолетика в разные важные цели!
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const target = findBestTargetForPlane(a.row, a.col);
+                        if (target) {
+                            animatePlaneEffect(a.row, a.col, target.r, target.c, () => {
+                                const targetCell = new Set([key(target.r, target.c)]);
+                                clearAndContinue(targetCell, [], null, () => {
+                                    activePlanesCount--;
+                                    if (activePlanesCount === 0) {
+                                        busy = false;
+                                        checkEndConditions();
+                                    }
+                                });
+                            });
+                        } else {
+                            activePlanesCount--;
+                            if (activePlanesCount === 0) {
+                                busy = false;
+                                checkEndConditions();
+                            }
+                        }
+                    }, i * 120);
+                }
+            });
 
             pulseToast('✈️ Эскадрилья самолётиков!');
-            return new Set(); 
+            return new Set(); // Возвращаем пустоту, так как запуск мы обработали вручную
         }
 
+        // КЛАССИКА 3: Самолётик + Бомба / Ракета
         if (has('plane') && (has('bomb') || has('rocketRow') || has('rocketCol'))) {
             const boosterType = a.type === 'plane' ? b.type : a.type;
             const plane = a.type === 'plane' ? a : b;
 
-            cells = computeActivationFootprint(plane); 
-            clearAndContinue(cells, []);
+            cells = computeActivationFootprint(plane); // Очищаем крест на старте
+            
+            // Включаем блокировку: летит 1 грузовой самолетик
+            activePlanesCount++;
 
-            const target = findBestTargetForPlane(plane.row, plane.col);
-            if (target) {
-                animatePlaneEffect(plane.row, plane.col, target.r, target.c, () => {
-                    const dummyTile = { type: boosterType, row: target.r, col: target.c, id: 'dummy' };
-                    let blastCells = new Set();
+            clearAndContinue(cells, [], null, () => {
+                const target = findBestTargetForPlane(plane.row, plane.col);
+                if (target) {
+                    animatePlaneEffect(plane.row, plane.col, target.r, target.c, () => {
+                        const dummyTile = { type: boosterType, row: target.r, col: target.c, id: 'dummy' };
+                        let blastCells = new Set();
 
-                    if (boosterType === 'bomb') {
-                        animateBombEffect(target.r, target.c);
-                        footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
-                    } else if (boosterType === 'rocketRow') {
-                        animateRocketEffect(target.r, target.c, true);
-                        footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
-                    } else {
-                        animateRocketEffect(target.r, target.c, false);
-                        footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        if (boosterType === 'bomb') {
+                            animateBombEffect(target.r, target.c);
+                            footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        } else if (boosterType === 'rocketRow') {
+                            animateRocketEffect(target.r, target.c, true);
+                            footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        } else {
+                            animateRocketEffect(target.r, target.c, false);
+                            footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        }
+                        
+                        clearAndContinue(blastCells, [], null, () => {
+                            activePlanesCount--;
+                            if (activePlanesCount === 0) {
+                                busy = false;
+                                checkEndConditions();
+                            }
+                        });
+                    });
+                } else {
+                    activePlanesCount--;
+                    if (activePlanesCount === 0) {
+                        busy = false;
+                        checkEndConditions();
                     }
-                    clearAndContinue(blastCells, []);
-                });
-            }
+                }
+            });
 
             pulseToast('📦 Доставка взрывчатки!');
             return new Set();
         }
 
+        // Обычные слияния (Бомба+Бомба, Ракета+Бомба, Ракета+Ракета)
         if(has('bomb') && has('bomb')){
             const center = a;
             animateBombEffect(center.row, center.col);
@@ -753,6 +795,9 @@
             clearAndContinue(cells, []);
         } 
         else if (tile.type === 'plane') {
+            // Включаем блокировку: летит одиночный самолетик
+            activePlanesCount++;
+
             const target = findBestTargetForPlane(tile.row, tile.col);
             let targetRow = tile.row, targetCol = tile.col;
 
@@ -763,11 +808,19 @@
             cells = computeActivationFootprint(tile);
             cells.delete(key(targetRow, targetCol)); 
 
-            clearAndContinue(cells, []);
-
-            animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
-                const finalCell = new Set([key(targetRow, targetCol)]);
-                clearAndContinue(finalCell, []);
+            clearAndContinue(cells, [], null, () => {
+                // Полет
+                animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
+                    const finalCell = new Set([key(targetRow, targetCol)]);
+                    clearAndContinue(finalCell, [], null, () => {
+                        // Полет завершен, снимаем блокировку
+                        activePlanesCount--;
+                        if (activePlanesCount === 0) {
+                            busy = false;
+                            checkEndConditions();
+                        }
+                    });
+                });
             });
         } 
         else if(tile.type === 'rainbow'){
@@ -796,7 +849,6 @@
         clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
-    // ИСПРАВЛЕНА ПОЛОМКА КОРОБОК (Теперь всегда убирает статус 2 на 1 в levelLayout)
     function checkAndBreakBoxes(clearSet) {
         const boxesToBreak = new Set();
 
@@ -820,7 +872,6 @@
             const [br, bc] = k.split(',').map(Number);
             const boxTile = grid[br][bc];
             if (boxTile) {
-                // ВАЖНЕЙШЕЕ ИСПРАВЛЕНИЕ: Превращаем ячейку ящика в обычное поле (1) для корректной гравитации!
                 levelLayout[br][bc] = 1;
 
                 boxTile.el.classList.add('clearing');
@@ -834,7 +885,7 @@
         });
     }
 
-    function clearAndContinue(clearSet, specialSpawns, scoreSet){
+    function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
         let heartsGained=0;
@@ -850,7 +901,7 @@
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
             if (t && t.type === 'box') {
-                levelLayout[r][c] = 1; // Превращаем её ячейку в обычное поле!
+                levelLayout[r][c] = 1; 
             }
         });
 
@@ -891,8 +942,14 @@
                 const result = analyzeMatches();
                 const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
                 if(!hasMore){
-                    busy = false;
-                    checkEndConditions();
+                    // Запускаем колбэк по окончанию цепочки падений
+                    if (onComplete) onComplete();
+                    
+                    // Блокируем поле ТОЛЬКО если все самолеты закончили полет
+                    if (activePlanesCount === 0) {
+                        busy = false;
+                        checkEndConditions();
+                    }
                 } else {
                     applyResolutionFull(result);
                 }
@@ -900,21 +957,18 @@
         }, CLEAR_MS);
     }
 
-    // ИСПРАВЛЕННЫЙ АЛГОРИТМ УМНОЙ ГРАВИТАЦИИ (Гриф больше не ломается при падении фишек на место коробок)
+    // УМНЫЙ АЛГОРИТМ ГРАВИТАЦИИ
     function applyGravityAndRefill(){
         for(let c=0;c<SIZE;c++){
-            // 1. Собираем все подвижные фишки из этой колонки (исключаем твердые коробки)
             const movableTiles = [];
             for(let r=0;r<SIZE;r++){
                 const t = grid[r][c];
-                // Ящики с кодом 2 не трогаем — они стоят намертво!
                 if(t && t.type !== 'box' && levelLayout[r][c] !== 2){
                     movableTiles.push(t);
-                    grid[r][c] = null; // Освобождаем клетку в памяти
+                    grid[r][c] = null; 
                 }
             }
 
-            // 2. Раскладываем подвижные фишки обратно снизу вверх только в разрешенные ячейки (1)
             let spawnOffset = 1;
             for(let r=SIZE-1;r>=0;r--){
                 const cellType = levelLayout[r][c];
@@ -925,14 +979,12 @@
                         grid[r][c] = t;
                         moveTileTo(t, r, c);
                     } else {
-                        // Если фишек не хватило — плавно насыпаем новые сверху
                         grid[r][c] = createTile(r, c, randType(), -spawnOffset);
                         spawnOffset++;
                     }
                 } else if (cellType === 2) {
                     // Коробка — стоит на месте
                 } else {
-                    // Пустота — оставляем null
                     grid[r][c] = null;
                 }
             }
