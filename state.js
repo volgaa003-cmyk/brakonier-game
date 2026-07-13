@@ -1,17 +1,15 @@
 // ================================================
-// state.js
-// Модуль управления сохранением и ресурсами игры
+// state.js (ОБНОВЛЕННЫЙ)
+// Модуль управления сохранениями, ресурсами и задачами
 // ================================================
 
 (function() {
-    // Дефолтные настройки новой игры (если игрок зашел в первый раз)
     const DEFAULT_STATE = {
-        lives: 5,               // Жизни
-        stars: 0,               // Звезды для ремонта
-        cash: 250,              // Валюта (монеты)
-        reputation: 10,         // Репутация браконьера (для выборов)
-        currentLevel: 1,        // Текущий уровень три в ряд
-        // Статус ремонта мебели в первой комнате Убежища
+        lives: 5,               
+        stars: 1,               // Даем 1 звезду на старт, чтобы можно было сразу купить Пролог!
+        cash: 250,              
+        reputation: 10,         
+        currentLevel: 1,        
         decor: {
             floor: "Гнилые доски",
             walls: "Осыпающаяся штукатурка",
@@ -19,45 +17,40 @@
             table: "Шатающийся верстак",
             cabinet: "Сломанный комод",
             windows: "Забиты фанерой"
-        }
+        },
+        completedTasks: []      // Список ID купленных сюжетных глав и выполненных задач
     };
 
-    // Переменная, где будут храниться текущие данные игрока во время игры
     let state = {};
 
-    // 1. ФУНКЦИЯ СОХРАНЕНИЯ ИГРЫ
     function saveGame() {
         try {
-            // Превращаем данные в текст и пишем в память браузера (localStorage)
             localStorage.setItem('poacher_game_save', JSON.stringify(state));
         } catch (e) {
-            console.error("Не удалось сохранить игру в localStorage:", e);
+            console.error("Не удалось сохранить игру:", e);
         }
     }
 
-    // 2. ФУНКЦИЯ ЗАГРУЗКИ ИГРЫ
     function loadGame() {
         const savedData = localStorage.getItem('poacher_game_save');
         if (savedData) {
             try {
-                // Если сохранение есть, читаем его
                 state = JSON.parse(savedData);
+                // Защита: если у старого игрока нет этого поля, создаем его
+                if (!state.completedTasks) {
+                    state.completedTasks = [];
+                }
             } catch (e) {
-                // Если сохранение повреждено, берем чистую игру
-                console.error("Ошибка чтения сохранения. Начинаем новую игру.");
                 state = JSON.parse(JSON.stringify(DEFAULT_STATE));
             }
         } else {
-            // Если игрок зашел впервые — даем ему дефолтный профиль
             state = JSON.parse(JSON.stringify(DEFAULT_STATE));
         }
         
-        // Сразу обновляем все показатели на экране после загрузки
         updateHUD();
         updateHideoutInterior();
     }
 
-    // 3. ОБНОВЛЕНИЕ ВЕРХНЕЙ ПАНЕЛИ (HUD) НА ЭКРАНЕ
     function updateHUD() {
         const hudLives = document.getElementById('hudLives');
         const hudStars = document.getElementById('hudStars');
@@ -70,7 +63,6 @@
         if (hudRep) hudRep.textContent = state.reputation;
     }
 
-    // 4. ОБНОВЛЕНИЕ ТЕКСТА ИНТЕРЬЕРА В УБЕЖИЩЕ
     function updateHideoutInterior() {
         const dFloor = document.getElementById('decorFloor');
         const dWalls = document.getElementById('decorWalls');
@@ -87,18 +79,17 @@
         if (dWindows && state.decor.windows) dWindows.textContent = state.decor.windows;
     }
 
-    // 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ДРУГИХ МОДУЛЕЙ (Геттеры и Сеттеры)
-    // Чтобы другие JS-файлы могли легко менять баланс и мебель
     const GameState = {
-        // Узнать баланс
         getStars: () => state.stars,
         getLives: () => state.lives,
         getCash: () => state.cash,
         getReputation: () => state.reputation,
         getCurrentLevel: () => state.currentLevel,
         getDecor: (item) => state.decor[item],
+        
+        // Проверка: куплена ли задача/глава
+        isTaskCompleted: (taskId) => state.completedTasks.includes(taskId),
 
-        // Изменить баланс звезд
         addStars: (amount) => {
             state.stars += amount;
             updateHUD();
@@ -109,12 +100,11 @@
                 state.stars -= amount;
                 updateHUD();
                 saveGame();
-                return true; // Успешно потрачено
+                return true; 
             }
-            return false; // Звезд не хватило
+            return false; 
         },
 
-        // Изменить баланс денег
         addCash: (amount) => {
             state.cash += amount;
             updateHUD();
@@ -130,14 +120,12 @@
             return false;
         },
 
-        // Изменить репутацию
         addReputation: (amount) => {
             state.reputation += amount;
             updateHUD();
             saveGame();
         },
 
-        // Списать одну жизнь при проигрыше
         loseLife: () => {
             if (state.lives > 0) {
                 state.lives--;
@@ -146,7 +134,6 @@
             }
         },
 
-        // Начислить жизнь
         addLife: () => {
             if (state.lives < 5) {
                 state.lives++;
@@ -155,13 +142,11 @@
             }
         },
 
-        // Перейти на следующий уровень
         nextLevel: () => {
             state.currentLevel++;
             saveGame();
         },
 
-        // Заменить предмет мебели в Убежище
         updateDecorItem: (item, newValue) => {
             if (state.decor.hasOwnProperty(item)) {
                 state.decor[item] = newValue;
@@ -170,7 +155,14 @@
             }
         },
 
-        // Функция сброса сохранения (для тестов)
+        // Помечаем сюжет или ремонт как выполненный/купленный
+        completeTask: (taskId) => {
+            if (!state.completedTasks.includes(taskId)) {
+                state.completedTasks.push(taskId);
+                saveGame();
+            }
+        },
+
         resetAll: () => {
             state = JSON.parse(JSON.stringify(DEFAULT_STATE));
             updateHUD();
@@ -179,12 +171,10 @@
         }
     };
 
-    // Экспортируем модуль глобально, чтобы он был виден во всех остальных JS файлах
     window.GameState = GameState;
 
-    // Автоматическая загрузка сохранения при старте игры
     document.addEventListener("DOMContentLoaded", () => {
         loadGame();
-        console.log("state.js: Профиль игрока успешно загружен!");
+        console.log("state.js: Сохранения обновлены!");
     });
 })();
