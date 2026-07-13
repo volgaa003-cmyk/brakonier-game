@@ -1,99 +1,99 @@
 // ================================================
-// meta.js
-// Движок обустройства Убежища и менеджер заданий
+// meta.js (С СЮЖЕТНЫМИ ГЛАВАМИ ЗА ЗВЕЗДЫ)
+// Движок обустройства Убежища и покупки сюжета
 // ================================================
 
 (function() {
-    // 1. ДЕФОЛТНЫЕ СТАРТОВЫЕ НАЗВАНИЯ ПРЕДМЕТОВ (Нужны для проверки выполнения задач)
-    const DEFAULT_DECOR_NAMES = {
-        floor: "Гнилые доски",
-        walls: "Осыпающаяся штукатурка",
-        bed: "Пыльный матрас",
-        table: "Шатающийся верстак",
-        cabinet: "Сломанный комод",
-        windows: "Забиты фанерой"
-    };
-
-    // 2. ПОЛНАЯ БАЗА ДАННЫХ ЗАДАНИЙ ПО РЕМОНТУ (Все зоны, которые ты просил)
+    // ПОЛНАЯ БАЗА ДАННЫХ ЗАДАЧ (Сюжетные главы + Ремонт мебели)
     const hideoutTasks = [
+        // Сюжетные главы (Покупка истории за звезды)
+        { 
+            id: "story_prologue", 
+            title: "📖 Читать Пролог: Поездка к кочегарке Митрича", 
+            cost: 1, 
+            dialog: "1", // ID диалога Пролога из dialogs.js
+            isStory: true 
+        },
+        
+        // Ремонт комнат (Покупка мебели за звезды)
         { 
             id: "floor", 
-            title: "Заменить гнилой деревянный пол на прочный дубовый паркет", 
+            title: "🛠️ Отремонтировать гнилой пол в жилом блоке", 
             cost: 1, 
             dialog: "task_floor", 
             targetKey: "floor", 
-            newValue: "🪵 Крепкий дубовый паркет" 
+            newValue: "杜 дубовый паркет",
+            isStory: false
         },
         { 
             id: "walls", 
-            title: "Укрепить осыпающиеся стены стальными листами и бетоном", 
+            title: "🧱 Укрепить стены стальными листами", 
             cost: 1, 
             dialog: "task_walls", 
             targetKey: "walls", 
-            newValue: "🧱 Бронированные стены" 
+            newValue: "🧱 Бронированные стены",
+            isStory: false
         },
         { 
             id: "bed", 
-            title: "Собрать удобную армейскую койку вместо старого матраса", 
+            title: "🛏️ Заменить старый матрас на армейскую койку", 
             cost: 1, 
             dialog: "task_bed", 
             targetKey: "bed", 
-            newValue: "🛏️ Надежная армейская койка" 
+            newValue: "🛏️ Надежная армейская койка",
+            isStory: false
         },
         { 
             id: "table", 
-            title: "Заменить шатающийся стол на тяжелый стальной верстак", 
+            title: "🛠️ Поставить тяжелый стальной верстак", 
             cost: 1, 
             dialog: "task_table", 
             targetKey: "table", 
-            newValue: "🛠️ Стальной верстак браконьера" 
+            newValue: "🛠️ Стальной верстак браконьера",
+            isStory: false
         },
         { 
             id: "cabinet", 
-            title: "Починить старый шкаф и превратить его в сейф для патронов", 
+            title: "🚪 Переделать шкаф в оружейный сейф", 
             cost: 2, 
             dialog: "task_cabinet", 
             targetKey: "cabinet", 
-            newValue: "🚪 Стальной сейф-оружейный шкаф" 
+            newValue: "🚪 Стальной сейф-шкаф",
+            isStory: false
         },
         { 
             id: "windows", 
-            title: "Установить на окна тяжелые бронированные ставни от вурдалаков", 
+            title: "🪟 Установить бронированные ставни на окна", 
             cost: 2, 
             dialog: "task_windows", 
             targetKey: "windows", 
-            newValue: "🪟 Бронированные ставни" 
+            newValue: "🪟 Бронированные ставни",
+            isStory: false
         }
     ];
 
-    // Находим элементы на странице
     const overlayTasks = document.getElementById('overlayTasks');
     const tasksListContainer = document.getElementById('tasksListContainer');
     const btnOpenTasks = document.getElementById('btnOpenTasks');
     const btnCloseTasks = document.getElementById('btnCloseTasks');
 
-    // 3. ОТРИСОВКА СПИСКА ЗАДАНИЙ В МЕНЮ
+    // ОТРИСОВКА СПИСКА ЗАДАНИЙ В МЕНЮ
     function renderTasksList() {
         if (!tasksListContainer) return;
         
-        // Очищаем прошлый список перед новой отрисовкой
         tasksListContainer.innerHTML = "";
 
         hideoutTasks.forEach(task => {
-            // Проверяем статус выполнения: если текст мебели в GameState НЕ равен дефолтному — значит ремонт выполнен!
-            const currentDecorValue = window.GameState ? window.GameState.getDecor(task.targetKey) : "";
-            const isCompleted = currentDecorValue !== DEFAULT_DECOR_NAMES[task.targetKey];
+            // Проверяем, выполнена ли задача через GameState
+            const isCompleted = window.GameState ? window.GameState.isTaskCompleted(task.id) : false;
 
-            // Создаем визуальную карточку для каждого дела
             const taskEl = document.createElement('div');
             taskEl.className = 'task-item';
 
             let buttonContent = "";
             if (isCompleted) {
-                // Если задание уже выполнено
-                buttonContent = `<span style="color: var(--toxic); font-weight: 800; font-size: 13px;">Выполнено ✔</span>`;
+                buttonContent = `<span style="color: var(--toxic); font-weight: 800; font-size: 13px;">Куплено ✔</span>`;
             } else {
-                // Если задание доступно для выполнения
                 buttonContent = `<button class="task-btn" data-task-id="${task.id}">⭐ ${task.cost}</button>`;
             }
 
@@ -107,7 +107,7 @@
             tasksListContainer.appendChild(taskEl);
         });
 
-        // Навешиваем слушатели событий на все кнопки покупки
+        // Слушатели на кнопки покупки
         const actionButtons = tasksListContainer.querySelectorAll('.task-btn');
         actionButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -117,42 +117,46 @@
         });
     }
 
-    // 4. ПРОЦЕСС ВЫПОЛНЕНИЯ ЗАДАНИЯ (ТРАТА ЗВЕЗД И РЕМОНТ)
+    // ПРОЦЕСС ВЫПОЛНЕНИЯ ЗАДАНИЯ
     function executeTask(taskId) {
         const task = hideoutTasks.find(t => t.id === taskId);
         if (!task) return;
 
-        // Пытаемся списать звезды через GameState
+        // Списываем звезды
         if (window.GameState && window.GameState.spendStars(task.cost)) {
-            // Успешно списано! Обновляем предмет интерьера
-            window.GameState.updateDecorItem(task.targetKey, task.newValue);
+            
+            // Записываем задачу как выполненную
+            window.GameState.completeTask(task.id);
+
+            // Если это ремонт мебели — обновляем ее вид в Убежище
+            if (!task.isStory && task.targetKey && task.newValue) {
+                window.GameState.updateDecorItem(task.targetKey, task.newValue);
+            }
 
             // Закрываем оверлей списка задач
             if (overlayTasks) {
                 overlayTasks.classList.add('hidden');
             }
 
-            // Пытаемся запустить связанную сюжетную сцену через движок новеллы
+            // Запускаем сюжетный диалог (Новеллу Клуба Романтики)
             const storyDialog = window.gameDialogs ? window.gameDialogs[task.dialog] : null;
             
             if (window.NovelEngine && storyDialog) {
-                // Запускаем сюжетный диалог, после которого обновляем экран
                 window.NovelEngine.run(storyDialog, () => {
-                    showToast("Обустройство завершено!");
+                    showToast("Успешно!");
                     renderTasksList();
+                    if (window.showScreen) window.showScreen('screenHideout');
                 });
             } else {
-                // Если диалога нет (или файл dialogs.js не подгрузился) — просто пишем тост
-                showToast("Убежище улучшено!");
+                showToast("Успешно!");
                 renderTasksList();
+                if (window.showScreen) window.showScreen('screenHideout');
             }
         } else {
-            // Если звезд не хватило
-            showToast("Недостаточно звезд! Сделайте вылазку на КПП.");
+            showToast("Недостаточно звезд! Пройдите уровень на КПП.");
         }
     }
 
-    // Вспомогательный всплывающий тост для предупреждений
     function showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) {
@@ -162,7 +166,6 @@
         }
     }
 
-    // 5. НАСТРОЙКА КНОПОК ОТКРЫТИЯ/ЗАКРЫТИЯ МЕНЮ ЗАДАЧ
     if (btnOpenTasks) {
         btnOpenTasks.addEventListener('click', () => {
             renderTasksList();
@@ -180,11 +183,10 @@
         });
     }
 
-    // Экспортируем модуль ремонта глобально для использования при старте игры
     window.HideoutUpgradeEngine = {
         render: renderTasksList,
         tasks: hideoutTasks
     };
 
-    console.log("meta.js: Модуль ремонта Убежища успешно подключен!");
+    console.log("meta.js: Сюжетные главы за звезды успешно подключены!");
 })();
