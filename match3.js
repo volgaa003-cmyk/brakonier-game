@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ С АНИМАЦИЯМИ БОНУСОВ)
-// Движок "Три в ряд" с физикой ракет, бомб и самолётиков
+// match3.js (ПЛАВНЫЙ И ВЕСОМЫЙ)
+// Движок "Три в ряд" с мягкой Homescapes физикой полетов
 // ================================================
 
 (function() {
@@ -15,9 +15,10 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    const SWAP_MS = 180;  
-    const CLEAR_MS = 200; 
-    const FALL_MS = 240;  
+    // Мягкие и физичные таймигиHomescapes (свапы 240мс, падение 300мс)
+    const SWAP_MS = 240;  
+    const CLEAR_MS = 260; 
+    const FALL_MS = 300;  
 
     let currentLevelId = 1;
     let GOAL_HEARTS = 12;
@@ -212,8 +213,8 @@
             return;
         }
         if(selected === tile){
-            tile.el.classList.remove('selected');
             selected = null;
+            tile.el.classList.remove('selected');
             return;
         }
         const adjacent = Math.abs(selected.row-tile.row) + Math.abs(selected.col-tile.col) === 1;
@@ -445,11 +446,10 @@
         return Array.from(set);
     }
 
-    // ==================== 1. ДИНАМИЧЕСКИЕ АНИМАЦИИ БОНУСОВ HOMESCAPES ====================
+    // ==================== 1. ПЛАВНЫЕ АНИМАЦИИ БОНУСОВ HOMESCAPES (МЯГКИЙ ТЕМП) ====================
 
-    // Анимация улетающих Ракет 🚀
+    // Медленный полет Ракет 🚀 (0.45 секунды)
     function animateRocketEffect(row, col, isRow) {
-        // Создаем два снаряда
         const proj1 = document.createElement('div');
         const proj2 = document.createElement('div');
         proj1.className = 'm3-projectile';
@@ -457,14 +457,12 @@
         proj1.textContent = '🚀';
         proj2.textContent = '🚀';
 
-        // Ставим их на стартовую позицию взрывающейся ракеты
         proj1.style.left = (col * 100 / SIZE) + '%';
         proj1.style.top = (row * 100 / SIZE) + '%';
         proj2.style.left = (col * 100 / SIZE) + '%';
         proj2.style.top = (row * 100 / SIZE) + '%';
 
         if (isRow) {
-            // Горизонтальная ракета разворачивается боком
             proj1.style.transform = 'rotate(-90deg)';
             proj2.style.transform = 'rotate(90deg)';
         }
@@ -472,7 +470,6 @@
         boardEl.appendChild(proj1);
         boardEl.appendChild(proj2);
 
-        // На следующем кадре уносим их в противоположные концы
         setTimeout(() => {
             if (isRow) {
                 proj1.style.left = '-120%';
@@ -485,14 +482,14 @@
             }
         }, 16);
 
-        // Стираем снаряды после пролета
+        // Стираем снаряды после завершения медленного полета (450мс)
         setTimeout(() => {
             proj1.remove();
             proj2.remove();
-        }, 300);
+        }, 450);
     }
 
-    // Анимация ударной волны Бомбы 💣 (Раздувание купола)
+    // Медленное раздувание взрывного купола Бомбы 💣 (0.35 секунды)
     function animateBombEffect(row, col) {
         const wave = document.createElement('div');
         wave.className = 'bomb-shockwave';
@@ -501,19 +498,17 @@
 
         boardEl.appendChild(wave);
 
-        // За секунду раздуваем купол и делаем его невидимым
         setTimeout(() => {
-            wave.style.transform = 'scale(5.5)'; // Охватывает радиус 5х5
+            wave.style.transform = 'scale(5.5)'; 
             wave.style.opacity = '0';
         }, 16);
 
-        // Удаляем волну после взрыва
         setTimeout(() => {
             wave.remove();
-        }, 280);
+        }, 350); // Увеличено до 350мс для тяжелого взрыва
     }
 
-    // Анимация взлета и полета Самолётика точно в цель ✈️
+    // Мягкий и красивый вираж Самолётика ✈️ (0.5 секунды)
     function animatePlaneEffect(startRow, startCol, targetRow, targetCol, onArrive) {
         const plane = document.createElement('div');
         plane.className = 'm3-projectile';
@@ -523,28 +518,27 @@
 
         boardEl.appendChild(plane);
 
-        // Направление полета (чтобы развернуть нос самолета в сторону цели)
         const dx = targetCol - startCol;
         const dy = targetRow - startRow;
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI + 45; // Смещение на 45 градусов под иконку
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI + 45; 
 
-        // Сначала делаем петлю взлета
+        // 1. Медленный запуск и петля взлета (60мс)
         setTimeout(() => {
             plane.style.transform = `scale(1.4) rotate(${angle - 180}deg)`;
-        }, 30);
+        }, 60);
 
-        // Затем стремительно летим в цель по дуге
+        // 2. Размеренный перелет по дуге (180мс)
         setTimeout(() => {
             plane.style.left = (targetCol * 100 / SIZE) + '%';
             plane.style.top = (targetRow * 100 / SIZE) + '%';
             plane.style.transform = `scale(1.1) rotate(${angle}deg)`;
-        }, 100);
+        }, 180);
 
-        // Приземление и подрыв цели
+        // 3. Приземление и взрыв цели на 500мс (плавный полет)
         setTimeout(() => {
             plane.remove();
             if (onArrive) onArrive();
-        }, 320);
+        }, 500);
     }
 
     // ======================================================================
@@ -624,7 +618,6 @@
         moves--; updateMatch3HUD();
         let cells;
 
-        // ЗАПУСКАЕМ ДИНАМИЧЕСКИЕ АНИМАЦИИ ДЛЯ ОДИНОЧНЫХ БОНУСОВ
         if (tile.type === 'bomb') {
             animateBombEffect(tile.row, tile.col);
             cells = computeActivationFootprint(tile);
@@ -641,11 +634,10 @@
             clearAndContinue(cells, []);
         } 
         else if (tile.type === 'plane') {
-            // Находим лучшую цель для самолетика
             let targetRow = tile.row, targetCol = tile.col;
             let foundTarget = false;
 
-            // Сначала ищем коробки-препятствия
+            // Самолётик летит сначала в ящики
             for (let r=0; r<SIZE; r++) {
                 for (let c=0; c<SIZE; c++) {
                     if (grid[r][c] && grid[r][c].type === 'box') {
@@ -657,7 +649,7 @@
                 if (foundTarget) break;
             }
 
-            // Если коробок нет — летим в случайное сердце
+            // Если коробок нет — летит в сердца
             if (!foundTarget) {
                 for (let r=0; r<SIZE; r++) {
                     for (let c=0; c<SIZE; c++) {
@@ -671,7 +663,7 @@
                 }
             }
 
-            // Если и сердец нет — летим в любую случайную клетку на поле
+            // Иначе в любую случайную
             if (!foundTarget) {
                 const candidates = [];
                 for (let r=0; r<SIZE; r++) {
@@ -687,15 +679,13 @@
                 }
             }
 
-            // Сначала убираем 4 фишки крестом вокруг самолетика
             cells = computeActivationFootprint(tile);
-            cells.delete(key(targetRow, targetCol)); // Саму цель уберем чуть позже
+            cells.delete(key(targetRow, targetCol)); 
 
             clearAndContinue(cells, []);
 
-            // Запускаем физический полет самолетика
+            // Плавный полет
             animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
-                // При приземлении убираем целевую фишку
                 const finalCell = new Set([key(targetRow, targetCol)]);
                 clearAndContinue(finalCell, []);
             });
@@ -1029,5 +1019,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Физика ракет, бомб и самолётиков успешно подключена!");
+    console.log("match3.js: Плавные анимации ракет, бомб и самолётиков успешно настроены!");
 })();
