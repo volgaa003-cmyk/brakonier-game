@@ -38,18 +38,21 @@
     min-height:100vh;
     padding:10px;
   }
-  h1{font-family:'Bangers', cursive;letter-spacing:2px;font-size:34px;color:var(--blood);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);margin:6px 0 2px 0;text-align:center;}
-  .subtitle{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--paper);opacity:.7;margin-bottom:10px;}
+  h1{font-family:'Bangers', cursive;letter-spacing:2px;font-size:34px;color:var(--blood);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);margin:4px 0 2px 0;text-align:center;}
+  .subtitle{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--paper);opacity:.7;margin-bottom:8px;}
   
   /* Верхняя панель (HUD) */
-  .hud{display:flex;gap:6px;width:100%;max-width:440px;margin-bottom:10px;}
-  .stat{flex:1;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:4px 6px;text-align:center;}
-  .stat .label{font-size:8px;text-transform:uppercase;letter-spacing:1px;opacity:.6;font-weight:600;}
-  .stat .value{font-family:'Bangers',cursive;font-size:18px;line-height:1.1;}
+  .hud{display:flex;gap:4px;width:100%;max-width:460px;margin-bottom:10px;flex-wrap:nowrap;}
+  .stat{flex:1;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:4px 2px;text-align:center;min-width:60px;}
+  .stat .label{font-size:8px;text-transform:uppercase;letter-spacing:0.5px;opacity:.6;font-weight:600;}
+  .stat .value{font-family:'Bangers',cursive;font-size:16px;line-height:1.1;}
   .stat.stars-stat .value{color:var(--gold);}
   .stat.hearts .value{color:var(--blood-dark);}
   .stat.moves .value{color:var(--violet);}
   .stat.cash .value{color:#8a6a1a;}
+  
+  /* Кнопки интерфейса */
+  .hud-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:4px 8px;font-weight:bold;font-size:11px;box-shadow:var(--panel-shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;text-transform:uppercase;}
   .help-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;box-shadow:var(--panel-shadow);cursor:pointer;flex-shrink:0;}
   
   .goal{width:100%;max-width:420px;background:var(--blood);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
@@ -59,16 +62,16 @@
   #boardWrap{background:var(--ink);border:4px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 rgba(0,0,0,.5);padding:6px;width:min(420px, 94vw);}
   #board{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;transition:opacity 0.2s ease;}
   
-  /* Оптимизированные фишки с использованием аппаратного ускорения (GPU) */
+  /* Фишки (Оптимизация рендеринга и поддержка тача) */
   .tile{
     position:absolute;
     width:calc(100% / var(--size));
     height:calc(100% / var(--size));
-    /* Более резкие и быстрые кривые перехода */
     transition:left .18s cubic-bezier(.25,1,.5,1), top .22s cubic-bezier(.25,1,.5,1);
     cursor:pointer;
     z-index:1;
-    will-change: left, top; /* Ускоряет анимацию через видеокарту */
+    will-change: left, top;
+    touch-action: none; /* Отключаем стандартный скролл при перетаскивании фишек */
   }
   .tile-inner{
     position:absolute;
@@ -81,7 +84,7 @@
     border-radius:8px;
     border:2px solid var(--ink);
     transition:transform .15s ease, opacity .15s ease, background .15s ease, box-shadow .15s ease;
-    will-change: transform, opacity; /* Ускоряет взрывы и выделение */
+    will-change: transform, opacity;
   }
   @media(min-width:460px){.tile-inner{font-size:24px;}}
   .tile.selected .tile-inner{transform:scale(1.12) rotate(-4deg);box-shadow:0 0 0 3px var(--gold);z-index:2;}
@@ -90,14 +93,15 @@
   .tile.clearing .tile-inner{transform:scale(0);opacity:0;}
   .tile.clearing::after{content:"";position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 70%);animation:pop .25s ease-out forwards;pointer-events:none;}
   @keyframes pop{from{opacity:1;transform:scale(.4);}to{opacity:0;transform:scale(1.5);}}
-  @keyframes specialPulse{0%,100%{box-shadow:0 0 6px 1px rgba(255,255,255,.5);}50%{box-shadow:0 0 14px 4px rgba(255,255,255,.8);}
-  }
+  
+  @keyframes specialPulse{0%,100%{box-shadow:0 0 6px 1px rgba(255,255,255,.5);}50%{box-shadow:0 0 14px 4px rgba(255,255,255,.8);}}
   .tile.bomb .tile-inner{background:radial-gradient(circle, #ffdca8 0%, #d1793f 55%, var(--ink) 100%);animation:specialPulse .8s ease-in-out infinite;}
   .tile.rocket-row .tile-inner{background:linear-gradient(135deg, #bfe4ff, var(--sky));transform:rotate(90deg);animation:specialPulse .8s ease-in-out infinite;}
   .tile.rocket-row.selected .tile-inner{transform:rotate(90deg) scale(1.12);}
   .tile.rocket-col .tile-inner{background:linear-gradient(135deg, #bfe4ff, var(--sky));animation:specialPulse .8s ease-in-out infinite;}
   .tile.plane .tile-inner{background:linear-gradient(135deg, #d8f0ff, #6aa0c9);animation:specialPulse .8s ease-in-out infinite;}
   .tile.rainbow .tile-inner{background:conic-gradient(from 0deg, #ff5a6e, #ffd15a, #7ee08c, #5ab6ff, #b985ff, #ff5a6e);animation:specialPulse .7s ease-in-out infinite;}
+  
   .footer{margin-top:12px;font-size:11px;opacity:.55;text-align:center;max-width:340px;}
   #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:10px 18px;font-family:'Bangers',cursive;font-size:18px;letter-spacing:1px;opacity:0;transition:all .2s ease;pointer-events:none;z-index:50;max-width:80vw;text-align:center;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
@@ -182,6 +186,39 @@
     opacity: 0.6;
     text-transform: uppercase;
   }
+
+  /* Список заданий */
+  .task-item {
+    background: rgba(255,255,255,0.4);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .task-info {
+    text-align: left;
+  }
+  .task-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--ink);
+  }
+  .task-btn {
+    background: var(--toxic);
+    color: var(--paper);
+    font-family:'Bangers', cursive;
+    font-size: 14px;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 var(--ink);
+    white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -189,6 +226,7 @@
   <div class="subtitle">Охота на сердца · Пролог</div>
  
   <div class="hud">
+    <div class="hud-btn" id="tasksBtn">📋 Задачи</div>
     <div class="stat stars-stat"><div class="label">⭐ Звезды</div><div class="value" id="starsVal">0</div></div>
     <div class="stat hearts"><div class="label">❤️ Сердца</div><div class="value" id="heartsVal">0</div></div>
     <div class="stat moves"><div class="label">🎬 Ходы</div><div class="value" id="movesVal">20</div></div>
@@ -243,7 +281,7 @@
     </div>
   </div>
  
-  <!-- Справка по бонусам -->
+  <!-- Справка -->
   <div class="overlay hidden" id="helpOverlay">
     <div class="card">
       <h2>Комбинации бонусов</h2>
@@ -256,6 +294,16 @@
       <h3>🌈 Радужный + любой бонус</h3><p>Превращает самые частые фишки в этот бонус.</p>
       <h3>🌈 Радужный + 🌈 Радужный</h3><p>Убирает всё поле.</p>
       <button class="btn" id="closeHelpBtn">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ОКНО ЗАДАНИЙ СЮЖЕТА (Для продвижения по новелле) -->
+  <div class="overlay hidden" id="tasksOverlay">
+    <div class="card" style="max-width: 400px;">
+      <h2>🧾 Дела браконьера</h2>
+      <p style="font-size: 12px; margin-bottom: 16px; text-align: center;">Тратьте заработанные звезды на продвижение по сюжету:</p>
+      <div id="tasksList"></div>
+      <button class="btn" id="closeTasksBtn">Назад к охоте</button>
     </div>
   </div>
 
@@ -275,7 +323,7 @@
     if(tg){ tg.ready(); tg.expand(); }
   }catch(e){}
 
-  // Автогенерация уровней при отсутствии внешнего файла
+  // Уровни
   if (!window.LEVELS || window.LEVELS.length === 0) {
     window.LEVELS = [];
     for (let i = 1; i <= 300; i++) {
@@ -321,7 +369,7 @@
     }
   }
 
-  // Базовые диалоги
+  // Диалоги
   if (!window.DIALOGS) {
     window.DIALOGS = {
       1: {
@@ -336,9 +384,24 @@
         lose: [
           { name: "Скупщик", text: "Эй! Ты упустил их! Нам теперь не поздоровится..." }
         ]
-      }
+      },
+      // Диалоги, которые открываются за выполнение задач (Звезды)
+      "task_hideout": [
+        { name: "Ты", text: "Так, логово обустроено. Развесил сушиться чеснок, почистил серебряные пули." },
+        { name: "Скупщик", text: "Отлично. Безопасность превыше всего. В наших краях вампиры обнаглели." }
+      ],
+      "task_bar": [
+        { name: "Трактирщик", text: "Шепчутся, вчера у кладбища видели бледную девицу... береги шею, браконьер." },
+        { name: "Ты", text: "Девица, говоришь? Интересно. Надо проверить." }
+      ]
     };
   }
+
+  // СПИСОК ЗАДАНИЙ ДЛЯ ОБУСТРОЙСТВА / СЮЖЕТА (Как в Homescapes)
+  let playerTasks = [
+    { id: "hideout", title: "Обустроить безопасное убежище", cost: 1, completed: false, dialog: "task_hideout" },
+    { id: "bar", title: "Расспросить трактирщика о вампирах", cost: 2, completed: false, dialog: "task_bar" }
+  ];
 
   const SIZE = 8;
   const TYPES = [
@@ -351,7 +414,6 @@
   ];
   const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-  // Быстрые и отзывчивые тайминги анимаций
   const SWAP_MS = 180;  
   const CLEAR_MS = 200; 
   const FALL_MS = 240;  
@@ -370,6 +432,10 @@
   let busy = false;
   let tileIdCounter = 0;
 
+  // Координаты для свайпов
+  let dragStartX = 0, dragStartY = 0;
+  let dragActiveTile = null;
+
   let currentDialogue = [];
   let currentLineIndex = 0;
   let onDialogueEndCallback = null;
@@ -385,6 +451,8 @@
   const overlay = document.getElementById('overlay');
   const helpOverlay = document.getElementById('helpOverlay');
   const preLevelOverlay = document.getElementById('preLevelOverlay');
+  const tasksOverlay = document.getElementById('tasksOverlay');
+  const tasksListEl = document.getElementById('tasksList');
 
   const isSpecial = t => SPECIALS.includes(t);
   const randType = () => TYPES[Math.floor(Math.random()*TYPES.length)].id;
@@ -416,7 +484,59 @@
     el.style.top = (row*100/SIZE)+'%';
   }
 
-  // Оптимизированное создание фишек (без Layout Thrashing)
+  // Считывание жестов (СВАЙПОВ) на мобилках и ПК
+  function handleDragStart(e, tile) {
+    if (busy) return;
+    dragActiveTile = tile;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragStartX = clientX;
+    dragStartY = clientY;
+  }
+
+  function handleDragMove(e) {
+    if (!dragActiveTile || busy) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = clientX - dragStartX;
+    const dy = clientY - dragStartY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 30) { // Движение пальца больше чем на 30 пикселей
+      let targetRow = dragActiveTile.row;
+      let targetCol = dragActiveTile.col;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Движение по горизонтали
+        if (dx > 0) targetCol++; else targetCol--;
+      } else {
+        // Движение по вертикали
+        if (dy > 0) targetRow++; else targetRow--;
+      }
+
+      // Если свайпнули на допустимую соседнюю клетку — делаем обмен
+      if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
+        const partner = grid[targetRow][targetCol];
+        if (partner) {
+          dragActiveTile.el.classList.remove('selected');
+          selected = null;
+          performSwap(dragActiveTile, partner);
+        }
+      }
+      dragActiveTile = null; // Сброс жеста
+    }
+  }
+
+  function handleDragEnd() {
+    dragActiveTile = null;
+  }
+
+  // Регистрация глобальных слушателей свайпа
+  window.addEventListener('mousemove', handleDragMove);
+  window.addEventListener('touchmove', handleDragMove, {passive: false});
+  window.addEventListener('mouseup', handleDragEnd);
+  window.addEventListener('touchend', handleDragEnd);
+
   function createTile(row, col, type, spawnRow){
     const id = 'tile'+(tileIdCounter++);
     const el = document.createElement('div');
@@ -426,6 +546,10 @@
     inner.className = 'tile-inner';
     inner.textContent = iconFor(type);
     el.appendChild(inner);
+
+    // Добавляем поддержку свайпов и тапов
+    el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
+    el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
     el.addEventListener('click', onTileClick);
 
     if(spawnRow !== undefined && spawnRow !== row){
@@ -438,7 +562,6 @@
     boardEl.appendChild(el);
 
     if(spawnRow !== undefined && spawnRow !== row){
-      // Падение фишки на следующем кадре (без вызова offsetWidth)
       setTimeout(() => {
         el.style.transition = '';
         setTilePos(el, row, col);
@@ -870,7 +993,7 @@
         } else {
           applyResolutionFull(result);
         }
-      }, FALL_MS + 20); // Оптимизированная задержка падения
+      }, FALL_MS + 20); 
     }, CLEAR_MS);
   }
 
@@ -896,37 +1019,7 @@
     }
   }
 
-  function runDialogue(dialogueLines, onEnd) {
-    if (!dialogueLines || dialogueLines.length === 0) {
-      onEnd();
-      return;
-    }
-    currentDialogue = dialogueLines;
-    currentLineIndex = 0;
-    onDialogueEndCallback = onEnd;
-
-    const diagOverlay = document.getElementById('dialogueOverlay');
-    diagOverlay.classList.remove('hidden');
-    showCurrentDialogueLine();
-  }
-
-  function showCurrentDialogueLine() {
-    const line = currentDialogue[currentLineIndex];
-    document.getElementById('dialogueSpeaker').textContent = line.name;
-    document.getElementById('dialogueText').textContent = line.text;
-  }
-
-  document.getElementById('dialogueBox').addEventListener('click', () => {
-    currentLineIndex++;
-    if (currentLineIndex < currentDialogue.length) {
-      showCurrentDialogueLine();
-    } else {
-      document.getElementById('dialogueOverlay').classList.add('hidden');
-      if (onDialogueEndCallback) onDialogueEndCallback();
-    }
-  });
-
-  // ВЫЧИСЛЕНИЕ НАГРАДЫ
+  // ВЫЧИСЛЕНИЕ НАГРАДЫ ЗА УРОВЕНЬ
   function getRewards(diff) {
     let starsGained = 1;
     let baseCoins = 100;
@@ -1061,1086 +1154,72 @@
     pulseToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1200);
   }
 
-  document.getElementById('helpBtn').addEventListener('click', () => helpOverlay.classList.remove('hidden'));
-  document.getElementById('closeHelpBtn').addEventListener('click', () => helpOverlay.classList.add('hidden'));
-  
-  document.getElementById('overlayBtn').addEventListener('click', ()=>{
-    overlay.classList.add('hidden');
-    
-    if (hearts >= GOAL_HEARTS) {
-      openPreLevelScreen(currentLevelId + 1); 
-    } else {
-      openPreLevelScreen(currentLevelId); 
-    }
-  });
+  // ==================== ЛОГИКА МЕНЮ ЗАДАНИЙ (ЗВЕЗДЫ) ====================
 
-  openPreLevelScreen(1);
-})();
-</script>
-</body>
-</html><!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Браконьер — Охота на сердца</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Пробуем подключить внешние файлы, если они есть -->
-<script src="levels.js"></script>
-<script src="dialogs.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink:#0d0b0f;
-    --paper:#e8e1d0;
-    --blood:#c81d3f;
-    --blood-dark:#8c1330;
-    --toxic:#7a9a3f;
-    --gold:#d1a13f;
-    --violet:#3a2540;
-    --sky:#2f6fb0;
-    --panel-shadow: 5px 5px 0 var(--ink);
-    --size:8;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
-  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--ink);}
-  body{
-    font-family:'Rubik',sans-serif;
-    color:var(--paper);
-    background-image:
-      radial-gradient(var(--ink) 1px, transparent 1px),
-      radial-gradient(circle at 50% 0%, var(--violet) 0%, var(--ink) 65%);
-    background-size: 10px 10px, cover;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    min-height:100vh;
-    padding:10px;
-  }
-  h1{font-family:'Bangers', cursive;letter-spacing:2px;font-size:34px;color:var(--blood);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);margin:6px 0 2px 0;text-align:center;}
-  .subtitle{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--paper);opacity:.7;margin-bottom:10px;}
-  
-  /* Верхняя панель (HUD) */
-  .hud{display:flex;gap:6px;width:100%;max-width:440px;margin-bottom:10px;}
-  .stat{flex:1;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:4px 6px;text-align:center;}
-  .stat .label{font-size:8px;text-transform:uppercase;letter-spacing:1px;opacity:.6;font-weight:600;}
-  .stat .value{font-family:'Bangers',cursive;font-size:18px;line-height:1.1;}
-  .stat.stars-stat .value{color:var(--gold);}
-  .stat.hearts .value{color:var(--blood-dark);}
-  .stat.moves .value{color:var(--violet);}
-  .stat.cash .value{color:#8a6a1a;}
-  .help-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;box-shadow:var(--panel-shadow);cursor:pointer;flex-shrink:0;}
-  
-  .goal{width:100%;max-width:420px;background:var(--blood);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
-  .goal b{font-family:'Bangers',cursive;font-size:16px;letter-spacing:1px;}
-  .legend{display:flex;gap:6px;width:100%;max-width:420px;margin-bottom:10px;font-size:9px;flex-wrap:wrap;justify-content:center;opacity:.85;}
-  .legend span{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:8px;padding:3px 6px;white-space:nowrap;}
-  #boardWrap{background:var(--ink);border:4px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 rgba(0,0,0,.5);padding:6px;width:min(420px, 94vw);}
-  #board{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;transition:opacity 0.2s ease;}
-  
-  /* Оптимизированные фишки с использованием аппаратного ускорения (GPU) */
-  .tile{
-    position:absolute;
-    width:calc(100% / var(--size));
-    height:calc(100% / var(--size));
-    /* Более резкие и быстрые кривые перехода */
-    transition:left .18s cubic-bezier(.25,1,.5,1), top .22s cubic-bezier(.25,1,.5,1);
-    cursor:pointer;
-    z-index:1;
-    will-change: left, top; /* Ускоряет анимацию через видеокарту */
-  }
-  .tile-inner{
-    position:absolute;
-    inset:3px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:5.6vw;
-    background:var(--paper);
-    border-radius:8px;
-    border:2px solid var(--ink);
-    transition:transform .15s ease, opacity .15s ease, background .15s ease, box-shadow .15s ease;
-    will-change: transform, opacity; /* Ускоряет взрывы и выделение */
-  }
-  @media(min-width:460px){.tile-inner{font-size:24px;}}
-  .tile.selected .tile-inner{transform:scale(1.12) rotate(-4deg);box-shadow:0 0 0 3px var(--gold);z-index:2;}
-  .tile.shake .tile-inner{animation:shake .25s ease;}
-  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
-  .tile.clearing .tile-inner{transform:scale(0);opacity:0;}
-  .tile.clearing::after{content:"";position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 70%);animation:pop .25s ease-out forwards;pointer-events:none;}
-  @keyframes pop{from{opacity:1;transform:scale(.4);}to{opacity:0;transform:scale(1.5);}}
-  @keyframes specialPulse{0%,100%{box-shadow:0 0 6px 1px rgba(255,255,255,.5);}50%{box-shadow:0 0 14px 4px rgba(255,255,255,.8);}
-  }
-  .tile.bomb .tile-inner{background:radial-gradient(circle, #ffdca8 0%, #d1793f 55%, var(--ink) 100%);animation:specialPulse .8s ease-in-out infinite;}
-  .tile.rocket-row .tile-inner{background:linear-gradient(135deg, #bfe4ff, var(--sky));transform:rotate(90deg);animation:specialPulse .8s ease-in-out infinite;}
-  .tile.rocket-row.selected .tile-inner{transform:rotate(90deg) scale(1.12);}
-  .tile.rocket-col .tile-inner{background:linear-gradient(135deg, #bfe4ff, var(--sky));animation:specialPulse .8s ease-in-out infinite;}
-  .tile.plane .tile-inner{background:linear-gradient(135deg, #d8f0ff, #6aa0c9);animation:specialPulse .8s ease-in-out infinite;}
-  .tile.rainbow .tile-inner{background:conic-gradient(from 0deg, #ff5a6e, #ffd15a, #7ee08c, #5ab6ff, #b985ff, #ff5a6e);animation:specialPulse .7s ease-in-out infinite;}
-  .footer{margin-top:12px;font-size:11px;opacity:.55;text-align:center;max-width:340px;}
-  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:10px 18px;font-family:'Bangers',cursive;font-size:18px;letter-spacing:1px;opacity:0;transition:all .2s ease;pointer-events:none;z-index:50;max-width:80vw;text-align:center;}
-  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
-  
-  /* Всплывающие окна */
-  .overlay{position:fixed;inset:0;background:rgba(13,11,15,.92);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto;}
-  .overlay.hidden{display:none;}
-  .card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:16px;box-shadow:8px 8px 0 var(--blood);padding:24px;max-width:380px;text-align:left;width:100%;}
-  .card h2{font-family:'Bangers',cursive;font-size:28px;color:var(--blood-dark);margin:0 0 16px 0;text-align:center;}
-  .card h3{font-family:'Bangers',cursive;color:var(--blood);margin:18px 0 8px 0;font-size:20px;}
-  .card p{font-size:14px;line-height:1.5;margin-bottom:12px;}
-  .btn{font-family:'Bangers',cursive;letter-spacing:1px;font-size:18px;background:var(--blood);color:var(--paper);border:3px solid var(--ink);border-radius:10px;box-shadow:4px 4px 0 var(--ink);padding:10px 24px;margin-top:18px;cursor:pointer;transition:transform .1s;width:100%;}
-  .btn:active{transform:translate(2px,2px); box-shadow:2px 2px 0 var(--ink);}
+  function renderTasks() {
+    tasksListEl.innerHTML = "";
+    playerTasks.forEach(task => {
+      const taskDiv = document.createElement('div');
+      taskDiv.className = 'task-item';
 
-  /* Окна старта */
-  .pre-card {
-    border: 4px solid var(--ink);
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 360px;
-    width: 100%;
-    text-align: center;
-    color: var(--ink);
-    box-shadow: 8px 8px 0 rgba(0,0,0,0.5);
-    transition: background 0.2s ease;
-  }
-  .diff-normal { background: #ffd369; }
-  .diff-medium { background: #5ab6ff; }
-  .diff-hard { background: #ff5a6e; }
-  .diff-extreme { background: #3ad2ce; }
-  .diff-challenge { background: #ff9f43; }
-
-  .pre-title { font-family:'Bangers', cursive; font-size: 32px; margin-bottom: 6px; letter-spacing: 1.5px; -webkit-text-stroke: 1px var(--ink); text-shadow: 2px 2px 0 rgba(255,255,255,0.4); }
-  .pre-subtitle { font-size: 11px; text-transform: uppercase; font-weight: 800; opacity: 0.8; margin-bottom: 20px; letter-spacing: 1px; }
-  .pre-goal-box { background: rgba(255,255,255,0.4); border: 2.5px dashed var(--ink); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
-  .pre-goal-title { font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.7; }
-  .pre-goal-val { font-size: 18px; font-weight: 800; margin-top: 4px; }
-  .pre-reward-title { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; }
-  .pre-rewards { display: flex; justify-content: center; gap: 14px; margin-bottom: 16px; }
-  .reward-item { background: var(--paper); border: 2.5px solid var(--ink); border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; box-shadow: 3px 3px 0 var(--ink); }
-
-  /* Окно новеллы */
-  .dialogue-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 11, 15, 0.85);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    z-index: 150;
-    padding: 20px;
-  }
-  .dialogue-overlay.hidden {
-    display: none;
-  }
-  .dialogue-box {
-    background: var(--paper);
-    color: var(--ink);
-    border: 4px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: 6px 6px 0 var(--blood);
-    padding: 16px;
-    width: 100%;
-    max-width: 420px;
-    margin-bottom: 20px;
-    cursor: pointer;
-  }
-  .dialogue-speaker {
-    font-family: 'Bangers', cursive;
-    font-size: 22px;
-    color: var(--blood-dark);
-    margin-bottom: 6px;
-  }
-  .dialogue-text {
-    font-size: 14px;
-    line-height: 1.4;
-    margin: 0 0 10px 0;
-  }
-  .dialogue-hint {
-    font-size: 9px;
-    text-align: right;
-    opacity: 0.6;
-    text-transform: uppercase;
-  }
-</style>
-</head>
-<body>
-  <h1>БРАКОНЬЕР</h1>
-  <div class="subtitle">Охота на сердца · Пролог</div>
- 
-  <div class="hud">
-    <div class="stat stars-stat"><div class="label">⭐ Звезды</div><div class="value" id="starsVal">0</div></div>
-    <div class="stat hearts"><div class="label">❤️ Сердца</div><div class="value" id="heartsVal">0</div></div>
-    <div class="stat moves"><div class="label">🎬 Ходы</div><div class="value" id="movesVal">20</div></div>
-    <div class="stat cash"><div class="label">💰 Выручка</div><div class="value" id="cashVal">0₽</div></div>
-    <div class="help-btn" id="helpBtn">?</div>
-  </div>
- 
-  <div class="goal">
-    <span>Заказ скупщика:</span>
-    <b id="goalText">12 ❤️ вампирских сердец</b>
-  </div>
- 
-  <div class="legend">
-    <span>4 в ряд 🚀 ракета</span>
-    <span>Уголком 5 💣 бомба</span>
-    <span>2×2 ✈️ самолётик</span>
-    <span>5 в ряд 🌈 радуга</span>
-  </div>
- 
-  <div id="boardWrap"><div id="board"></div></div>
-  <div class="footer">Свапни два бонуса — получи мощное комбо!</div>
- 
-  <div id="toast"></div>
-
-  <!-- ОКНО СТАРТА УРОВНЯ -->
-  <div class="overlay hidden" id="preLevelOverlay">
-    <div class="pre-card" id="preCard">
-      <div class="pre-title" id="preTitle">Уровень 1</div>
-      <div class="pre-subtitle" id="preDifficultyText">Обычный уровень</div>
-      
-      <div class="pre-goal-box">
-        <div class="pre-goal-title">Цель уровня</div>
-        <div class="pre-goal-val" id="preGoalVal">12 ❤️ Вампирских Сердец</div>
-      </div>
-
-      <div class="pre-reward-title">Награда за победу</div>
-      <div class="pre-rewards">
-        <div class="reward-item" id="preRewardStars">⭐ +1</div>
-        <div class="reward-item" id="preRewardCoins">💰 +100₽</div>
-      </div>
-
-      <button class="btn" id="prePlayBtn" style="background:var(--toxic); box-shadow:4px 4px 0 var(--ink);">Начать охоту</button>
-    </div>
-  </div>
- 
-  <!-- Экран результатов -->
-  <div class="overlay hidden" id="overlay">
-    <div class="card">
-      <h2 id="overlayTitle">Заказ выполнен!</h2>
-      <p id="overlayText"></p>
-      <button class="btn" id="overlayBtn">Продолжить охоту</button>
-    </div>
-  </div>
- 
-  <!-- Справка по бонусам -->
-  <div class="overlay hidden" id="helpOverlay">
-    <div class="card">
-      <h2>Комбинации бонусов</h2>
-      <p>Вот как работают усиленные комбо:</p>
-      <h3>💣 Бомба + Бомба</h3><p>Радиус действия увеличивается в два раза (7×7).</p>
-      <h3>💣 Бомба + 🚀 Ракета</h3><p>Сначала очищает вертикальную полосу шириной 3, затем горизонтальную.</p>
-      <h3>🚀 Ракета + 🚀 Ракета</h3><p>Очищает весь ряд и весь столбец (крест).</p>
-      <h3>✈️ Самолётик + 💣/🚀</h3><p>Срабатывает как обычный самолётик, затем переносит второй бонус в целевую клетку.</p>
-      <h3>✈️ Самолётик + ✈️ Самолётик</h3><p>Обычный эффект + из точки прилёта взлетают ещё три самолётика.</p>
-      <h3>🌈 Радужный + любой бонус</h3><p>Превращает самые частые фишки в этот бонус.</p>
-      <h3>🌈 Радужный + 🌈 Радужный</h3><p>Убирает всё поле.</p>
-      <button class="btn" id="closeHelpBtn">Закрыть</button>
-    </div>
-  </div>
-
-  <!-- Окно диалога новеллы -->
-  <div id="dialogueOverlay" class="dialogue-overlay hidden">
-    <div class="dialogue-box" id="dialogueBox">
-      <div class="dialogue-speaker" id="dialogueSpeaker">Имя</div>
-      <p class="dialogue-text" id="dialogueText">Текст реплики...</p>
-      <div class="dialogue-hint">Нажми на окно, чтобы читать дальше...</div>
-    </div>
-  </div>
-
-<script>
-(function(){
-  try{
-    const tg = window.Telegram && window.Telegram.WebApp;
-    if(tg){ tg.ready(); tg.expand(); }
-  }catch(e){}
-
-  // Автогенерация уровней при отсутствии внешнего файла
-  if (!window.LEVELS || window.LEVELS.length === 0) {
-    window.LEVELS = [];
-    for (let i = 1; i <= 300; i++) {
-      let heartsGoal = 12;
-      let moves = 22;
-      let difficulty = "normal";
-
-      if (i <= 30) {
-          heartsGoal = 12 + Math.floor(i * 1.2);
-          moves = 22 - Math.floor(i / 8);
-          difficulty = "normal";
-      } else if (i <= 80) {
-          heartsGoal = 25 + Math.floor((i - 30) * 1.8);
-          moves = 19 - Math.floor((i - 30) / 12);
-          difficulty = "medium";
-      } else if (i <= 150) {
-          heartsGoal = 60 + Math.floor((i - 80) * 2.3);
-          moves = 17 - Math.floor((i - 80) / 15);
-          difficulty = "hard";
+      let buttonHtml = "";
+      if (task.completed) {
+        buttonHtml = `<span style="color:var(--toxic); font-weight:800; font-size:12px;">Выполнено ✔</span>`;
       } else {
-          heartsGoal = 100 + Math.floor((i - 150) * 3.1);
-          moves = 15 - Math.floor((i - 150) / 20);
-          difficulty = "extreme";
+        buttonHtml = `<button class="task-btn" onclick="completeTask('${task.id}')">⭐ ${task.cost}</button>`;
       }
 
-      if (i % 10 === 0) {
-        difficulty = "challenge";
-        heartsGoal = Math.floor(heartsGoal * 1.2);
-        moves = Math.max(10, moves - 2);
-      }
-
-      if (moves < 10) moves = 10;
-
-      window.LEVELS.push({
-          id: i,
-          heartsGoal: heartsGoal,
-          moves: moves,
-          difficulty: difficulty,
-          completed: false,
-          bestScore: 0,
-          stars: 0
-      });
-    }
-  }
-
-  // Базовые диалоги
-  if (!window.DIALOGS) {
-    window.DIALOGS = {
-      1: {
-        intro: [
-          { name: "Скупщик", text: "Здорово, браконьер! Нам сделали крупный заказ на вампирские сердца." },
-          { name: "Ты", text: "Опять марать руки... Ладно, платишь нормально?" },
-          { name: "Скупщик", text: "Обижаешь! Собери мне 12 штук для затравки. Погнали!" }
-        ],
-        win: [
-          { name: "Скупщик", text: "Отличный улов! Все сердца целые. Держи монеты." }
-        ],
-        lose: [
-          { name: "Скупщик", text: "Эй! Ты упустил их! Нам теперь не поздоровится..." }
-        ]
-      }
-    };
-  }
-
-  const SIZE = 8;
-  const TYPES = [
-    {id:'heart', icon:'🫀'},
-    {id:'bullet', icon:'🔫'},
-    {id:'garlic', icon:'🧄'},
-    {id:'stake', icon:'🗡️'},
-    {id:'vial', icon:'🧪'},
-    {id:'coin', icon:'💰'}
-  ];
-  const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
-
-  // Быстрые и отзывчивые тайминги анимаций
-  const SWAP_MS = 180;  
-  const CLEAR_MS = 200; 
-  const FALL_MS = 240;  
-
-  let globalStars = 0;
-  let globalCash = 0;
-
-  let currentLevelId = 1;
-  let GOAL_HEARTS = 12;
-  let START_MOVES = 20;
-  let levelDifficulty = "normal";
-
-  let grid = [];
-  let selected = null;
-  let hearts = 0, moves = 20;
-  let busy = false;
-  let tileIdCounter = 0;
-
-  let currentDialogue = [];
-  let currentLineIndex = 0;
-  let onDialogueEndCallback = null;
-
-  const boardEl = document.getElementById('board');
-  boardEl.style.setProperty('--size', SIZE);
-
-  const starsVal = document.getElementById('starsVal');
-  const heartsVal = document.getElementById('heartsVal');
-  const movesVal = document.getElementById('movesVal');
-  const cashVal = document.getElementById('cashVal');
-  const toastEl = document.getElementById('toast');
-  const overlay = document.getElementById('overlay');
-  const helpOverlay = document.getElementById('helpOverlay');
-  const preLevelOverlay = document.getElementById('preLevelOverlay');
-
-  const isSpecial = t => SPECIALS.includes(t);
-  const randType = () => TYPES[Math.floor(Math.random()*TYPES.length)].id;
-  const key = (r,c) => r+','+c;
-  const getType = (r,c) => grid[r] && grid[r][c] ? grid[r][c].type : null;
-
-  function iconFor(type){
-    switch(type){
-      case 'bomb': return '💣';
-      case 'rocketRow': return '🚀';
-      case 'rocketCol': return '🚀';
-      case 'plane': return '✈️';
-      case 'rainbow': return '🌈';
-      default: return TYPES.find(t=>t.id===type).icon;
-    }
-  }
-
-  function applySpecialClass(t){
-    t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow');
-    if(t.type==='bomb') t.el.classList.add('bomb');
-    else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
-    else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
-    else if(t.type==='plane') t.el.classList.add('plane');
-    else if(t.type==='rainbow') t.el.classList.add('rainbow');
-  }
-
-  function setTilePos(el, row, col){
-    el.style.left = (col*100/SIZE)+'%';
-    el.style.top = (row*100/SIZE)+'%';
-  }
-
-  // Оптимизированное создание фишек (без Layout Thrashing)
-  function createTile(row, col, type, spawnRow){
-    const id = 'tile'+(tileIdCounter++);
-    const el = document.createElement('div');
-    el.className = 'tile';
-    el.dataset.id = id;
-    const inner = document.createElement('div');
-    inner.className = 'tile-inner';
-    inner.textContent = iconFor(type);
-    el.appendChild(inner);
-    el.addEventListener('click', onTileClick);
-
-    if(spawnRow !== undefined && spawnRow !== row){
-      el.style.transition = 'none';
-      setTilePos(el, spawnRow, col);
-    } else {
-      setTilePos(el, row, col);
-    }
-
-    boardEl.appendChild(el);
-
-    if(spawnRow !== undefined && spawnRow !== row){
-      // Падение фишки на следующем кадре (без вызова offsetWidth)
-      setTimeout(() => {
-        el.style.transition = '';
-        setTilePos(el, row, col);
-      }, 16); 
-    }
-    
-    const tile = {id, type, row, col, el, inner};
-    applySpecialClass(tile);
-    return tile;
-  }
-
-  function moveTileTo(tile, row, col){
-    tile.row = row; tile.col = col;
-    setTilePos(tile.el, row, col);
-  }
-
-  function buildInitialGrid(){
-    boardEl.innerHTML = '';
-    grid = [];
-    for(let r=0;r<SIZE;r++) grid.push(new Array(SIZE).fill(null));
-    
-    for(let r=0;r<SIZE;r++){
-      for(let c=0;c<SIZE;c++){
-        let t, guard=0;
-        do{ t=randType(); guard++; } 
-        while(guard<30 && (
-          (c>=2 && grid[r][c-1] && grid[r][c-2] && grid[r][c-1].type===t && grid[r][c-2].type===t) ||
-          (r>=2 && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].type===t && grid[r-2][c].type===t)
-        ));
-        grid[r][c] = createTile(r, c, t, r - SIZE - Math.floor(Math.random()*4));
-      }
-    }
-  }
-
-  function findTileById(id){
-    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-      const t = grid[r][c];
-      if(t && t.id===id) return t;
-    }
-    return null;
-  }
-
-  function onTileClick(e){
-    if(busy) return;
-    const tile = findTileById(e.currentTarget.dataset.id);
-    if(!tile) return;
-    if(selected === null){
-      if(isSpecial(tile.type)){ activateStandalone(tile); return; }
-      selected = tile;
-      tile.el.classList.add('selected');
-      return;
-    }
-    if(selected === tile){
-      tile.el.classList.remove('selected');
-      selected = null;
-      return;
-    }
-    const adjacent = Math.abs(selected.row-tile.row) + Math.abs(selected.col-tile.col) === 1;
-    selected.el.classList.remove('selected');
-    if(!adjacent){
-      if(isSpecial(tile.type)){ selected=null; activateStandalone(tile); return; }
-      selected = tile;
-      tile.el.classList.add('selected');
-      return;
-    }
-    const a = selected, b = tile;
-    selected = null;
-    performSwap(a,b);
-  }
-
-  function swapInGrid(a,b){
-    const ar=a.row, ac=a.col, br=b.row, bc=b.col;
-    grid[ar][ac]=b; grid[br][bc]=a;
-    a.row=br; a.col=bc;
-    b.row=ar; b.col=ac;
-  }
-
-  function performSwap(a,b){
-    busy = true;
-    swapInGrid(a,b);
-    moveTileTo(a, a.row, a.col);
-    moveTileTo(b, b.row, b.col);
-    
-    setTimeout(()=>{
-      const aSpecial = isSpecial(a.type), bSpecial = isSpecial(b.type);
-      if(aSpecial && bSpecial){
-        moves--; movesVal.textContent = moves;
-        const cells = comboFootprint(a,b);
-        clearAndContinue(cells, []);
-        return;
-      }
-      if(aSpecial || bSpecial){
-        const special = aSpecial ? a : b;
-        const partner = aSpecial ? b : a;
-        moves--; movesVal.textContent = moves;
-        let cells;
-        if(special.type === 'rainbow'){
-          cells = cellsOfColor(partner.type);
-          cells.add(key(special.row, special.col));
-        } else {
-          cells = computeActivationFootprint(special);
-        }
-        clearAndContinue(cells, []);
-        return;
-      }
-      const result = analyzeMatches();
-      const hasMatch = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
-      if(!hasMatch){
-        swapInGrid(a,b);
-        moveTileTo(a, a.row, a.col);
-        moveTileTo(b, b.row, b.col);
-        a.el.classList.add('shake');
-        b.el.classList.add('shake');
-        setTimeout(()=>{
-          a.el.classList.remove('shake');
-          b.el.classList.remove('shake');
-          busy = false;
-        }, 220);
-        pulseToast('Нет совпадения');
-        return;
-      }
-      moves--; movesVal.textContent = moves;
-      applyResolutionFull(result);
-    }, SWAP_MS);
-  }
-
-  function collectRuns(){
-    const runs = [];
-    for(let r=0;r<SIZE;r++){
-      let runStart=0;
-      for(let c=1;c<=SIZE;c++){
-        const cur = c<SIZE ? getType(r,c) : null;
-        const prev = getType(r,c-1);
-        if(cur!==null && cur===prev && !isSpecial(cur)) continue;
-        const len = c - runStart;
-        if(len>=3 && !isSpecial(prev)){
-          const cells=[]; 
-          for(let k=runStart;k<c;k++) cells.push([r,k]);
-          runs.push({cells, dir:'h', length:len, type:prev, used:false});
-        }
-        runStart = c;
-      }
-    }
-    for(let c=0;c<SIZE;c++){
-      let runStart=0;
-      for(let r=1;r<=SIZE;r++){
-        const cur = r<SIZE ? getType(r,c) : null;
-        const prev = getType(r-1,c);
-        if(cur!==null && cur===prev && !isSpecial(cur)) continue;
-        const len = r - runStart;
-        if(len>=3 && !isSpecial(prev)){
-          const cells=[]; 
-          for(let k=runStart;k<r;k++) cells.push([k,c]);
-          runs.push({cells, dir:'v', length:len, type:prev, used:false});
-        }
-        runStart = r;
-      }
-    }
-    return runs;
-  }
-
-  function dedupeCells(cells){
-    const seen = new Set(); 
-    const out=[];
-    cells.forEach(c=>{ 
-      const k=key(c[0],c[1]); 
-      if(!seen.has(k)){ seen.add(k); out.push(c); } 
+      taskDiv.innerHTML = `
+        <div class="task-info">
+          <div class="task-title">${task.title}</div>
+        </div>
+        <div>${buttonHtml}</div>
+      `;
+      tasksListEl.appendChild(taskDiv);
     });
-    return out;
   }
 
-  function analyzeMatches(){
-    const runs = collectRuns();
-    const matchedByLine = new Set();
-    runs.forEach(r=> r.cells.forEach(c=> matchedByLine.add(key(c[0],c[1]))));
+  // Оформляем как глобальную функцию для вызова через onclick из HTML
+  window.completeTask = function(taskId) {
+    const task = playerTasks.find(t => t.id === taskId);
+    if (!task) return;
 
-    const squares = [];
-    const usedSquareCells = new Set();
-    for(let r=0;r<SIZE-1;r++){
-      for(let c=0;c<SIZE-1;c++){
-        const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
-        if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
-        const t0 = getType(r,c);
-        if(!t0 || isSpecial(t0)) continue;
-        if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
-          squares.push({type:'plane', at:[r,c], cells});
-          cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
-        }
-      }
-    }
-
-    const hRuns = runs.filter(r=>r.dir==='h');
-    const vRuns = runs.filter(r=>r.dir==='v');
-    const bombs = [];
-    hRuns.forEach(h=>{
-      if(h.used) return;
-      for(const v of vRuns){
-        if(v.used || v.type!==h.type) continue;
-        const shared = h.cells.find(hc=> v.cells.some(vc=> vc[0]===hc[0] && vc[1]===hc[1]));
-        if(shared){
-          h.used=true; v.used=true;
-          bombs.push({type:'bomb', at:shared, cells: dedupeCells(h.cells.concat(v.cells))});
-          break;
-        }
-      }
-    });
-
-    const rockets = [], rainbows = [];
-    const normalCells = new Set();
-    runs.forEach(run=>{
-      if(run.used) return;
-      if(run.length>=5){
-        rainbows.push({type:'rainbow', at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
-      } else if(run.length===4){
-        const spType = run.dir==='h' ? 'rocketCol' : 'rocketRow';
-        rockets.push({type: spType, at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
-      } else {
-        run.cells.forEach(c=> normalCells.add(key(c[0],c[1])));
-      }
-    });
-
-    return {bombs, rockets, rainbows, squares, normalCells};
-  }
-
-  function footprintFor(tile){
-    const cells = [];
-    if(tile.type==='bomb'){
-      for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
-        const rr=tile.row+dr, cc=tile.col+dc;
-        if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.push([rr,cc]);
-      }
-    } else if(tile.type==='rocketRow'){
-      for(let c=0;c<SIZE;c++) cells.push([tile.row,c]);
-    } else if(tile.type==='rocketCol'){
-      for(let r=0;r<SIZE;r++) cells.push([r,tile.col]);
-    } else if(tile.type==='plane'){
-      cells.push([tile.row,tile.col]);
-      [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{
-        const rr=tile.row+dr, cc=tile.col+dc;
-        if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.push([rr,cc]);
-      });
-      const candidates = [];
-      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-        if(grid[r][c] && !(r===tile.row && c===tile.col)) candidates.push([r,c]);
-      }
-      if(candidates.length) cells.push(candidates[Math.floor(Math.random()*candidates.length)]);
-    } else if(tile.type==='rainbow'){
-      cells.push([tile.row,tile.col]);
-    }
-    return cells;
-  }
-
-  function computeActivationFootprint(startTile){
-    const visited = new Set([startTile.id]);
-    const footprint = new Set();
-    const queue = [startTile];
-    while(queue.length){
-      const t = queue.shift();
-      footprintFor(t).forEach(([r,c])=>{
-        footprint.add(key(r,c));
-        const other = grid[r] && grid[r][c];
-        if(other && isSpecial(other.type) && !visited.has(other.id)){
-          visited.add(other.id);
-          queue.push(other);
-        }
-      });
-    }
-    return footprint;
-  }
-
-  function cellsOfColor(type){
-    const s = new Set();
-    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-      if(grid[r][c] && grid[r][c].type===type) s.add(key(r,c));
-    }
-    return s;
-  }
-
-  function presentColors(){
-    const set = new Set();
-    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-      if(grid[r][c] && !isSpecial(grid[r][c].type)) set.add(grid[r][c].type);
-    }
-    return Array.from(set);
-  }
-
-  function comboFootprint(a, b){
-    const cells = new Set();
-    const kinds = [a.type,b.type];
-    const has = t=> kinds.includes(t);
-    const isRocket = t=> t==='rocketRow'||t==='rocketCol';
-    
-    if(has('bomb') && has('bomb')){
-      const center = a;
-      for(let dr=-3;dr<=3;dr++) for(let dc=-3;dc<=3;dc++){
-        const rr=center.row+dr, cc=center.col+dc;
-        if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.add(key(rr,cc));
-      }
-      pulseToast('💥 Ультра-бомба 7×7!');
-      return cells;
-    }
-    if(has('bomb') && (has('rocketRow')||has('rocketCol'))){
-      const rocket = isRocket(a.type) ? a : b;
-      for(let dr=-1;dr<=1;dr++){ 
-        const rr=rocket.row+dr; 
-        if(rr>=0&&rr<SIZE) for(let c=0;c<SIZE;c++) cells.add(key(rr,c)); 
-      }
-      for(let dc=-1;dc<=1;dc++){ 
-        const cc=rocket.col+dc; 
-        if(cc>=0&&cc<SIZE) for(let r=0;r<SIZE;r++) cells.add(key(r,cc)); 
-      }
-      pulseToast('🧨 Тройные полосы!');
-      return cells;
-    }
-    if(has('rocketRow') || has('rocketCol')){
-      for(let i=0; i<SIZE; i++){
-        cells.add(key(a.row, i));
-        cells.add(key(i, a.col));
-      }
-      pulseToast('🚀 Крестообразный удар!');
-      return cells;
-    }
-    if(has('plane')){
-      const plane = a.type==='plane' ? a : b;
-      footprintFor(plane).forEach(([r,c])=>cells.add(key(r,c)));
-      pulseToast('✈️ Самолётик активирован!');
-      return cells;
-    }
-    if(has('rainbow') && has('rainbow')){
-      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(grid[r][c]) cells.add(key(r,c));
-      pulseToast('🌈 Полная зачистка!');
-      return cells;
-    }
-    if(has('rainbow')){
-      const rainbow = a.type==='rainbow' ? a : b;
-      const other = rainbow===a ? b : a;
-      const colors = presentColors();
-      const color = colors.length ? colors[Math.floor(Math.random()*colors.length)] : null;
-      if(color){
-        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-          if(grid[r][c] && grid[r][c].type===color) cells.add(key(r,c));
-        }
-      }
-      pulseToast('🌈 Радужный шар сработал!');
-      return cells;
-    }
-    footprintFor(a).forEach(([r,c])=>cells.add(key(r,c)));
-    footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
-    return cells;
-  }
-
-  function activateStandalone(tile){
-    busy = true;
-    moves--; movesVal.textContent = moves;
-    let cells;
-    if(tile.type==='rainbow'){
-      const colors = presentColors();
-      const color = colors.length ? colors[Math.floor(Math.random()*colors.length)] : null;
-      cells = color ? cellsOfColor(color) : new Set();
-      cells.add(key(tile.row,tile.col));
-    } else {
-      cells = computeActivationFootprint(tile);
-    }
-    clearAndContinue(cells, []);
-  }
-
-  function applyResolutionFull(result){
-    const specialSpawns = [];
-    const scoreSet = new Set();
-    result.bombs.forEach(b=>{ b.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:b.at, type:'bomb'}); });
-    result.rockets.forEach(rk=>{ rk.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rk.at, type:rk.type}); });
-    result.rainbows.forEach(rb=>{ rb.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rb.at, type:'rainbow'}); });
-    result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
-    result.normalCells.forEach(k=>scoreSet.add(k));
-    
-    const atKeys = new Set(specialSpawns.map(s=>key(s.at[0],s.at[1])));
-    const clearSet = new Set();
-    scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
-    
-    if(specialSpawns.length) pulseToast(specialSpawns.length>1 ? 'Комбо бонусов!' : 'Новый бонус!');
-    clearAndContinue(clearSet, specialSpawns, scoreSet);
-  }
-
-  function clearAndContinue(clearSet, specialSpawns, scoreSet){
-    specialSpawns = specialSpawns || [];
-    const scoring = scoreSet || clearSet;
-    let heartsGained=0;
-    scoring.forEach(k=>{
-      const [r,c] = k.split(',').map(Number);
-      const t = grid[r] && grid[r][c];
-      if(!t) return;
-      if(t.type==='heart') heartsGained++;
-    });
-    clearSet.forEach(k=>{
-      const [r,c] = k.split(',').map(Number);
-      const t = grid[r] && grid[r][c];
-      if(t) t.el.classList.add('clearing');
-    });
-    hearts += heartsGained;
-    heartsVal.textContent = hearts;
-    if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
-    
-    setTimeout(()=>{
-      clearSet.forEach(k=>{
-        const [r,c] = k.split(',').map(Number);
-        const t = grid[r] && grid[r][c];
-        if(t){ t.el.remove(); grid[r][c]=null; }
-      });
-      specialSpawns.forEach(s=>{
-        const [r,c] = s.at;
-        if(!grid[r]) return;
-        let t = grid[r][c];
-        if(!t){
-          t = createTile(r,c,s.type,r);
-          grid[r][c] = t;
-        } else {
-          t.type = s.type;
-          t.inner.textContent = iconFor(s.type);
-          applySpecialClass(t);
-        }
-      });
-      applyGravityAndRefill();
-      setTimeout(()=>{
-        const result = analyzeMatches();
-        const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
-        if(!hasMore){
-          busy = false;
-          checkEndConditions();
-        } else {
-          applyResolutionFull(result);
-        }
-      }, FALL_MS + 20); // Оптимизированная задержка падения
-    }, CLEAR_MS);
-  }
-
-  function applyGravityAndRefill(){
-    for(let c=0;c<SIZE;c++){
-      let pointer = SIZE-1;
-      for(let r=SIZE-1;r>=0;r--){
-        if(grid[r][c] !== null){
-          const t = grid[r][c];
-          if(pointer !== r){
-            grid[pointer][c] = t;
-            grid[r][c] = null;
-            moveTileTo(t, pointer, c);
-          }
-          pointer--;
-        }
-      }
-      let spawnOffset = 1;
-      for(let r=pointer;r>=0;r--){
-        grid[r][c] = createTile(r, c, randType(), -spawnOffset);
-        spawnOffset++;
-      }
-    }
-  }
-
-  function runDialogue(dialogueLines, onEnd) {
-    if (!dialogueLines || dialogueLines.length === 0) {
-      onEnd();
-      return;
-    }
-    currentDialogue = dialogueLines;
-    currentLineIndex = 0;
-    onDialogueEndCallback = onEnd;
-
-    const diagOverlay = document.getElementById('dialogueOverlay');
-    diagOverlay.classList.remove('hidden');
-    showCurrentDialogueLine();
-  }
-
-  function showCurrentDialogueLine() {
-    const line = currentDialogue[currentLineIndex];
-    document.getElementById('dialogueSpeaker').textContent = line.name;
-    document.getElementById('dialogueText').textContent = line.text;
-  }
-
-  document.getElementById('dialogueBox').addEventListener('click', () => {
-    currentLineIndex++;
-    if (currentLineIndex < currentDialogue.length) {
-      showCurrentDialogueLine();
-    } else {
-      document.getElementById('dialogueOverlay').classList.add('hidden');
-      if (onDialogueEndCallback) onDialogueEndCallback();
-    }
-  });
-
-  // ВЫЧИСЛЕНИЕ НАГРАДЫ
-  function getRewards(diff) {
-    let starsGained = 1;
-    let baseCoins = 100;
-
-    if (diff === "medium") {
-      baseCoins = 150;
-    } else if (diff === "hard") {
-      baseCoins = 250;
-    } else if (diff === "extreme") {
-      baseCoins = 400;
-    } else if (diff === "challenge") {
-      starsGained = 3;
-      baseCoins = 300;
-    }
-
-    let bonusCoins = moves * 10; 
-    let totalCoins = baseCoins + bonusCoins;
-
-    return { stars: starsGained, coins: totalCoins, base: baseCoins, bonus: bonusCoins };
-  }
-
-  // ЭКРАН ПОДГОТОВКИ К УРОВНЮ
-  function openPreLevelScreen(levelId) {
-    const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
-    if (!levelData) return;
-
-    currentLevelId = levelId;
-    GOAL_HEARTS = levelData.heartsGoal;
-    START_MOVES = levelData.moves;
-    levelDifficulty = levelData.difficulty;
-
-    const preCard = document.getElementById('preCard');
-    preCard.className = 'pre-card';
-
-    let diffName = "Обычный уровень";
-    if (levelDifficulty === "normal") {
-      preCard.classList.add('diff-normal');
-      diffName = "Обычный уровень 🟡";
-    } else if (levelDifficulty === "medium") {
-      preCard.classList.add('diff-medium');
-      diffName = "Сложный уровень 🔵";
-    } else if (levelDifficulty === "hard") {
-      preCard.classList.add('diff-hard');
-      diffName = "Очень сложный уровень 🔴";
-    } else if (levelDifficulty === "extreme") {
-      preCard.classList.add('diff-extreme');
-      diffName = "Ультра-сложный уровень 🟢🔵";
-    } else if (levelDifficulty === "challenge") {
-      preCard.classList.add('diff-challenge');
-      diffName = "Испытание! 🟠";
-    }
-
-    document.getElementById('preTitle').textContent = `Уровень ${currentLevelId}`;
-    document.getElementById('preDifficultyText').textContent = diffName;
-    document.getElementById('preGoalVal').textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
-    
-    const r = getRewards(levelDifficulty);
-    document.getElementById('preRewardStars').textContent = `⭐ +${r.stars}`;
-    document.getElementById('preRewardCoins').textContent = `💰 +${r.base}₽`;
-
-    preLevelOverlay.classList.remove('hidden');
-    boardEl.style.opacity = "0.15"; 
-  }
-
-  document.getElementById('prePlayBtn').addEventListener('click', () => {
-    preLevelOverlay.classList.add('hidden');
-
-    hearts = 0;
-    moves = START_MOVES;
-    heartsVal.textContent = 0;
-    movesVal.textContent = moves;
-    document.getElementById('goalText').textContent = `${GOAL_HEARTS} ❤️ вампирских сердец`;
-
-    if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].intro) {
-      runDialogue(window.DIALOGS[currentLevelId].intro, () => {
-        boardEl.style.opacity = "1";
-        buildInitialGrid();
-      });
-    } else {
-      boardEl.style.opacity = "1";
-      buildInitialGrid();
-    }
-  });
-
-  // Проверка конца игры
-  function checkEndConditions(){
-    if(hearts >= GOAL_HEARTS){
-      const rewards = getRewards(levelDifficulty);
-      
-      globalStars += rewards.stars;
-      globalCash += rewards.coins;
-
+    if (globalStars >= task.cost) {
+      globalStars -= task.cost;
       starsVal.textContent = globalStars;
-      cashVal.textContent = globalCash + '₽';
+      task.completed = true;
+      
+      // Закрываем меню заданий
+      tasksOverlay.classList.add('hidden');
 
-      if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].win) {
-        runDialogue(window.DIALOGS[currentLevelId].win, () => {
-          showOverlay(
-            'Победа!', 
-            `Заказ выполнен!\nПолучено: ⭐ +${rewards.stars}\nНаграда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`
-          );
+      // Показываем сюжетный диалог, привязанный к заданию
+      if (window.DIALOGS && window.DIALOGS[task.dialog]) {
+        runDialogue(window.DIALOGS[task.dialog], () => {
+          pulseToast("Задание выполнено!");
+          openPreLevelScreen(currentLevelId); // Возвращаемся к игре
         });
       } else {
-        showOverlay(
-          'Победа!', 
-          `Заказ выполнен!\nПолучено: ⭐ +${rewards.stars}\nНаграда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`
-        );
+        pulseToast("Задание выполнено!");
+        openPreLevelScreen(currentLevelId);
       }
-      return;
+    } else {
+      pulseToast("Недостаточно звезд! Проходите уровни.");
     }
-    if(moves <= 0){
-      if (window.DIALOGS && window.DIALOGS[currentLevelId] && window.DIALOGS[currentLevelId].lose) {
-        runDialogue(window.DIALOGS[currentLevelId].lose, () => {
-          showOverlay('Поражение', `Не удалось набрать сердца. Собрано ${hearts} из ${GOAL_HEARTS}. Попробуй еще раз!`);
-        });
-      } else {
-        showOverlay('Поражение', `Не удалось набрать сердца. Собрано ${hearts} из ${GOAL_HEARTS}. Попробуй еще раз!`);
-      }
-    }
-  }
+  };
 
-  function showOverlay(title, text){
-    document.getElementById('overlayTitle').textContent = title;
-    document.getElementById('overlayText').textContent = text;
-    overlay.classList.remove('hidden');
-  }
+  document.getElementById('tasksBtn').addEventListener('click', () => {
+    renderTasks();
+    tasksOverlay.classList.remove('hidden');
+    boardEl.style.opacity = "0.15";
+  });
 
-  function pulseToast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(pulseToast._t);
-    pulseToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1200);
-  }
+  document.getElementById('closeTasksBtn').addEventListener('click', () => {
+    tasksOverlay.classList.add('hidden');
+    boardEl.style.opacity = "0.15";
+    openPreLevelScreen(currentLevelId);
+  });
 
+  // Остальные кнопки
   document.getElementById('helpBtn').addEventListener('click', () => helpOverlay.classList.remove('hidden'));
   document.getElementById('closeHelpBtn').addEventListener('click', () => helpOverlay.classList.add('hidden'));
   
