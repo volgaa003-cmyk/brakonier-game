@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ИСПРАВЛЕННЫЙ — АВИА-КОНТРОЛЬ ПОЛЕТОВ)
-// Движок "Три в ряд" с блокировкой поля во время полета самолетов
+// match3.js (ФИНАЛЬНЫЙ С МНОГОФАЗНЫМИ УРОВНЯМИ)
+// Движок "Три в ряд" со скроллингом и перекаткой полей
 // ================================================
 
 (function() {
@@ -25,17 +25,21 @@
     let levelDifficulty = "normal";
     let levelLayout = []; 
 
+    // Состояние фаз перекатки
+    let isMultiPhase = false;
+    let currentPhaseIndex = 0;
+
     let grid = [];
     let selected = null;
     let hearts = 0, moves = 20;
     let busy = false;
     let tileIdCounter = 0;
 
-    // Счетчик активных самолетов в воздухе для защиты от рассинхрона
-    let activePlanesCount = 0;
-
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
+
+    // Счетчик активных самолетов в воздухе
+    let activePlanesCount = 0;
 
     const boardEl = document.getElementById('board');
     const m3GoalText = document.getElementById('m3GoalText');
@@ -85,7 +89,6 @@
         el.style.top = (row*100/SIZE)+'%';
     }
 
-    // Считывание жестов (СВАЙПОВ)
     function handleDragStart(e, tile) {
         if (busy || tile.type === 'box') return;
         dragActiveTile = tile;
@@ -595,7 +598,7 @@
         return foundTarget ? { r: targetRow, c: targetCol } : null;
     }
 
-    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ (БЛОКИРОВКА АВИА-КОНТРОЛЕМ) ====================
+    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ (МНОГОФАЗНЫЕ ИСПРАВЛЕНИЯ) ====================
 
     function comboFootprint(a, b){
         let cells = new Set();
@@ -603,7 +606,6 @@
         const has = t => kinds.includes(t);
         const isRocket = t => t === 'rocketRow' || t === 'rocketCol';
         
-        // КЛАССИКА 1: Радужный шар + любой Бустер (Ракеты, Бомбы, Самолётики)
         if (has('rainbow') && (has('bomb') || has('rocketRow') || has('rocketCol') || has('plane'))) {
             const boosterType = a.type === 'rainbow' ? b.type : a.type;
             const colors = presentColors();
@@ -619,7 +621,6 @@
                     }
                 }
 
-                // Превращаем все плитки этого цвета в данный бустер и последовательно взрываем!
                 targets.forEach(({r, c}) => {
                     const tile = grid[r][c];
                     if (tile) {
@@ -640,15 +641,13 @@
             return cells;
         }
 
-        // КЛАССИКА 2: Самолётик + Самолётик (Запуск эскадрильи из 3-х птиц!)
         if (has('plane') && has('plane')) {
-            cells = computeActivationFootprint(a); // Очищаем крест в точке запуска
+            cells = computeActivationFootprint(a); 
             
             // Включаем блокировку: летят 3 самолетика
             activePlanesCount += 3;
 
             clearAndContinue(cells, [], null, () => {
-                // По очереди отправляем 3 самолетика в разные важные цели!
                 for (let i = 0; i < 3; i++) {
                     setTimeout(() => {
                         const target = findBestTargetForPlane(a.row, a.col);
@@ -675,17 +674,15 @@
             });
 
             pulseToast('✈️ Эскадрилья самолётиков!');
-            return new Set(); // Возвращаем пустоту, так как запуск мы обработали вручную
+            return new Set(); 
         }
 
-        // КЛАССИКА 3: Самолётик + Бомба / Ракета
         if (has('plane') && (has('bomb') || has('rocketRow') || has('rocketCol'))) {
             const boosterType = a.type === 'plane' ? b.type : a.type;
             const plane = a.type === 'plane' ? a : b;
 
-            cells = computeActivationFootprint(plane); // Очищаем крест на старте
+            cells = computeActivationFootprint(plane); 
             
-            // Включаем блокировку: летит 1 грузовой самолетик
             activePlanesCount++;
 
             clearAndContinue(cells, [], null, () => {
@@ -727,7 +724,6 @@
             return new Set();
         }
 
-        // Обычные слияния (Бомба+Бомба, Ракета+Бомба, Ракета+Ракета)
         if(has('bomb') && has('bomb')){
             const center = a;
             animateBombEffect(center.row, center.col);
@@ -795,7 +791,6 @@
             clearAndContinue(cells, []);
         } 
         else if (tile.type === 'plane') {
-            // Включаем блокировку: летит одиночный самолетик
             activePlanesCount++;
 
             const target = findBestTargetForPlane(tile.row, tile.col);
@@ -809,11 +804,9 @@
             cells.delete(key(targetRow, targetCol)); 
 
             clearAndContinue(cells, [], null, () => {
-                // Полет
                 animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                     const finalCell = new Set([key(targetRow, targetCol)]);
                     clearAndContinue(finalCell, [], null, () => {
-                        // Полет завершен, снимаем блокировку
                         activePlanesCount--;
                         if (activePlanesCount === 0) {
                             busy = false;
@@ -896,7 +889,6 @@
             if(t.type==='heart') heartsGained++;
         });
 
-        // Напрямую проверяем, не уничтожили ли мы коробку (самолетиком, ракетой или бомбой)
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
@@ -942,10 +934,8 @@
                 const result = analyzeMatches();
                 const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
                 if(!hasMore){
-                    // Запускаем колбэк по окончанию цепочки падений
                     if (onComplete) onComplete();
                     
-                    // Блокируем поле ТОЛЬКО если все самолеты закончили полет
                     if (activePlanesCount === 0) {
                         busy = false;
                         checkEndConditions();
@@ -1087,6 +1077,47 @@
         }, 450);
     }
 
+    // ==================== 3. АЛГОРИТМ ПЕРЕКАТКИ И ПРОКРУТКИ КАМЕРЫ (НОВЫЙ БЛОК) ====================
+
+    function transitionToNextPhase() {
+        busy = true;
+        currentPhaseIndex++;
+        pulseToast(`➔ Фаза ${currentPhaseIndex + 1}!`);
+
+        // Сдвигаем старое поле влево
+        boardEl.classList.add('scroll-out');
+
+        setTimeout(() => {
+            // Подгружаем геометрию и цели следующей фазы
+            const phaseData = window.LEVELS[currentLevelId - 1].phases[currentPhaseIndex];
+            GOAL_HEARTS = phaseData.heartsGoal;
+            levelLayout = JSON.parse(JSON.stringify(phaseData.layout));
+            hearts = 0; // Сбрасываем сердца конкретно для этой фазы
+
+            // Смена HUD
+            m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
+
+            // Быстро выкатываем пустое поле с правого края без анимации
+            boardEl.classList.remove('scroll-out');
+            boardEl.classList.add('scroll-in');
+
+            // Перестраиваем сетку
+            buildInitialGrid();
+
+            // Вкатываем новое поле на экран слева
+            setTimeout(() => {
+                boardEl.classList.remove('scroll-in');
+                
+                // Проверяем на тупик при старте новой фазы
+                if (!hasPossibleMoves()) {
+                    shuffleBoard();
+                } else {
+                    busy = false;
+                }
+            }, 50);
+        }, 250);
+    }
+
     // ======================================================================================
 
     function getRewards(diff) {
@@ -1122,10 +1153,21 @@
         }
 
         currentLevelId = levelId;
-        GOAL_HEARTS = levelData.heartsGoal;
-        START_MOVES = levelData.moves;
         levelDifficulty = levelData.difficulty;
-        levelLayout = JSON.parse(JSON.stringify(levelData.layout)); 
+
+        // ИСПРАВЛЕНЫ МНОГОФАЗНЫЕ ИНИЦИАЛИЗАЦИИ
+        if (levelData.phases && levelData.phases.length > 0) {
+            isMultiPhase = true;
+            currentPhaseIndex = 0;
+            GOAL_HEARTS = levelData.phases[0].heartsGoal;
+            levelLayout = JSON.parse(JSON.stringify(levelData.phases[0].layout));
+        } else {
+            isMultiPhase = false;
+            GOAL_HEARTS = levelData.heartsGoal;
+            levelLayout = JSON.parse(JSON.stringify(levelData.layout));
+        }
+
+        START_MOVES = levelData.moves;
 
         const preCard = document.getElementById('preLevelCard');
         if (preCard) {
@@ -1183,7 +1225,6 @@
 
             buildInitialGrid();
 
-            // ВАЖНО: Добавлена принудительная стартовая проверка на тупик!
             if (!hasPossibleMoves()) {
                 shuffleBoard();
             }
@@ -1202,8 +1243,13 @@
 
     function checkEndConditions(){
         if(hearts >= GOAL_HEARTS){
+            // КРИТИЧЕСКИЙ ШАГ: Если это многофазный уровень — перекатываемся в следующую фазу!
+            if (isMultiPhase && currentPhaseIndex < window.LEVELS[currentLevelId - 1].phases.length - 1) {
+                transitionToNextPhase();
+                return;
+            }
+
             const rewards = getRewards(levelDifficulty);
-            
             if (window.GameState) {
                 window.GameState.addStars(rewards.stars);
                 window.GameState.addCash(rewards.coins);
@@ -1280,5 +1326,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Физика и гравитация ящиков успешно отлажены!");
+    console.log("match3.js: Многофазность и перекатка полей успешно подключены!");
 })();
