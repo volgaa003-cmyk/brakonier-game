@@ -1,5 +1,5 @@
 // ================================================
-// map.js (ДИАГНОСТИЧЕСКИЙ)
+// map.js (ЧИСТЫЙ — РАБОЧИЙ ВАРИАНТ)
 // Модуль управления картой, перемещениями и разблокировкой зон
 // ================================================
 
@@ -108,15 +108,10 @@
         });
     }
 
-    // ТЕСТОВЫЙ КЛИК ПО УРОВНЮ 1 (С ДИАГНОСТИКОЙ)
+    // Клик по узлу уровня на карте запускает игру три в ряд
     if (nodeLevelBtn) {
         nodeLevelBtn.addEventListener('click', () => {
             const isActive = nodeLevelBtn.classList.contains('active');
-            const functionType = typeof window.openPreLevelScreen;
-            
-            // Выводим диагностическое сообщение на экран телефона
-            alert(`КЛИК СРАБОТАЛ!\n\nКнопка активна в CSS: ${isActive}\nСтатус функции старта: ${functionType}`);
-
             if (isActive && window.openPreLevelScreen) {
                 const currentLevel = window.GameState.getCurrentLevel();
                 window.openPreLevelScreen(currentLevel);
@@ -139,5 +134,5 @@
         updateUI: updateMapNodesUI
     };
 
-    console.log("map.js: Диагностика подключена!");
+    console.log("map.js: Карта запущена в рабочем режиме!");
 })();
