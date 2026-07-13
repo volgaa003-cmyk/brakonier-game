@@ -392,8 +392,8 @@ body {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  /* Резкие, "сочные" кривые Безье для быстрых свайпов */
-  transition: left .18s cubic-bezier(.25,1,.5,1), top .22s cubic-bezier(.25,1,.5,1);
+  /* Мягкие "Homescapes" переходы для фишек */
+  transition: left .24s cubic-bezier(.25,1,.5,1), top .28s cubic-bezier(.25,1,.5,1);
   cursor: pointer;
   z-index: 1;
   will-change: left, top;
@@ -409,7 +409,7 @@ body {
   background: var(--paper);
   border-radius: 10px;
   border: 2px solid var(--ink);
-  transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+  transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
   will-change: transform, opacity;
 }
 
@@ -783,10 +783,10 @@ body {
 }
 
 /* ==========================================================================
-   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ (НОВЫЙ БЛОК)
+   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ (МЯГКИЙ И ПЛАВНЫЙ ВАРИАНТ)
    ========================================================================== */
 
-/* Движущийся снаряд (ракета или самолетик) */
+/* Движущийся снаряд (ракета или самолетик) — Замедлен для веса */
 .m3-projectile {
   position: absolute;
   width: calc(100% / var(--size));
@@ -797,12 +797,12 @@ body {
   font-size: 24px;
   z-index: 99;
   pointer-events: none;
-  /* Плавный полет через GPU */
-  transition: left 0.22s cubic-bezier(0.25, 1, 0.5, 1), top 0.22s cubic-bezier(0.25, 1, 0.5, 1), transform 0.22s ease-out;
+  /* Мягкий и весомый полет (0.45s) вместо резкого (0.22s) */
+  transition: left 0.45s cubic-bezier(0.25, 1, 0.5, 1), top 0.45s cubic-bezier(0.25, 1, 0.5, 1), transform 0.45s ease-out;
   will-change: left, top, transform;
 }
 
-/* Ударная волна Бомбы 5х5 */
+/* Ударная волна Бомбы 5х5 — Замедлена для тяжелого взрыва */
 .bomb-shockwave {
   position: absolute;
   width: calc(100% / var(--size));
@@ -814,7 +814,8 @@ body {
   z-index: 98;
   transform: scale(1);
   opacity: 1;
-  transition: transform 0.26s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.26s ease-out;
+  /* Замедлен взрыв до 0.35s для Homescapes-эффекта */
+  transition: transform 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.35s ease-out;
   will-change: transform, opacity;
 }
 
@@ -830,5 +831,5 @@ body {
 .tile.box.clearing .tile-inner {
   transform: scale(0) rotate(-20deg);
   opacity: 0;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.25s ease, opacity 0.25s ease;
 }
