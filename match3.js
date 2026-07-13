@@ -729,7 +729,7 @@
         });
     }
 
-    // 6. ПРОВЕРКА КОНЦА ИГРЫ И ОБНОВЛЕНИЕ БАЛАНСОВ
+    // 6. ПРОВЕРКА КОНЦА ИГРЫ И ОБНОВЛЕНИЕ БАЛАНСОВ (ИСПРАВЛЕННЫЙ)
     function checkEndConditions(){
         if(hearts >= GOAL_HEARTS){
             const rewards = getRewards(levelDifficulty);
@@ -740,18 +740,10 @@
                 window.GameState.addCash(rewards.coins);
             }
 
-            // Проверяем выигрышный диалог через window.gameDialogs
-            const dialogueWin = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].win : null;
+            // СРАЗУ выводим окно результатов без автоматического запуска новеллы!
+            const winText = `Вылазка успешна!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
             
-            const winText = `Заказ выполнен!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
-
-            if (window.NovelEngine && dialogueWin) {
-                window.NovelEngine.run(dialogueWin, () => {
-                    showOverlay('Успешный улов!', winText);
-                });
-            } else {
-                showOverlay('Успешный улов!', winText);
-            }
+            showOverlay('Успешный улов! ✔', winText);
             return;
         }
 
@@ -760,22 +752,12 @@
                 window.GameState.loseLife(); // Списываем жизнь
             }
 
-            // Проверяем диалог проигрыша через window.gameDialogs
-            const dialogueLose = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].lose : null;
-
             const loseText = `Тебе не хватило ходов. Было собрано всего ${hearts} из ${GOAL_HEARTS} сердец.\n\nЖизнь: -1 ❤️`;
-
-            if (window.NovelEngine && dialogueLose) {
-                window.NovelEngine.run(dialogueLose, () => {
-                    showOverlay('Слитый бой...', loseText);
-                });
-            } else {
-                showOverlay('Слитый бой...', loseText);
-            }
+            showOverlay('Слитый бой...', loseText);
         }
     }
 
-    // Теперь открываем по верному ID — "overlayResults"
+    // Вывод окна результатов
     function showOverlay(title, text) {
         if (overlayResults) {
             if (resultsTitle) resultsTitle.textContent = title;
@@ -814,5 +796,5 @@
     // Экспортируем функцию открытия старта уровня в глобальную область
     window.openPreLevelScreen = openPreLevelScreen;
 
-    console.log("match3.js: Оптимизированный тач-движок игры успешно подключен!");
+    console.log("match3.js: Окно результатов настроено без авто-диалогов!");
 })();
