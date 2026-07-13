@@ -1,5 +1,5 @@
 // ================================================
-// map.js (ИСПРАВЛЕННЫЙ)
+// map.js (ДИАГНОСТИЧЕСКИЙ)
 // Модуль управления картой, перемещениями и разблокировкой зон
 // ================================================
 
@@ -46,7 +46,6 @@
 
         // Логика КПП (🚧): Открывается только на 5-м уровне
         if (currentLevel < 5) {
-            // Игрок еще не дошел до КПП (проходит уровни 1-4)
             if (nodeCheckpoint) {
                 nodeCheckpoint.className = "map-node node-checkpoint locked";
             }
@@ -62,7 +61,6 @@
             }
         } 
         else if (currentLevel === 5) {
-            // Игрок на 5 уровне — штурмует КПП!
             if (nodeCheckpoint) {
                 nodeCheckpoint.className = "map-node node-checkpoint active";
             }
@@ -70,7 +68,6 @@
                 kppStatusText.innerHTML = `Уровень 5 <span style="color:var(--blood); font-weight:800;">(ШТУРМ КПП)</span>`;
             }
 
-            // Обычный уровень временно скрыт/пройден
             if (nodeLevelBtn) {
                 nodeLevelBtn.className = "map-node node-level locked";
             }
@@ -79,7 +76,6 @@
             }
         } 
         else {
-            // Уровень 6 и выше — КПП успешно пройден!
             if (nodeCheckpoint) {
                 nodeCheckpoint.className = "map-node node-checkpoint";
             }
@@ -87,7 +83,6 @@
                 kppStatusText.innerHTML = `Зачищено ✔ <span style="color:var(--toxic); font-weight:800;">(ПРОЙДЕНО)</span>`;
             }
 
-            // Открывается бесконечная охота в руинах за КПП
             if (nodeLevelBtn) {
                 nodeLevelBtn.className = "map-node node-level active";
             }
@@ -113,17 +108,23 @@
         });
     }
 
-    // Клик по узлу уровня на карте запускает игру три в ряд
+    // ТЕСТОВЫЙ КЛИК ПО УРОВНЮ 1 (С ДИАГНОСТИКОЙ)
     if (nodeLevelBtn) {
         nodeLevelBtn.addEventListener('click', () => {
-            if (nodeLevelBtn.classList.contains('active') && window.openPreLevelScreen) {
+            const isActive = nodeLevelBtn.classList.contains('active');
+            const functionType = typeof window.openPreLevelScreen;
+            
+            // Выводим диагностическое сообщение на экран телефона
+            alert(`КЛИК СРАБОТАЛ!\n\nКнопка активна в CSS: ${isActive}\nСтатус функции старта: ${functionType}`);
+
+            if (isActive && window.openPreLevelScreen) {
                 const currentLevel = window.GameState.getCurrentLevel();
                 window.openPreLevelScreen(currentLevel);
             }
         });
     }
 
-    // Клик по узлу КПП запускает уровень-испытание
+    // Клик по узлу КПП
     if (nodeCheckpoint) {
         nodeCheckpoint.addEventListener('click', () => {
             if (nodeCheckpoint.classList.contains('active') && window.openPreLevelScreen) {
@@ -138,5 +139,5 @@
         updateUI: updateMapNodesUI
     };
 
-    console.log("map.js: Исправленные переходы успешно подключены!");
+    console.log("map.js: Диагностика подключена!");
 })();
