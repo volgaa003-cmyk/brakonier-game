@@ -1,7 +1,11 @@
 // ================================================
-// match3.js (ПЛАВНЫЙ И ВЕСОМЫЙ)
-// Движок "Три в ряд" с мягкой Homescapes физикой полетов
+// match3.js (ФИНАЛЬНЫЙ С ПЕРЕМЕШИВАНИЕМ ХОДОВ)
+// Движок "Три в ряд" с авто-перемешиванием при тупиках
 // ================================================
+
+(document.addEventListener("DOMContentLoaded", () => {
+    // Вся игра обернута в IIFE, чтобы не засорять глобальную область
+}));
 
 (function() {
     const SIZE = 8;
@@ -15,10 +19,9 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    // Мягкие и физичные таймигиHomescapes (свапы 240мс, падение 300мс)
-    const SWAP_MS = 240;  
-    const CLEAR_MS = 260; 
-    const FALL_MS = 300;  
+    const SWAP_MS = 180;  
+    const CLEAR_MS = 200; 
+    const FALL_MS = 240;  
 
     let currentLevelId = 1;
     let GOAL_HEARTS = 12;
@@ -40,6 +43,7 @@
     const m3MovesText = document.getElementById('m3MovesText');
     const toastEl = document.getElementById('toast');
 
+    // Находим оверлеи по точным ID из index.html
     const overlayResults = document.getElementById('overlayResults');
     const resultsTitle = document.getElementById('resultsTitle');
     const resultsText = document.getElementById('resultsText');
@@ -83,6 +87,7 @@
         el.style.top = (row*100/SIZE)+'%';
     }
 
+    // Считывание жестов (СВАЙПОВ)
     function handleDragStart(e, tile) {
         if (busy || tile.type === 'box') return;
         dragActiveTile = tile;
@@ -446,9 +451,8 @@
         return Array.from(set);
     }
 
-    // ==================== 1. ПЛАВНЫЕ АНИМАЦИИ БОНУСОВ HOMESCAPES (МЯГКИЙ ТЕМП) ====================
+    // ==================== ДИНАМИЧЕСКИЕ АНИМАЦИИ БОНУСОВ ====================
 
-    // Медленный полет Ракет 🚀 (0.45 секунды)
     function animateRocketEffect(row, col, isRow) {
         const proj1 = document.createElement('div');
         const proj2 = document.createElement('div');
@@ -482,14 +486,12 @@
             }
         }, 16);
 
-        // Стираем снаряды после завершения медленного полета (450мс)
         setTimeout(() => {
             proj1.remove();
             proj2.remove();
         }, 450);
     }
 
-    // Медленное раздувание взрывного купола Бомбы 💣 (0.35 секунды)
     function animateBombEffect(row, col) {
         const wave = document.createElement('div');
         wave.className = 'bomb-shockwave';
@@ -505,10 +507,9 @@
 
         setTimeout(() => {
             wave.remove();
-        }, 350); // Увеличено до 350мс для тяжелого взрыва
+        }, 350);
     }
 
-    // Мягкий и красивый вираж Самолётика ✈️ (0.5 секунды)
     function animatePlaneEffect(startRow, startCol, targetRow, targetCol, onArrive) {
         const plane = document.createElement('div');
         plane.className = 'm3-projectile';
@@ -522,26 +523,21 @@
         const dy = targetRow - startRow;
         const angle = Math.atan2(dy, dx) * 180 / Math.PI + 45; 
 
-        // 1. Медленный запуск и петля взлета (60мс)
         setTimeout(() => {
             plane.style.transform = `scale(1.4) rotate(${angle - 180}deg)`;
         }, 60);
 
-        // 2. Размеренный перелет по дуге (180мс)
         setTimeout(() => {
             plane.style.left = (targetCol * 100 / SIZE) + '%';
             plane.style.top = (targetRow * 100 / SIZE) + '%';
             plane.style.transform = `scale(1.1) rotate(${angle}deg)`;
         }, 180);
 
-        // 3. Приземление и взрыв цели на 500мс (плавный полет)
         setTimeout(() => {
             plane.remove();
             if (onArrive) onArrive();
         }, 500);
     }
-
-    // ======================================================================
 
     function comboFootprint(a, b){
         const cells = new Set();
@@ -637,7 +633,6 @@
             let targetRow = tile.row, targetCol = tile.col;
             let foundTarget = false;
 
-            // Самолётик летит сначала в ящики
             for (let r=0; r<SIZE; r++) {
                 for (let c=0; c<SIZE; c++) {
                     if (grid[r][c] && grid[r][c].type === 'box') {
@@ -649,7 +644,6 @@
                 if (foundTarget) break;
             }
 
-            // Если коробок нет — летит в сердца
             if (!foundTarget) {
                 for (let r=0; r<SIZE; r++) {
                     for (let c=0; c<SIZE; c++) {
@@ -663,7 +657,6 @@
                 }
             }
 
-            // Иначе в любую случайную
             if (!foundTarget) {
                 const candidates = [];
                 for (let r=0; r<SIZE; r++) {
@@ -684,7 +677,6 @@
 
             clearAndContinue(cells, []);
 
-            // Плавный полет
             animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                 const finalCell = new Set([key(targetRow, targetCol)]);
                 clearAndContinue(finalCell, []);
@@ -716,7 +708,6 @@
         clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
-    // УМНАЯ ПОЛОМКА КОРОБОК
     function checkAndBreakBoxes(clearSet) {
         const boxesToBreak = new Set();
 
@@ -837,6 +828,118 @@
             }
         }
     }
+
+    // ==================== 2. АЛГОРИТМ ПРОВЕРКИ НАЛИЧИЯ СВОБОДНЫХ ХОДОВ (STUCK DETECTOR) ====================
+    
+    function hasPossibleMoves() {
+        // 1. Если на поле есть хотя бы один бонус — ходить можно (его можно просто взорвать тапом!)
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && isSpecial(t.type)) return true;
+            }
+        }
+
+        // 2. Виртуально имитируем свайпы для всех соседних фишек (вправо и вниз)
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (!t || t.type === 'box') continue;
+
+                const neighbors = [[r + 1, c], [r, c + 1]];
+                for (const [nr, nc] of neighbors) {
+                    if (nr < SIZE && nc < SIZE) {
+                        const nt = grid[nr][nc];
+                        // Проверяем: сосед должен существовать, и это не должна быть коробка
+                        if (nt && nt.type !== 'box') {
+                            
+                            // Пробуем сделать временный виртуальный свап
+                            grid[r][c] = nt;
+                            grid[nr][nc] = t;
+
+                            // Запускаем сбор совпадений на виртуальном поле
+                            const runs = collectRuns();
+                            const hasMatch = runs.length > 0;
+
+                            // Возвращаем фишки обратно на место
+                            grid[r][c] = t;
+                            grid[nr][nc] = nt;
+
+                            if (hasMatch) return true; // Нашелся рабочий ход!
+                        }
+                    }
+                }
+            }
+        }
+        return false; // Доступных ходов на поле нет
+    }
+
+    // ==================== 3. АЛГОРИТМ УМНОГО ПЕРЕМЕШИВАНИЯ ПОЛЯ (SHUFFLE) ====================
+    
+    function shuffleBoard() {
+        busy = true;
+        pulseToast("🌀 Нет ходов! Перемешивание...");
+
+        // Находим все обычные фишки на поле (ЯЩИКИ и БОНУСЫ НЕ ТРОГАЕМ!)
+        const normalTiles = [];
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && !isSpecial(t.type) && t.type !== 'box') {
+                    normalTiles.push(t);
+                }
+            }
+        }
+
+        let shuffleSafetyGuard = 0;
+        do {
+            // Извлекаем текущие типы фишек
+            const types = normalTiles.map(t => t.type);
+            
+            // Перемешиваем их алгоритмом Фишера-Йетса
+            for (let i = types.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = types[i];
+                types[i] = types[j];
+                types[j] = temp;
+            }
+
+            // Назначаем новые типы фишкам и закручиваем их
+            normalTiles.forEach((t, index) => {
+                t.type = types[index];
+                t.inner.textContent = iconFor(t.type);
+                applySpecialClass(t);
+                
+                // Визуальный Homescapes-эффект сжатия и кручения при перемешивании
+                t.el.style.transform = 'scale(0.3) rotate(180deg)';
+                t.el.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+            });
+
+            shuffleSafetyGuard++;
+            if (shuffleSafetyGuard > 15) break; // Защита от бесконечного цикла
+        } while (!hasPossibleMoves()); // Мешаем до тех пор, пока гарантированно не появится хотя бы один ход!
+
+        // Разворачиваем фишки обратно в нормальный размер с задержкой
+        setTimeout(() => {
+            normalTiles.forEach(t => {
+                t.el.style.transform = 'scale(1) rotate(0deg)';
+                // Возвращаем стандартные плавные транзишены
+                setTimeout(() => {
+                    t.el.style.transition = '';
+                }, 300);
+            });
+            busy = false;
+
+            // Если при перемешивании случайно собралось три-в-ряд, взрываем их лавиной
+            const result = analyzeMatches();
+            const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+            if (hasMore) {
+                applyResolutionFull(result);
+            }
+        }, 450);
+    }
+
+    // ======================================================================================
 
     function getRewards(diff) {
         let starsGained = 1;
@@ -981,6 +1084,12 @@
             } else {
                 showOverlay('Слитый бой...', loseText);
             }
+            return;
+        }
+
+        // КРИТИЧЕСКИЙ ШАГ: Если игра продолжается, но ходов больше нет — перемешиваем фишки!
+        if (!hasPossibleMoves()) {
+            shuffleBoard();
         }
     }
 
@@ -1019,5 +1128,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Плавные анимации ракет, бомб и самолётиков успешно настроены!");
+    console.log("match3.js: Авто-перемешивание поля успешно интегрировано!");
 })();
