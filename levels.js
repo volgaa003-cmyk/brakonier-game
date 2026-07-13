@@ -1,16 +1,17 @@
 // ================================================
-// levels.js (УЛУЧШЕННЫЙ — СО СТАРТОВЫМИ БУСТЕРАМИ)
-// Генератор сложных Homescapes-полей со спавном бонусов
+// levels.js (ИСПРАВЛЕННЫЙ И ПЛАВНЫЙ)
+// Процедурный генератор Homescapes-полей с умным усложнением
 // ================================================
 
 (function() {
     const LEVELS = [];
     const TOTAL_LEVELS = 10050;
 
-    console.log("levels.js: Расчет плавной кривой сложности и стартовых бустеров...");
+    console.log("levels.js: Расчет плавной кривой сложности...");
 
     // БАЗОВЫЕ ШАБЛОНЫ ПОЛЕЙ
     const LAYOUT_TEMPLATES = {
+        // Полный квадрат 8х8
         square: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -21,6 +22,7 @@
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1]
         ],
+        // Дыра в центре (без ящиков)
         centerHole: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -31,6 +33,7 @@
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1]
         ],
+        // Сложная бабочка с ящиками (только для уровней 11+)
         butterflyWithBoxes: [
             [1, 1, 1, 0, 0, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -40,118 +43,48 @@
             [1, 1, 2, 2, 2, 2, 1, 1], // Ящики (2)
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 0, 0, 1, 1, 1]
-        ],
-        islands: [
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1],
-            [1, 1, 1, 0, 0, 1, 1, 1]
-        ],
-        heart: [
-            [0, 1, 1, 0, 0, 1, 1, 0],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0]
-        ],
-        fortress: [
-            [1, 0, 1, 0, 0, 1, 0, 1], 
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 2, 2, 1, 1, 1], 
-            [1, 1, 1, 2, 2, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0]
-        ],
-        cross: [
-            [0, 0, 1, 1, 1, 1, 0, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1, 0, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0]
         ]
     };
 
     // ФУНКЦИЯ УМНОЙ ГЕНЕРАЦИИ МАСКИ ПОЛЯ
     function getLayoutForLevel(levelId) {
-        let layout;
-
+        // Уровни 1 - 5: Полный квадрат (учимся играть, собирать фишки)
         if (levelId <= 5) {
-            layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.square));
-        } else if (levelId <= 10) {
-            if (levelId === 6) layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.centerHole));
-            else if (levelId === 7) layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.heart));
-            else if (levelId === 8) layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.cross));
-            else if (levelId === 9) layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.islands));
-            else layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.square));
-        } else {
-            const cycle = levelId % 6;
-            if (cycle === 0) layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.fortress));
-            else if (cycle === 1) {
-                layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.islands));
-                layout[3][1] = 2;
-                layout[3][6] = 2;
-            } else if (cycle === 2) {
-                layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.heart));
-                layout[3][3] = 2;
-                layout[3][4] = 2;
-            } else if (cycle === 3) {
-                layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.butterflyWithBoxes));
-            } else if (cycle === 4) {
-                layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.cross));
-                layout[2][0] = 2;
-                layout[2][7] = 2;
-            } else {
-                layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.centerHole));
-                layout[2][3] = 2;
-                layout[2][4] = 2;
-                layout[5][3] = 2;
-                layout[5][4] = 2;
-            }
+            return JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.square));
         }
 
-        // КРИТИЧЕСКИЙ ШАГ: Спавним бустеры на каждом 5-м уровне начиная с 10-го!
-        if (levelId >= 10 && levelId % 5 === 0) {
-            // Количество бустеров плавно растет от 2 до 6 в зависимости от уровня
-            const boostersCount = Math.min(6, 2 + Math.floor(levelId / 50));
-            let placed = 0;
-
-            // Пытаемся случайно распределить бустеры на свободные клетки (цифры 1)
-            let safetyGuard = 0;
-            while (placed < boostersCount && safetyGuard < 100) {
-                safetyGuard++;
-                const r = Math.floor(Math.random() * 8);
-                const c = Math.floor(Math.random() * 8);
-
-                if (layout[r][c] === 1) {
-                    // Случайно выбираем тип бустера:
-                    // 3 - Бомба, 4 - Гор. Ракета, 5 - Верт. Ракета, 6 - Самолет, 7 - Радуга
-                    layout[r][c] = Math.floor(Math.random() * 5) + 3; 
-                    placed++;
-                }
-            }
+        // Уровни 6 - 10: Появляется дыра в центре (учимся облетать пустоты, ЯЩИКОВ НЕТ)
+        if (levelId <= 10) {
+            return JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.centerHole));
         }
 
-        return layout;
+        // Уровни 11+: Полноценный Homescapes с ящиками и сложными пустотами
+        if (levelId % 10 === 0) {
+            // Каждое испытание — сложная бабочка с ящиками
+            return JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.butterflyWithBoxes));
+        } 
+        
+        if (levelId % 3 === 0) {
+            // Обычный уровень: дыра в центре + 4 защитных ящика по углам дыры
+            let layout = JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.centerHole));
+            layout[2][3] = 2; // Ставим коробку сверху дыры
+            layout[2][4] = 2;
+            layout[5][3] = 2; // Ставим коробку снизу дыры
+            layout[5][4] = 2;
+            return layout;
+        }
+
+        // Остальные уровни после 10-го — просто дыра в центре
+        return JSON.parse(JSON.stringify(LAYOUT_TEMPLATES.centerHole));
     }
 
     for (let i = 1; i <= TOTAL_LEVELS; i++) {
         let heartsGoal = 12;
         let moves = 22;
         let difficulty = "normal";
-        let layout = getLayoutForLevel(i);
+        let layout = getLayoutForLevel(i); // Рассчитываем форму поля динамически!
 
+        // Растущая кривая сложности
         if (i <= 20) {
             heartsGoal = 10 + Math.floor(i * 1.0);
             moves = 24 - Math.floor(i / 10);
@@ -160,12 +93,14 @@
             moves = 22 - Math.floor((i - 20) / 15);
         }
 
-        let randomVariation = Math.floor(Math.random() * 5) - 2; 
+        // Легкая погрешность для разнообразия целей
+        let randomVariation = Math.floor(Math.random() * 5) - 2; // от -2 до +2
         heartsGoal = Math.max(10, heartsGoal + randomVariation);
 
-        let randomMoves = Math.floor(Math.random() * 3) - 1; 
+        let randomMoves = Math.floor(Math.random() * 3) - 1; // от -1 до +1
         moves = Math.max(10, moves + randomMoves);
 
+        // Расчет типов сложности
         if (i % 10 === 0) {
             difficulty = "challenge";
             heartsGoal = Math.floor(heartsGoal * 1.25);
@@ -190,13 +125,13 @@
         });
     }
 
-    // Ручная настройка первых 3-х уровней для идеального старта
+    // Ручная точечная настройка первых 3-х уровней для идеального обучения
     LEVELS[0] = {
         id: 1,
         heartsGoal: 8,
         moves: 20,
         difficulty: "normal",
-        layout: LAYOUT_TEMPLATES.square, 
+        layout: LAYOUT_TEMPLATES.square, // 1 уровень — ровное поле
         completed: false,
         bestScore: 0,
         stars: 0
@@ -207,7 +142,7 @@
         heartsGoal: 10,
         moves: 18,
         difficulty: "normal",
-        layout: LAYOUT_TEMPLATES.square, 
+        layout: LAYOUT_TEMPLATES.square, // 2 уровень — тоже ровный, чуть сложнее цель
         completed: false,
         bestScore: 0,
         stars: 0
@@ -215,15 +150,27 @@
 
     LEVELS[2] = {
         id: 3,
-        heartsGoal: 15,
+        heartsGoal: 12,
         moves: 18,
         difficulty: "medium",
-        layout: LAYOUT_TEMPLATES.square, 
+        layout: LAYOUT_TEMPLATES.square, // 3 уровень — ровный, добавляем синюю сложность
+        completed: false,
+        bestScore: 0,
+        stars: 0
+    };
+
+    // Уровень 6 — первое появление пустоты в центре (учим игрока облетать дыру)
+    LEVELS[5] = {
+        id: 6,
+        heartsGoal: 15,
+        moves: 16,
+        difficulty: "medium",
+        layout: LAYOUT_TEMPLATES.centerHole,
         completed: false,
         bestScore: 0,
         stars: 0
     };
 
     window.LEVELS = LEVELS;
-    console.log(`levels.js: Начисление стартовых бустеров на сложные уровни завершено!`);
+    console.log(`levels.js: Плавная кривая Homescapes усложнений запущена!`);
 })();
