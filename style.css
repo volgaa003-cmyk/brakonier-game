@@ -38,7 +38,7 @@ html, body {
 }
 
 body {
-  /* Пыльный задний фон с радиальным готическим градиентом */
+  /* Пыльный задний фон с радиальным градиентом */
   background-image:
     radial-gradient(var(--ink) 1px, transparent 1px),
     radial-gradient(circle at 50% 0%, var(--violet) 0%, var(--ink) 70%);
@@ -167,6 +167,7 @@ body {
 }
 
 .tasks-btn { background: var(--gold); color: var(--ink); }
+.story-btn { background: var(--sky); color: var(--paper); }
 .hunt-btn { background: var(--blood); color: var(--paper); }
 .back-btn { background: var(--paper); color: var(--ink); }
 
@@ -241,7 +242,7 @@ body {
 }
 
 /* ==========================================================================
-   5. ЭКРАН 2: КАРТА И КПП (ПУТЬ)
+   5. ЭКРАН 2: КАРТА И ПУТЬ ВЫЛАЗОК
    ========================================================================== */
 .map-scroll-area {
   width: 100%;
@@ -260,7 +261,6 @@ body {
   width: 100%;
 }
 
-/* Задняя линия-путь, связывающая уровни */
 .camp-path::before {
   content: "";
   position: absolute;
@@ -291,13 +291,11 @@ body {
   transform: scale(0.97) translate(2px, 2px);
 }
 
-/* Активный/доступный уровень */
 .map-node.active {
   background: var(--gold);
   box-shadow: 4px 4px 0 var(--toxic);
 }
 
-/* Закрытый уровень */
 .map-node.locked {
   opacity: 0.45;
   cursor: not-allowed;
@@ -305,9 +303,8 @@ body {
   box-shadow: none;
 }
 
-/* Особый узел — КПП (Испытание со шлагбаумом) */
 .map-node.node-checkpoint {
-  background: var(--hazard); /* Оранжевый */
+  background: var(--hazard); 
   border-style: dashed;
 }
 .map-node.node-checkpoint.active {
@@ -343,7 +340,7 @@ body {
 }
 
 /* ==========================================================================
-   6. ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ)
+   6. ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ И СЕТКА)
    ========================================================================== */
 .match3-header {
   display: flex;
@@ -387,12 +384,36 @@ body {
   touch-action: none;
 }
 
-/* 7. ФИШКИ И ЭФФЕКТЫ АППАРАТНОЙ АНИМАЦИИ (GPU ACCELERATION) */
+/* Фоновая решетка ячеек поля (Основа Homescapes) */
+.grid-cell {
+  position: absolute;
+  width: calc(100% / var(--size));
+  height: calc(100% / var(--size));
+  border: 1.5px solid rgba(232, 225, 208, 0.08); /* Тонкая сеточка */
+  background: rgba(255, 255, 255, 0.02);
+  z-index: 0;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+/* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА (Растилается под фишками) */
+.grid-cell.carpet {
+  background: radial-gradient(circle, #52a334 0%, #2f611d 100%);
+  border: 1.5px solid rgba(82, 163, 52, 0.4);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+  animation: carpetSpread 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+@keyframes carpetSpread {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* 7. ФИШКИ И ЭФФЕКТЫ АППАРАТНОЙ АНИМАЦИИ */
 .tile {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  /* Мягкие "Homescapes" переходы для фишек */
   transition: left .24s cubic-bezier(.25,1,.5,1), top .28s cubic-bezier(.25,1,.5,1);
   cursor: pointer;
   z-index: 1;
@@ -415,14 +436,46 @@ body {
 
 @media(min-width:460px){ .tile-inner { font-size: 26px; } }
 
-/* Выделенная фишка */
+/* 🧊 СТИЛИ МОРОЗНОГО ЛЬДА (Замораживает фишки) */
+.tile.frozen {
+  cursor: not-allowed;
+}
+
+/* Полупрозрачный голубой купол льда с эффектом размытия */
+.tile.frozen .tile-inner::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(circle, rgba(200, 240, 255, 0.5) 0%, rgba(100, 200, 255, 0.3) 100%);
+  border: 2px solid #aadeff;
+  border-radius: 8px;
+  box-shadow: 0 0 6px rgba(100, 200, 255, 0.6), inset 0 0 8px rgba(255,255,255,0.7);
+  backdrop-filter: blur(1.5px); /* Ледяное матовое размытие */
+  z-index: 6;
+  animation: iceShimmer 2s infinite ease-in-out;
+}
+
+@keyframes iceShimmer {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+/* Снятие/раскалывание льда */
+.tile.frozen.ice-cracked .tile-inner::after {
+  animation: iceCrack 0.25s ease-out forwards;
+}
+
+@keyframes iceCrack {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.3) rotate(10deg); opacity: 0; }
+}
+
 .tile.selected .tile-inner {
   transform: scale(1.12) rotate(-4deg);
   box-shadow: 0 0 0 3px var(--gold);
   z-index: 2;
 }
 
-/* Тряска при несовпадении */
 .tile.shake .tile-inner { animation: shake .25s ease; }
 @keyframes shake {
   0%,100% { transform: translateX(0); }
@@ -430,13 +483,11 @@ body {
   75% { transform: translateX(3.5px); }
 }
 
-/* Взрыв/Уничтожение фишки */
 .tile.clearing .tile-inner {
   transform: scale(0) rotate(15deg);
   opacity: 0;
 }
 
-/* Сияющий ореол взрыва */
 .tile.clearing::after {
   content: "";
   position: absolute;
@@ -481,7 +532,6 @@ body {
   animation: specialGlow .8s ease-in-out infinite;
 }
 
-/* Конический градиент Радужного шара */
 .tile.rainbow .tile-inner {
   background: conic-gradient(from 0deg, #ff5a6e, #ffd15a, #7ee08c, #5ab6ff, #b985ff, #ff5a6e);
   animation: specialGlow .7s ease-in-out infinite;
