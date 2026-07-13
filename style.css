@@ -242,7 +242,7 @@ body {
 }
 
 /* ==========================================================================
-   5. ЭКРАН 2: КАРТА И ПУТЬ ВЫЛАЗОК
+   5. ЭКРАН 2: КАРТА И КПП (ПУТЬ)
    ========================================================================== */
 .map-scroll-area {
   width: 100%;
@@ -261,6 +261,7 @@ body {
   width: 100%;
 }
 
+/* Задняя линия-путь, связывающая уровни */
 .camp-path::before {
   content: "";
   position: absolute;
@@ -291,11 +292,13 @@ body {
   transform: scale(0.97) translate(2px, 2px);
 }
 
+/* Активный/доступный уровень */
 .map-node.active {
   background: var(--gold);
   box-shadow: 4px 4px 0 var(--toxic);
 }
 
+/* Закрытый уровень */
 .map-node.locked {
   opacity: 0.45;
   cursor: not-allowed;
@@ -303,8 +306,9 @@ body {
   box-shadow: none;
 }
 
+/* Особый узел — КПП (Испытание со шлагбаумом) */
 .map-node.node-checkpoint {
-  background: var(--hazard); 
+  background: var(--hazard); /* Оранжевый */
   border-style: dashed;
 }
 .map-node.node-checkpoint.active {
@@ -340,7 +344,7 @@ body {
 }
 
 /* ==========================================================================
-   6. ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ И СЕТКА)
+   6. ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ)
    ========================================================================== */
 .match3-header {
   display: flex;
@@ -375,6 +379,7 @@ body {
   box-shadow: 8px 8px 0 rgba(0,0,0,0.55);
   padding: 6px;
   width: 100%;
+  overflow: hidden; /* Защита от выхода фишек при скролле */
 }
 
 #board {
@@ -382,6 +387,8 @@ body {
   width: 100%;
   aspect-ratio: 1/1;
   touch-action: none;
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease-out;
+  will-change: transform, opacity;
 }
 
 /* Фоновая решетка ячеек поля (Основа Homescapes) */
@@ -409,11 +416,12 @@ body {
   to { transform: scale(1); opacity: 1; }
 }
 
-/* 7. ФИШКИ И ЭФФЕКТЫ АППАРАТНОЙ АНИМАЦИИ */
+/* Фишки */
 .tile {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
+  /* Мягкие "Homescapes" переходы для фишек */
   transition: left .24s cubic-bezier(.25,1,.5,1), top .28s cubic-bezier(.25,1,.5,1);
   cursor: pointer;
   z-index: 1;
@@ -532,6 +540,7 @@ body {
   animation: specialGlow .8s ease-in-out infinite;
 }
 
+/* Конический градиент Радужного шара */
 .tile.rainbow .tile-inner {
   background: conic-gradient(from 0deg, #ff5a6e, #ffd15a, #7ee08c, #5ab6ff, #b985ff, #ff5a6e);
   animation: specialGlow .7s ease-in-out infinite;
@@ -833,7 +842,7 @@ body {
 }
 
 /* ==========================================================================
-   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ (МЯГКИЙ И ПЛАВНЫЙ ВАРИАНТ)
+   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ
    ========================================================================== */
 
 /* Движущийся снаряд (ракета или самолетик) — Замедлен для веса */
@@ -882,4 +891,22 @@ body {
   transform: scale(0) rotate(-20deg);
   opacity: 0;
   transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+/* ==========================================================================
+   13. АНИМАЦИИ ПРОКРУТКИ И ПЕРЕКАТКИ КАМЕРЫ (НОВЫЙ БЛОК)
+   ========================================================================== */
+
+/* Уезжающее старое поле */
+#board.scroll-out {
+  transform: translate3d(-120%, 0, 0) scale(0.9);
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease-out;
+}
+
+/* Приезжающее новое поле */
+#board.scroll-in {
+  transform: translate3d(120%, 0, 0) scale(0.9);
+  opacity: 0;
+  transition: none !important; /* Вкатывание происходит моментально без анимации с правого края */
 }
