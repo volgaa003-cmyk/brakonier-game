@@ -60,10 +60,11 @@
       </div>
     </section>
 
-    <!-- Нижняя панель навигации Убежища -->
+    <!-- Нижняя панель навигации Убежища (ТРИ КНОПКИ) -->
     <footer class="screen-navigation">
-      <button class="menu-btn tasks-btn" id="btnOpenTasks">📋 Задания</button>
-      <button class="menu-btn hunt-btn" id="btnGoToMap">🔫 На охоту</button>
+      <button class="menu-btn tasks-btn" id="btnOpenTasks" style="background:var(--gold); color:var(--ink);">🛠️ Ремонт</button>
+      <button class="menu-btn story-btn" id="btnOpenStory" style="background:var(--sky); color:var(--paper);">📖 Сюжет</button>
+      <button class="menu-btn hunt-btn" id="btnGoToMap" style="background:var(--blood); color:var(--paper);">🔫 Охота</button>
     </footer>
   </main>
 
@@ -139,10 +140,10 @@
     </div>
   </div>
 
-  <!-- ==================== ОВЕРЛЕЙ 2: ОКНО СПИСКА ЗАДАНИЙ ==================== -->
+  <!-- ==================== ОВЕРЛЕЙ 2: ОКНО СПИСКА ЗАДАНИЙ ПО РЕМОНТУ ==================== -->
   <div id="overlayTasks" class="ui-overlay hidden">
     <div class="ui-card">
-      <h2>🧾 Список дел</h2>
+      <h2>🛠️ Ремонт Убежища</h2>
       <div class="tasks-scroll-list" id="tasksListContainer">
         <!-- Генерируется из JS -->
       </div>
@@ -150,7 +151,19 @@
     </div>
   </div>
 
-  <!-- ==================== ОВЕРЛЕЙ 3: КАРТОЧКА СТАРТА УРОВНЯ ==================== -->
+  <!-- ==================== ОВЕРЛЕЙ 3: ОКНО ВЫБОРА ГЛАВ КНИГИ ==================== -->
+  <div id="overlayStory" class="ui-overlay hidden">
+    <div class="ui-card" style="max-width: 400px; border-color: var(--sky);">
+      <h2 style="color: var(--sky);">📖 Книга Сюжетов</h2>
+      <p style="font-size: 11px; text-align: center; margin-bottom: 12px; color: var(--ink);">Покупайте новые главы истории за звезды:</p>
+      <div class="tasks-scroll-list" id="storyListContainer">
+        <!-- Сюда JS вставит список глав книги -->
+      </div>
+      <button class="action-btn cancel-btn" id="btnCloseStory">Назад</button>
+    </div>
+  </div>
+
+  <!-- ==================== ОВЕРЛЕЙ 4: КАРТОЧКА СТАРТА УРОВНЯ ==================== -->
   <div id="overlayPreLevel" class="ui-overlay hidden">
     <div class="pre-level-card normal-diff" id="preLevelCard">
       <h2 id="preLevelTitle">Уровень 1</h2>
@@ -174,7 +187,7 @@
     </div>
   </div>
 
-  <!-- ==================== ОВЕРЛЕЙ 4: РЕЗУЛЬТАТЫ УРОВНЯ ==================== -->
+  <!-- ==================== ОВЕРЛЕЙ 5: РЕЗУЛЬТАТЫ УРОВНЯ ==================== -->
   <div id="overlayResults" class="ui-overlay hidden">
     <div class="ui-card">
       <h2 id="resultsTitle">Вылазка успешна!</h2>
@@ -185,7 +198,7 @@
     </div>
   </div>
 
-  <!-- ==================== СКРИПТЫ (Загружаются модульно) ==================== -->
+  <!-- ==================== СКРИПТЫ ==================== -->
   <script src="state.js"></script>
   <script src="levels.js"></script>
   <script src="dialogs.js"></script>
