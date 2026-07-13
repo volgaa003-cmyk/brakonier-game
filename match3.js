@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (ИСПРАВЛЕННЫЙ)
+// match3.js (ИСПРАВЛЕННЫЙ И СТАБИЛЬНЫЙ)
 // Движок "Три в ряд" с поддержкой жестов (свайпов) и бонусов
 // ================================================
 
@@ -135,8 +135,10 @@
         inner.textContent = iconFor(type);
         el.appendChild(inner);
 
+        // Сначала гарантированно создаем объект фишки
         const tile = {id, type, row, col, el, inner};
 
+        // Привязываем все события
         el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
         el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
         el.addEventListener('click', onTileClick);
@@ -166,7 +168,6 @@
         setTilePos(tile.el, row, col);
     }
 
-    // 3. ПОСТРОЕНИЕ НАЧАЛЬНОЙ СЕТКИ
     function buildInitialGrid(){
         boardEl.innerHTML = '';
         grid = [];
@@ -526,7 +527,7 @@
         result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
         result.normalCells.forEach(k=>scoreSet.add(k));
         
-        const atKeys = new Set(specialSpawns.map(s=>key(s.at[0], s.at[1])));
+        const atKeys = new Set(specialSpawns.map(s=>key(s.at[0],s.at[1])));
         const clearSet = new Set();
         scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
         
@@ -639,9 +640,9 @@
         if (m3MovesText) m3MovesText.textContent = moves;
     }
 
-    // 5. ГЛОБАЛЬНЫЙ МЕТОД: ОТКРЫТИЕ СТАРТОВОГО ОКНА УРОВНЯ
-    window.openPreLevelScreen = function(levelId) {
-        // ИСПРАВЛЕНО: Используем window.LEVELS вместо старой переменной window.gameLevels
+    // 5. МЕТОД ОТКРЫТИЯ СТАРТОВОГО ОКНА УРОВНЯ
+    function openPreLevelScreen(levelId) {
+        // ИСПРАВЛЕНО: Теперь гарантированно берем window.LEVELS
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) {
             console.error("Не удалось найти данные уровня в window.LEVELS:", levelId);
@@ -685,7 +686,7 @@
 
         const preLevelOverlay = document.getElementById('preLevelOverlay');
         if (preLevelOverlay) preLevelOverlay.classList.remove('hidden');
-    };
+    }
 
     // Клик "Отмена" на пре-карточке
     const btnCancelPreLevel = document.getElementById('btnCancelPreLevel');
@@ -719,7 +720,7 @@
             // Выстраиваем сетку
             buildInitialGrid();
 
-            // ИСПРАВЛЕНО: Проверяем наличие диалога перед боем через window.gameDialogs
+            // Проверяем наличие диалога перед боем через window.gameDialogs
             const dialogueIntro = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].intro : null;
             if (window.NovelEngine && dialogueIntro) {
                 if (boardEl) boardEl.style.opacity = "0.2"; // Слегка приглушаем поле
@@ -743,7 +744,7 @@
                 window.GameState.addCash(rewards.coins);
             }
 
-            // ИСПРАВЛЕНО: Проверяем выигрышный диалог через window.gameDialogs
+            // Проверяем выигрышный диалог через window.gameDialogs
             const dialogueWin = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].win : null;
             
             const winText = `Заказ выполнен!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
@@ -763,7 +764,7 @@
                 window.GameState.loseLife(); // Списываем жизнь
             }
 
-            // ИСПРАВЛЕНО: Проверяем диалог проигрыша через window.gameDialogs
+            // Проверяем диалог проигрыша через window.gameDialogs
             const dialogueLose = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].lose : null;
 
             const loseText = `Тебе не хватило ходов. Было собрано всего ${hearts} из ${GOAL_HEARTS} сердец.\n\nЖизнь: -1 ❤️`;
@@ -801,7 +802,6 @@
         btnResultsClose.addEventListener('click', () => {
             if (overlay) overlay.classList.add('hidden');
             
-            // ИСПРАВЛЕНО: Условие перехода
             if (hearts >= GOAL_HEARTS) {
                 if (window.GameState) {
                     window.GameState.nextLevel(); // Повышаем уровень в сохранениях
@@ -814,8 +814,8 @@
         });
     }
 
-    // Экспортируем функцию открытия старта уровня в систему карты
+    // Экспортируем функцию открытия старта уровня в глобальную область
     window.openPreLevelScreen = openPreLevelScreen;
 
-    console.log("match3.js: Ошибки в именах переменных успешно исправлены!");
+    console.log("match3.js: Оптимизированный тач-движок игры успешно подключен!");
 })();
