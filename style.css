@@ -306,9 +306,9 @@ body {
   box-shadow: none;
 }
 
-/* Особый узел — КПП (Испытание со шлагбаумом) */
+/* Особый узел — КПП */
 .map-node.node-checkpoint {
-  background: var(--hazard); /* Оранжевый */
+  background: var(--hazard); 
   border-style: dashed;
 }
 .map-node.node-checkpoint.active {
@@ -379,7 +379,7 @@ body {
   box-shadow: 8px 8px 0 rgba(0,0,0,0.55);
   padding: 6px;
   width: 100%;
-  overflow: hidden; /* Защита от выхода фишек при скролле */
+  overflow: hidden; 
 }
 
 #board {
@@ -396,14 +396,14 @@ body {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  border: 1.5px solid rgba(232, 225, 208, 0.08); /* Тонкая сеточка */
+  border: 1.5px solid rgba(232, 225, 208, 0.08); 
   background: rgba(255, 255, 255, 0.02);
   z-index: 0;
   pointer-events: none;
   transition: background 0.3s ease;
 }
 
-/* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА (Растилается под фишками) */
+/* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА */
 .grid-cell.carpet {
   background: radial-gradient(circle, #52a334 0%, #2f611d 100%);
   border: 1.5px solid rgba(82, 163, 52, 0.4);
@@ -444,7 +444,7 @@ body {
 
 @media(min-width:460px){ .tile-inner { font-size: 26px; } }
 
-/* 🧊 СТИЛИ МОРОЗНОГО ЛЬДА (Замораживает фишки) */
+/* 🧊 СТИЛИ МОРОЗНОГО ЛЬДА */
 .tile.frozen {
   cursor: not-allowed;
 }
@@ -458,7 +458,7 @@ body {
   border: 2px solid #aadeff;
   border-radius: 8px;
   box-shadow: 0 0 6px rgba(100, 200, 255, 0.6), inset 0 0 8px rgba(255,255,255,0.7);
-  backdrop-filter: blur(1.5px); /* Ледяное матовое размытие */
+  backdrop-filter: blur(1.5px); 
   z-index: 6;
   animation: iceShimmer 2s infinite ease-in-out;
 }
@@ -842,10 +842,10 @@ body {
 }
 
 /* ==========================================================================
-   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ
+   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ (ПЛАВНЫЙ ТЕМП HOMESCAPES)
    ========================================================================== */
 
-/* Движущийся снаряд (ракета или самолетик) — Замедлен для веса */
+/* Медленный и мягкий полет Ракеты и Самолётика (0.65s) */
 .m3-projectile {
   position: absolute;
   width: calc(100% / var(--size));
@@ -856,12 +856,12 @@ body {
   font-size: 24px;
   z-index: 99;
   pointer-events: none;
-  /* Мягкий и весомый полет (0.45s) вместо резкого (0.22s) */
-  transition: left 0.45s cubic-bezier(0.25, 1, 0.5, 1), top 0.45s cubic-bezier(0.25, 1, 0.5, 1), transform 0.45s ease-out;
+  /* Замедлен полет до 0.65 секунды для приятного веса */
+  transition: left 0.65s cubic-bezier(0.25, 1, 0.5, 1), top 0.65s cubic-bezier(0.25, 1, 0.5, 1), transform 0.65s ease-out;
   will-change: left, top, transform;
 }
 
-/* Ударная волна Бомбы 5х5 — Замедлена для тяжелого взрыва */
+/* Тяжелая и мощная взрывная волна Бомбы (0.35s) */
 .bomb-shockwave {
   position: absolute;
   width: calc(100% / var(--size));
@@ -873,14 +873,13 @@ body {
   z-index: 98;
   transform: scale(1);
   opacity: 1;
-  /* Замедлен взрыв до 0.35s для Homescapes-эффекта */
   transition: transform 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.35s ease-out;
   will-change: transform, opacity;
 }
 
 /* Препятствие: Коробка/Ящик в стиле Homescapes */
 .tile.box .tile-inner {
-  background: linear-gradient(135deg, #a0522d, #8b4513); /* Деревянный коричневый цвет */
+  background: linear-gradient(135deg, #a0522d, #8b4513); 
   border: 3px solid var(--ink);
   box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
   font-size: 28px;
@@ -893,20 +892,31 @@ body {
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
-/* ==========================================================================
-   13. АНИМАЦИИ ПРОКРУТКИ И ПЕРЕКАТКИ КАМЕРЫ (НОВЫЙ БЛОК)
-   ========================================================================== */
-
-/* Уезжающее старое поле */
+/* Анимации прокрутки и перекатки камеры */
 #board.scroll-out {
   transform: translate3d(-120%, 0, 0) scale(0.9);
   opacity: 0;
   transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease-out;
 }
 
-/* Приезжающее новое поле */
 #board.scroll-in {
   transform: translate3d(120%, 0, 0) scale(0.9);
   opacity: 0;
-  transition: none !important; /* Вкатывание происходит моментально без анимации с правого края */
+  transition: none !important; 
+}
+
+/* ==========================================================================
+   13. СВЕТЯЩИЕСЯ НЕОНОВЫЕ ЩУПАЛЬЦА РАДУЖНОГО ШАРА 🌈 (НОВЫЙ БЛОК)
+   ========================================================================== */
+.rainbow-laser {
+  position: absolute;
+  height: 6px;
+  border-radius: 4px;
+  transform-origin: left center;
+  z-index: 99;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  /* Плавный вылет луча и растворение */
+  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out;
+  will-change: width, opacity;
 }
