@@ -1,5 +1,5 @@
 // ================================================
-// novel.js (ИСПРАВЛЕННЫЙ)
+// novel.js (ИСПРАВЛЕННЫЙ — РАБОЧИЙ)
 // Движок визуальной новеллы (в стиле Клуба Романтики)
 // ================================================
 
@@ -13,9 +13,9 @@
     let typingTimeoutId = null;     // ID таймера печати (нужен для пропуска)
     let currentText = "";           // Полный текст текущей реплики
 
-    // Находим HTML-элементы (ИСПРАВЛЕННЫЕ ID ПОД INDEX.HTML)
+    // Находим HTML-элементы (ИСПРАВЛЕНО: ищем по классу .dialogue-window, чтобы избежать несовпадений!)
     const overlayDialogue = document.getElementById('overlayDialogue');
-    const dialogueBox = document.getElementById('dialogueBox');
+    const dialogueBox = document.querySelector('.dialogue-window') || document.getElementById('dialogueBox');
     const speakerNameEl = document.getElementById('dialogueSpeaker');
     const dialogueTextEl = document.getElementById('dialogueText');
     const dialogueChoicesEl = document.getElementById('dialogueChoices');
@@ -215,6 +215,7 @@
         }
     }
 
+    // Клик на саму плашку диалога продвигает текст вперед
     if (dialogueBox) {
         dialogueBox.addEventListener('click', () => {
             if (isTyping) {
@@ -236,5 +237,5 @@
         run: startDialogue
     };
 
-    console.log("novel.js: Ошибки в ID диалогового окна исправлены!");
+    console.log("novel.js: Сцена успешно реагирует на клики!");
 })();
