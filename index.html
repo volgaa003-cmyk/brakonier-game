@@ -4,6 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Браконьер — Охота на сердца</title>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Браконьер — Охота на сердца</title>
+
+<!-- Скрипт авто-диагностики (покажет ошибку на телефоне) -->
+<script>
+  window.onerror = function(message, url, line) {
+    alert("НАЙДЕНА ОШИБКА:\n" + message + "\n\nФайл: " + url + "\nСтрока: " + line);
+    return false;
+  };
+</script>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+...
 <!-- Подключаем таблицу стилей -->
 <link rel="stylesheet" href="style.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
