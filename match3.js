@@ -1,6 +1,6 @@
 // ================================================
-// match3.js
-// Движок "Три в ряд" с поддержкой жестов (свайпов) и бонусов
+// match3.js (ГЕОМЕТРИЯ ПОЛЯ И ПРЕПЯТСТВИЯ)
+// Движок "Три в ряд" с масками полей и коробками
 // ================================================
 
 (function() {
@@ -15,7 +15,6 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    // Тайминги анимации для плавности и быстроты (GPU-friendly)
     const SWAP_MS = 180;  
     const CLEAR_MS = 200; 
     const FALL_MS = 240;  
@@ -24,6 +23,7 @@
     let GOAL_HEARTS = 12;
     let START_MOVES = 20;
     let levelDifficulty = "normal";
+    let levelLayout = []; // Маска текущего уровня
 
     let grid = [];
     let selected = null;
@@ -31,7 +31,6 @@
     let busy = false;
     let tileIdCounter = 0;
 
-    // Вспомогательные переменные для свайпов
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
 
@@ -40,14 +39,12 @@
     const m3MovesText = document.getElementById('m3MovesText');
     const toastEl = document.getElementById('toast');
 
-    // Находим оверлеи по точным ID из index.html
     const overlayResults = document.getElementById('overlayResults');
     const resultsTitle = document.getElementById('resultsTitle');
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
     const preCard = document.getElementById('preLevelCard');
 
-    // Навешиваем слушатели для отслеживания жеста сдвига (свайпа)
     window.addEventListener('mousemove', handleDragMove);
     window.addEventListener('touchmove', handleDragMove, {passive: false});
     window.addEventListener('mouseup', handleDragEnd);
@@ -65,17 +62,19 @@
             case 'rocketCol': return '🚀';
             case 'plane': return '✈️';
             case 'rainbow': return '🌈';
+            case 'box': return '📦'; // Иконка коробки
             default: return TYPES.find(t=>t.id===type).icon;
         }
     }
 
     function applySpecialClass(t){
-        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow');
+        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box');
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
         else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
         else if(t.type==='plane') t.el.classList.add('plane');
         else if(t.type==='rainbow') t.el.classList.add('rainbow');
+        else if(t.type==='box') t.el.classList.add('box'); // Класс коробки
     }
 
     function setTilePos(el, row, col){
@@ -83,9 +82,9 @@
         el.style.top = (row*100/SIZE)+'%';
     }
 
-    // СЧИТЫВАНИЕ ЖЕСТОВ (СВАЙПОВ)
+    // Считывание жестов (СВАЙПОВ)
     function handleDragStart(e, tile) {
-        if (busy) return;
+        if (busy || tile.type === 'box') return; // Коробки нельзя свайпать!
         dragActiveTile = tile;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -101,7 +100,7 @@
         const dy = clientY - dragStartY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist > 30) { // Порог жеста свайпа в 30 пикселей
+        if (dist > 30) { 
             let targetRow = dragActiveTile.row;
             let targetCol = dragActiveTile.col;
 
@@ -113,7 +112,8 @@
 
             if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
                 const partner = grid[targetRow][targetCol];
-                if (partner) {
+                // Партнера тоже нельзя менять, если это пустота или коробка!
+                if (partner && partner.type !== 'box') {
                     dragActiveTile.el.classList.remove('selected');
                     selected = null;
                     performSwap(dragActiveTile, partner);
@@ -137,10 +137,8 @@
         inner.textContent = iconFor(type);
         el.appendChild(inner);
 
-        // Сначала гарантированно создаем объект фишки
         const tile = {id, type, row, col, el, inner};
 
-        // Привязываем все события
         el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
         el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
         el.addEventListener('click', onTileClick);
@@ -170,6 +168,7 @@
         setTilePos(tile.el, row, col);
     }
 
+    // Инициализация поля с учетом геометрии
     function buildInitialGrid(){
         boardEl.innerHTML = '';
         grid = [];
@@ -177,13 +176,24 @@
         
         for(let r=0;r<SIZE;r++){
             for(let c=0;c<SIZE;c++){
-                let t, guard=0;
-                do{ t=randType(); guard++; } 
-                while(guard<30 && (
-                    (c>=2 && grid[r][c-1] && grid[r][c-2] && grid[r][c-1].type===t && grid[r][c-2].type===t) ||
-                    (r>=2 && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].type===t && grid[r-2][c].type===t)
-                ));
-                grid[r][c] = createTile(r, c, t, r - SIZE - Math.floor(Math.random()*4));
+                const cellType = levelLayout[r][c];
+
+                if (cellType === 0) {
+                    // Пустота — ничего не создаем
+                    grid[r][c] = null;
+                } else if (cellType === 2) {
+                    // Коробка — создаем неподвижный ящик
+                    grid[r][c] = createTile(r, c, 'box', r);
+                } else {
+                    // Обычная клетка — создаем случайную фишку
+                    let t, guard=0;
+                    do{ t=randType(); guard++; } 
+                    while(guard<30 && (
+                        (c>=2 && grid[r][c-1] && grid[r][c-2] && grid[r][c-1].type===t && grid[r][c-2].type===t) ||
+                        (r>=2 && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].type===t && grid[r-2][c].type===t)
+                    ));
+                    grid[r][c] = createTile(r, c, t, r - SIZE - Math.floor(Math.random()*4));
+                }
             }
         }
     }
@@ -199,7 +209,8 @@
     function onTileClick(e){
         if(busy) return;
         const tile = findTileById(e.currentTarget.dataset.id);
-        if(!tile) return;
+        if(!tile || tile.type === 'box') return; // Коробки не кликаются
+
         if(selected === null){
             if(isSpecial(tile.type)) { activateStandalone(tile); return; }
             selected = tile;
@@ -287,9 +298,10 @@
             for(let c=1;c<=SIZE;c++){
                 const cur = c<SIZE ? getType(r,c) : null;
                 const prev = getType(r,c-1);
-                if(cur!==null && cur===prev && !isSpecial(cur)) continue;
+                // Коробки не участвуют в обычных матчах!
+                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
                 const len = c - runStart;
-                if(len>=3 && !isSpecial(prev)){
+                if(len>=3 && !isSpecial(prev) && prev !== 'box'){
                     const cells=[]; 
                     for(let k=runStart;k<c;k++) cells.push([r,k]);
                     runs.push({cells, dir:'h', length:len, type:prev, used:false});
@@ -302,9 +314,9 @@
             for(let r=1;r<=SIZE;r++){
                 const cur = r<SIZE ? getType(r,c) : null;
                 const prev = getType(r-1,c);
-                if(cur!==null && cur===prev && !isSpecial(cur)) continue;
+                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
                 const len = r - runStart;
-                if(len>=3 && !isSpecial(prev)){
+                if(len>=3 && !isSpecial(prev) && prev !== 'box'){
                     const cells=[]; 
                     for(let k=runStart;k<r;k++) cells.push([k,c]);
                     runs.push({cells, dir:'v', length:len, type:prev, used:false});
@@ -337,7 +349,7 @@
                 const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
                 if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
                 const t0 = getType(r,c);
-                if(!t0 || isSpecial(t0)) continue;
+                if(!t0 || isSpecial(t0) || t0 === 'box') continue; // Коробки не собираются в квадраты
                 if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
                     squares.push({type:'plane', at:[r,c], cells});
                     cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
@@ -397,7 +409,7 @@
             });
             const candidates = [];
             for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-                if(grid[r][c] && !(r===tile.row && c===tile.col)) candidates.push([r,c]);
+                if(grid[r][c] && !(r===tile.row && c===tile.col) && grid[r][c].type !== 'box') candidates.push([r,c]);
             }
             if(candidates.length) cells.push(candidates[Math.floor(Math.random()*candidates.length)]);
         } else if(tile.type==='rainbow'){
@@ -435,7 +447,7 @@
     function presentColors(){
         const set = new Set();
         for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-            if(grid[r][c] && !isSpecial(grid[r][c].type)) set.add(grid[r][c].type);
+            if(grid[r][c] && !isSpecial(grid[r][c].type) && grid[r][c].type !== 'box') set.add(grid[r][c].type);
         }
         return Array.from(set);
     }
@@ -523,10 +535,10 @@
     function applyResolutionFull(result){
         const specialSpawns = [];
         const scoreSet = new Set();
-        result.bombs.forEach(b=>{ b.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:b.at, type:'bomb'}); });
-        result.rockets.forEach(rk=>{ rk.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rk.at, type:rk.type}); });
-        result.rainbows.forEach(rb=>{ rb.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rb.at, type:'rainbow'}); });
-        result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
+        result.bombs.forEach(b=>{ b.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at: b.at, type:'bomb'}); });
+        result.rockets.forEach(rk=>{ rk.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at: rk.at, type: rk.type}); });
+        result.rainbows.forEach(rb=>{ rb.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at: rb.at, type:'rainbow'}); });
+        result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at: sq.at, type:'plane'}); });
         result.normalCells.forEach(k=>scoreSet.add(k));
         
         const atKeys = new Set(specialSpawns.map(s=>key(s.at[0], s.at[1])));
@@ -535,6 +547,43 @@
         
         if(specialSpawns.length) pulseToast(specialSpawns.length>1 ? 'Комбо бонусов!' : 'Новый бонус!');
         clearAndContinue(clearSet, specialSpawns, scoreSet);
+    }
+
+    // УМНАЯ ПОЛОМКА КОРОБОК (Поиск коробок по соседству с очищаемыми фишками)
+    function checkAndBreakBoxes(clearSet) {
+        const boxesToBreak = new Set();
+
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            // Проверяем 4 соседние клетки (крестом)
+            const neighbors = [
+                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+            ];
+
+            neighbors.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                    const tile = grid[nr][nc];
+                    if (tile && tile.type === 'box') {
+                        boxesToBreak.add(key(nr, nc));
+                    }
+                }
+            });
+        });
+
+        // Взрываем найденные коробки
+        boxesToBreak.forEach(k => {
+            const [br, bc] = k.split(',').map(Number);
+            const boxTile = grid[br][bc];
+            if (boxTile) {
+                boxTile.el.classList.add('clearing');
+                setTimeout(() => {
+                    if (grid[br][bc] === boxTile) {
+                        boxTile.el.remove();
+                        grid[br][bc] = null;
+                    }
+                }, CLEAR_MS);
+            }
+        });
     }
 
     function clearAndContinue(clearSet, specialSpawns, scoreSet){
@@ -547,6 +596,10 @@
             if(!t) return;
             if(t.type==='heart') heartsGained++;
         });
+
+        // ЛОГИКА HOMESCAPES: Ломаем соседние коробки перед очисткой клеток!
+        checkAndBreakBoxes(clearSet);
+
         clearSet.forEach(k=>{
             const [r,c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
@@ -554,7 +607,6 @@
         });
         hearts += heartsGained;
         
-        // Обновляем счетчик на игровом экране
         if (m3GoalText) m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         
         if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
@@ -592,29 +644,39 @@
         }, CLEAR_MS);
     }
 
+    // Умное падение фишек Homescapes (Падают только по разрешенным траекториям, облетая пустоты)
     function applyGravityAndRefill(){
         for(let c=0;c<SIZE;c++){
             let pointer = SIZE-1;
             for(let r=SIZE-1;r>=0;r--){
-                if(grid[r][c] !== null){
-                    const t = grid[r][c];
-                    if(pointer !== r){
-                        grid[pointer][c] = t;
-                        grid[r][c] = null;
-                        moveTileTo(t, pointer, c);
+                // Проверяем: если эта клетка в разметке не пустая (не 0) и не занята коробкой (2)
+                if (levelLayout[r][c] !== 0 && levelLayout[r][c] !== 2) {
+                    if(grid[r][c] !== null){
+                        const t = grid[r][c];
+                        if(pointer !== r){
+                            grid[pointer][c] = t;
+                            grid[r][c] = null;
+                            moveTileTo(t, pointer, c);
+                        }
+                        pointer--;
                     }
-                    pointer--;
+                } else {
+                    // Если встретили пустоту или коробку — сдвигаем указатель выше
+                    if (grid[r][c] === null) {
+                        pointer = Math.min(pointer, r - 1);
+                    }
                 }
             }
             let spawnOffset = 1;
             for(let r=pointer;r>=0;r--){
-                grid[r][c] = createTile(r, c, randType(), -spawnOffset);
-                spawnOffset++;
+                if (levelLayout[r][c] !== 0 && levelLayout[r][c] !== 2) {
+                    grid[r][c] = createTile(r, c, randType(), -spawnOffset);
+                    spawnOffset++;
+                }
             }
         }
     }
 
-    // ВЫЧИСЛЕНИЕ НАГРАДЫ
     function getRewards(diff) {
         let starsGained = 1;
         let baseCoins = 100;
@@ -640,9 +702,7 @@
         if (m3MovesText) m3MovesText.textContent = moves;
     }
 
-    // 5. МЕТОД ОТКРЫТИЯ СТАРТОВОГО ОКНА УРОВНЯ
     function openPreLevelScreen(levelId) {
-        // Гарантированно берем window.LEVELS
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) {
             console.error("Не удалось найти данные уровня в window.LEVELS:", levelId);
@@ -653,8 +713,9 @@
         GOAL_HEARTS = levelData.heartsGoal;
         START_MOVES = levelData.moves;
         levelDifficulty = levelData.difficulty;
+        levelLayout = levelData.layout; // Записываем геометрию поля для текущего раунда
 
-        // Настройка цветности карточки в стиле Homescapes
+        const preCard = document.getElementById('preLevelCard');
         if (preCard) {
             preCard.className = 'pre-card';
             let diffClass = 'diff-normal';
@@ -683,11 +744,9 @@
         const preCoins = document.getElementById('preRewardCoins');
         if (preCoins) preCoins.textContent = `💰 +${rewards.base}₽`;
 
-        // Теперь открываем по правильному ID — "overlayPreLevel"
         if (overlayPreLevel) overlayPreLevel.classList.remove('hidden');
     }
 
-    // Клик "Отмена" на пре-карточке
     const btnCancelPreLevel = document.getElementById('btnCancelPreLevel');
     if (btnCancelPreLevel) {
         btnCancelPreLevel.addEventListener('click', () => {
@@ -696,32 +755,27 @@
         });
     }
 
-    // Клик "В бой" на пре-карточке
     const btnStartMatch3 = document.getElementById('btnStartMatch3');
     if (btnStartMatch3) {
         btnStartMatch3.addEventListener('click', () => {
             if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
             
-            // Открываем игровой экран
             if (window.showScreen) {
                 window.showScreen('screenMatch3');
             }
 
-            // Сбрасываем счетчики уровня
             hearts = 0;
             moves = START_MOVES;
             updateMatch3HUD();
             if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
 
-            // Выстраиваем сетку
             buildInitialGrid();
 
-            // Проверяем наличие диалога перед боем через window.gameDialogs
             const dialogueIntro = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].intro : null;
             if (window.NovelEngine && dialogueIntro) {
-                if (boardEl) boardEl.style.opacity = "0.2"; // Слегка приглушаем поле
+                if (boardEl) boardEl.style.opacity = "0.2"; 
                 window.NovelEngine.run(dialogueIntro, () => {
-                    if (boardEl) boardEl.style.opacity = "1"; // Делаем ярким для игры
+                    if (boardEl) boardEl.style.opacity = "1"; 
                 });
             } else {
                 if (boardEl) boardEl.style.opacity = "1";
@@ -729,35 +783,46 @@
         });
     }
 
-    // 6. ПРОВЕРКА КОНЦА ИГРЫ И ОБНОВЛЕНИЕ БАЛАНСОВ (ИСПРАВЛЕННЫЙ)
     function checkEndConditions(){
         if(hearts >= GOAL_HEARTS){
             const rewards = getRewards(levelDifficulty);
             
-            // Начисляем балансы в GameState
             if (window.GameState) {
                 window.GameState.addStars(rewards.stars);
                 window.GameState.addCash(rewards.coins);
             }
 
-            // СРАЗУ выводим окно результатов без автоматического запуска новеллы!
-            const winText = `Вылазка успешна!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
-            
-            showOverlay('Успешный улов! ✔', winText);
+            const winText = `Заказ выполнен!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
+
+            const dialogueWin = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].win : null;
+            if (window.NovelEngine && dialogueWin) {
+                window.NovelEngine.run(dialogueWin, () => {
+                    showOverlay('Успешный улов!', winText);
+                });
+            } else {
+                showOverlay('Успешный улов!', winText);
+            }
             return;
         }
 
         if(moves <= 0){
             if (window.GameState) {
-                window.GameState.loseLife(); // Списываем жизнь
+                window.GameState.loseLife(); 
             }
 
+            const dialogueLose = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].lose : null;
             const loseText = `Тебе не хватило ходов. Было собрано всего ${hearts} из ${GOAL_HEARTS} сердец.\n\nЖизнь: -1 ❤️`;
-            showOverlay('Слитый бой...', loseText);
+
+            if (window.NovelEngine && dialogueLose) {
+                window.NovelEngine.run(dialogueLose, () => {
+                    showOverlay('Слитый бой...', loseText);
+                });
+            } else {
+                showOverlay('Слитый бой...', loseText);
+            }
         }
     }
 
-    // Вывод окна результатов
     function showOverlay(title, text) {
         if (overlayResults) {
             if (resultsTitle) resultsTitle.textContent = title;
@@ -775,7 +840,6 @@
         }
     }
 
-    // Клик на кнопку завершения уровня на экране результатов
     const btnResultsClose = document.getElementById('btnResultsClose');
     if (btnResultsClose) {
         btnResultsClose.addEventListener('click', () => {
@@ -783,18 +847,16 @@
             
             if (hearts >= GOAL_HEARTS) {
                 if (window.GameState) {
-                    window.GameState.nextLevel(); // Повышаем уровень в сохранениях
+                    window.GameState.nextLevel(); 
                 }
             }
 
             if (window.showScreen) {
-                window.showScreen('screenMap'); // Возвращаем игрока на карту
+                window.showScreen('screenMap'); 
             }
         });
     }
 
-    // Экспортируем функцию открытия старта уровня в глобальную область
     window.openPreLevelScreen = openPreLevelScreen;
-
-    console.log("match3.js: Окно результатов настроено без авто-диалогов!");
+    console.log("match3.js: Сложные Homescapes поля с геометрией и ящиками запущены!");
 })();
