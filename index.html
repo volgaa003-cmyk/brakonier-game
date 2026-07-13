@@ -1,601 +1,188 @@
-/* ==================== ГЛОБАЛЬНЫЕ НАСТРОЙКИ И ЦВЕТА ==================== */
-:root {
-  --ink: #0d0b0f;
-  --paper: #e8e1d0;
-  --blood: #c81d3f;
-  --blood-dark: #8c1330;
-  --gold: #d1a13f;
-  --violet: #3a2540;
-  --toxic: #7a9a3f;
-  --sky: #2f6fb0;
-  --panel-shadow: 5px 5px 0 var(--ink);
-  --size: 8;
-}
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-  background: var(--ink);
-  font-family: 'Rubik', sans-serif;
-  color: var(--paper);
-}
-
-body {
-  background-image:
-    radial-gradient(var(--ink) 1px, transparent 1px),
-    radial-gradient(circle at 50% 0%, var(--violet) 0%, var(--ink) 65%);
-  background-size: 10px 10px, cover;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px;
-}
-
-/* Скрытие элементов */
-.hidden {
-  display: none !important;
-}
-
-/* ==================== HUD (ВЕРХНЯЯ ПАНЕЛЬ) ==================== */
-.global-hud {
-  display: flex;
-  gap: 6px;
-  width: 100%;
-  max-width: 440px;
-  margin-bottom: 10px;
-  z-index: 10;
-}
-
-.hud-item {
-  flex: 1;
-  background: var(--paper);
-  color: var(--ink);
-  border: 3px solid var(--ink);
-  border-radius: 10px;
-  box-shadow: var(--panel-shadow);
-  padding: 4px 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.hud-icon {
-  font-size: 10px;
-}
-
-.hud-val {
-  font-family: 'Bangers', cursive;
-  font-size: 18px;
-  line-height: 1.1;
-}
-
-.stars-stat .hud-val { color: var(--gold); }
-.lives-stat .hud-val { color: var(--blood); }
-.cash-stat .hud-val { color: #8a6a1a; }
-.rep-stat .hud-val { color: var(--sky); }
-
-/* ==================== СТРУКТУРА ЭКРАНОВ И НАВИГАЦИИ ==================== */
-.game-screen {
-  width: 100%;
-  max-width: 440px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  overflow-y: auto;
-  position: relative;
-}
-
-.location-banner {
-  background: var(--blood);
-  border: 3px solid var(--ink);
-  border-radius: 8px;
-  width: 100%;
-  padding: 6px;
-  font-family: 'Bangers', cursive;
-  font-size: 18px;
-  text-align: center;
-  box-shadow: var(--panel-shadow);
-  margin-bottom: 12px;
-}
-
-.screen-navigation {
-  width: 100%;
-  display: flex;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 12px;
-}
-
-.menu-btn {
-  flex: 1;
-  font-family: 'Bangers', cursive;
-  font-size: 18px;
-  padding: 10px;
-  border: 3px solid var(--ink);
-  border-radius: 10px;
-  cursor: pointer;
-  box-shadow: var(--panel-shadow);
-  text-transform: uppercase;
-}
-
-.menu-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--ink);
-}
-
-.tasks-btn { background: var(--gold); color: var(--ink); }
-.hunt-btn { background: var(--blood); color: var(--paper); }
-.back-btn { background: var(--paper); color: var(--ink); }
-
-/* ==================== ЭКРАН 1: УБЕЖИЩЕ ==================== */
-.room-container {
-  width: 100%;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.decor-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 3px solid var(--paper);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: var(--panel-shadow);
-}
-
-.decor-card h3 {
-  margin: 0 0 12px 0;
-  font-family: 'Bangers', cursive;
-  font-size: 22px;
-  color: var(--gold);
-}
-
-.decor-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-}
-
-.decor-list li {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--paper);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.decor-val {
-  font-weight: bold;
-  color: var(--gold);
-}
-
-/* ==================== ЭКРАН 2: КАРТА ВЫЛАЗОК ==================== */
-.map-scroll-area {
-  width: 100%;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.camp-path {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: center;
-  position: relative;
-  width: 100%;
-}
-
-.camp-path::before {
-  content: "";
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  width: 4px;
-  background: var(--paper);
-  opacity: 0.3;
-}
-
-.map-node {
-  background: var(--paper);
-  color: var(--ink);
-  border: 3px solid var(--ink);
-  border-radius: 12px;
-  padding: 10px 16px;
-  width: 85%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  box-shadow: 4px 4px 0 var(--ink);
-  z-index: 2;
-  transition: transform 0.1s;
-}
-
-.map-node:active {
-  transform: scale(0.98);
-}
-
-.map-node.active {
-  background: var(--gold);
-  border-color: var(--ink);
-  box-shadow: 4px 4px 0 var(--toxic);
-}
-
-.map-node.locked {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #999;
-}
-
-.node-icon {
-  font-size: 24px;
-}
-
-.node-info {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-
-.node-title {
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.node-status {
-  font-size: 11px;
-  opacity: 0.8;
-}
-
-/* ==================== ЭКРАН 3: ТРИ В РЯД ==================== */
-.match3-header {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 10px;
-}
-
-.goal-box, .moves-box {
-  background: var(--blood);
-  border: 3px solid var(--ink);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: bold;
-}
-
-.goal-box b, .moves-box b {
-  font-family: 'Bangers', cursive;
-  font-size: 18px;
-}
-
-.moves-box {
-  background: var(--violet);
-}
-
-#boardWrap {
-  background: var(--ink);
-  border: 4px solid var(--ink);
-  border-radius: 14px;
-  box-shadow: 6px 6px 0 rgba(0,0,0,.5);
-  padding: 6px;
-  width: 100%;
-}
-
-#board {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1/1;
-  touch-action: none;
-}
-
-/* Фишки */
-.tile {
-  position: absolute;
-  width: calc(100% / var(--size));
-  height: calc(100% / var(--size));
-  transition: left .18s cubic-bezier(.25,1,.5,1), top .22s cubic-bezier(.25,1,.5,1);
-  cursor: pointer;
-  z-index: 1;
-  will-change: left, top;
-}
-
-.tile-inner {
-  position: absolute;
-  inset: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 5.6vw;
-  background: var(--paper);
-  border-radius: 8px;
-  border: 2px solid var(--ink);
-  transition: transform .15s ease, opacity .15s ease;
-  will-change: transform, opacity;
-}
-
-@media(min-width:460px){ .tile-inner { font-size: 24px; } }
-
-.tile.selected .tile-inner {
-  transform: scale(1.12) rotate(-4deg);
-  box-shadow: 0 0 0 3px var(--gold);
-  z-index: 2;
-}
-
-.tile.shake .tile-inner { animation: shake .25s ease; }
-.tile.clearing .tile-inner { transform: scale(0); opacity: 0; }
-.tile.clearing::after {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 70%);
-  animation: pop .25s ease-out forwards;
-}
-
-.match3-footer {
-  margin-top: 10px;
-  font-size: 11px;
-  opacity: 0.6;
-}
-
-/* ==================== ИНТЕРФЕЙС ОВЕРЛЕЕВ (ОКНА И КАРТОЧКИ) ==================== */
-.ui-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(13, 11, 15, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
-}
-
-.ui-card {
-  background: var(--paper);
-  color: var(--ink);
-  border: 4px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: 8px 8px 0 var(--blood);
-  padding: 24px;
-  max-width: 380px;
-  width: 100%;
-}
-
-.ui-card h2 {
-  font-family: 'Bangers', cursive;
-  font-size: 28px;
-  color: var(--blood-dark);
-  margin: 0 0 16px 0;
-  text-align: center;
-}
-
-.action-btn {
-  font-family: 'Bangers', cursive;
-  font-size: 18px;
-  padding: 10px 24px;
-  border: 3px solid var(--ink);
-  border-radius: 10px;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 10px;
-  box-shadow: 4px 4px 0 var(--ink);
-}
-
-.action-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--ink);
-}
-
-.start-btn { background: var(--toxic); color: var(--paper); }
-.cancel-btn { background: #999; color: var(--ink); }
-.next-btn { background: var(--blood); color: var(--paper); }
-
-/* ==================== ОКНО ДИАЛОГОВ (НОВЕЛЛА) ==================== */
-.dialogue-window {
-  background: var(--paper);
-  color: var(--ink);
-  border: 4px solid var(--ink);
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 var(--blood);
-  padding: 16px;
-  width: 100%;
-  max-width: 420px;
-  position: absolute;
-  bottom: 20px;
-  cursor: pointer;
-  z-index: 150;
-}
-
-.speaker-name {
-  font-family: 'Bangers', cursive;
-  font-size: 22px;
-  color: var(--blood-dark);
-  margin-bottom: 6px;
-  text-align: left;
-}
-
-.dialogue-text-container {
-  min-height: 50px;
-  text-align: left;
-}
-
-.dialogue-text {
-  font-size: 14px;
-  line-height: 1.4;
-  margin: 0 0 10px 0;
-}
-
-/* Контейнер выборов (Клуб Романтики) */
-.choices-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-  width: 100%;
-}
-
-.choice-btn {
-  background: var(--violet);
-  color: var(--paper);
-  border: 2px solid var(--ink);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: bold;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: 3px 3px 0 var(--ink);
-  transition: transform 0.1s;
-}
-
-.choice-btn:hover {
-  background: var(--blood);
-}
-
-.choice-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--ink);
-}
-
-.dialogue-hint {
-  font-size: 9px;
-  text-align: right;
-  opacity: 0.6;
-  text-transform: uppercase;
-  margin-top: 6px;
-}
-
-/* ==================== КАРТОЧКА СТАРТА УРОВНЯ ==================== */
-.pre-level-card {
-  background: #ffd369; /* Обычный - Желтый */
-  color: var(--ink);
-  border: 4px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: 8px 8px 0 rgba(0,0,0,0.5);
-  padding: 24px;
-  max-width: 360px;
-  width: 100%;
-  text-align: center;
-}
-
-.pre-level-card h2 {
-  font-family: 'Bangers', cursive;
-  font-size: 32px;
-  margin: 0 0 6px 0;
-  -webkit-text-stroke: 1px var(--ink);
-}
-
-.diff-badge {
-  font-size: 11px;
-  text-transform: uppercase;
-  font-weight: 800;
-  opacity: 0.8;
-  margin-bottom: 20px;
-}
-
-.pre-level-goal {
-  background: rgba(255,255,255,0.4);
-  border: 2px dashed var(--ink);
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 18px;
-}
-
-.goal-label {
-  font-size: 10px;
-  font-weight: bold;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
-.goal-value {
-  font-size: 18px;
-  font-weight: 800;
-  margin-top: 4px;
-}
-
-.pre-level-rewards {
-  margin-bottom: 16px;
-}
-
-.reward-title {
-  font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.reward-row {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.reward-pill {
-  background: var(--paper);
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 13px;
-  font-weight: 800;
-  box-shadow: 2px 2px 0 var(--ink);
-}
-
-/* ==================== ОКНО ЗАДАНИЙ ==================== */
-.tasks-scroll-list {
-  max-height: 250px;
-  overflow-y: auto;
-  margin-bottom: 16px;
-}
-
-.task-item {
-  background: rgba(255,255,255,0.4);
-  border: 2px solid var(--ink);
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.task-info {
-  text-align: left;
-}
-
-.task-title {
-  font-size: 12px;
-  font-weight: bold;
-  color: var(--ink);
-}
-
-.task-btn {
-  background: var(--toxic);
-  color: var(--paper);
-  font-family: 'Bangers', cursive;
-  font-size: 14px;
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 var(--ink);
-  white-space: nowrap;
-}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Браконьер — Охота на сердца</title>
+<!-- Подключаем таблицу стилей -->
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ==================== ГЛОБАЛЬНЫЙ HUD (ВЕРХНЯЯ ПАНЕЛЬ) ==================== -->
+  <header class="global-hud">
+    <div class="hud-item lives-stat">
+      <span class="hud-icon">❤️</span>
+      <span class="hud-val" id="hudLives">5</span>
+    </div>
+    <div class="hud-item stars-stat">
+      <span class="hud-icon">⭐</span>
+      <span class="hud-val" id="hudStars">0</span>
+    </div>
+    <div class="hud-item cash-stat">
+      <span class="hud-icon">💰</span>
+      <span class="hud-val" id="hudCash">0₽</span>
+    </div>
+    <div class="hud-item rep-stat">
+      <span class="hud-icon">👑</span>
+      <span class="hud-val" id="hudRep">10</span>
+    </div>
+  </header>
+
+  <!-- ==================== ЭКРАН 1: УБЕЖИЩЕ (ХАБ ОБУСТРОЙСТВА) ==================== -->
+  <main id="screenHideout" class="game-screen">
+    <div class="location-banner">Комната 1: Жилой блок</div>
+    
+    <!-- Интерактивная комната со статусом мебели -->
+    <section class="room-container">
+      <div class="decor-card">
+        <h3>Текущий интерьер:</h3>
+        <ul class="decor-list">
+          <li>🪵 Пол: <span id="decorFloor" class="decor-val">Гнилые доски</span></li>
+          <li>🧱 Стены: <span id="decorWalls" class="decor-val">Осыпающаяся штукатурка</span></li>
+          <li>🛏️ Кровать: <span id="decorBed" class="decor-val">Пыльный матрас</span></li>
+          <li>🪵 Стол: <span id="decorTable" class="decor-val">Шатающийся верстак</span></li>
+          <li>🚪 Шкаф: <span id="decorCabinet" class="decor-val">Сломанный комод</span></li>
+          <li>🪟 Окна: <span id="decorWindows" class="decor-val">Забиты фанерой</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Нижняя панель навигации Убежища -->
+    <footer class="screen-navigation">
+      <button class="menu-btn tasks-btn" id="btnOpenTasks">📋 Задания</button>
+      <button class="menu-btn hunt-btn" id="btnGoToMap">🔫 На охоту</button>
+    </footer>
+  </main>
+
+  <!-- ==================== ЭКРАН 2: КАРТА И ПУТЬ ВЫЛАЗОК ==================== -->
+  <main id="screenMap" class="game-screen hidden">
+    <div class="location-banner">Охотничьи угодья</div>
+
+    <div class="map-scroll-area">
+      <!-- Линейный путь уровней -->
+      <div class="camp-path">
+        <!-- КПП (Сложный уровень-выбор) -->
+        <div class="map-node node-checkpoint locked" id="nodeCheckpoint">
+          <div class="node-icon">🚧</div>
+          <div class="node-info">
+            <span class="node-title">Городской КПП</span>
+            <span class="node-status">Требуется 5 уровень</span>
+          </div>
+        </div>
+
+        <!-- Обычные уровни -->
+        <div class="map-node node-level active" id="nodeLevelBtn">
+          <div class="node-icon">🎯</div>
+          <div class="node-info">
+            <span class="node-title">Уровень 1</span>
+            <span class="node-status">Нажмите, чтобы начать</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="screen-navigation">
+      <button class="menu-btn back-btn" id="btnBackToHideout">🏠 В убежище</button>
+    </footer>
+  </main>
+
+  <!-- ==================== ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ) ==================== -->
+  <main id="screenMatch3" class="game-screen hidden">
+    <div class="match3-header">
+      <div class="goal-box">
+        <span>Цель:</span>
+        <b id="m3GoalText">12 ❤️</b>
+      </div>
+      <div class="moves-box">
+        <span>Ходы:</span>
+        <b id="m3MovesText">20</b>
+      </div>
+    </div>
+
+    <!-- Контейнер для поля -->
+    <div id="boardWrap">
+      <div id="board"></div>
+    </div>
+
+    <div class="match3-footer">Свапни два бонуса — получи комбо!</div>
+  </main>
+
+  <!-- ==================== ОВЕРЛЕЙ 1: ОКНО ДИАЛОГОВ (НОВЕЛЛА) ==================== -->
+  <div id="overlayDialogue" class="ui-overlay hidden">
+    <div class="dialogue-window">
+      <div class="speaker-name" id="dialogueSpeaker">Скупщик</div>
+      <div class="dialogue-text-container">
+        <p class="dialogue-text" id="dialogueText">Текст реплики...</p>
+      </div>
+      
+      <!-- Кнопки выбора ответов (Клуб Романтики) -->
+      <div class="choices-container hidden" id="dialogueChoices">
+        <!-- Будут создаваться через JS -->
+        <button class="choice-btn">1. Отдать сердца (Требует 👑 10)</button>
+        <button class="choice-btn">2. Атаковать стражу</button>
+      </div>
+
+      <div class="dialogue-hint" id="dialogueHint">Кликни на окно, чтобы продолжить...</div>
+    </div>
+  </div>
+
+  <!-- ==================== ОВЕРЛЕЙ 2: ОКНО СПИСКА ЗАДАНИЙ ==================== -->
+  <div id="overlayTasks" class="ui-overlay hidden">
+    <div class="ui-card">
+      <h2>🧾 Список дел</h2>
+      <div class="tasks-scroll-list" id="tasksListContainer">
+        <!-- Генерируется из JS -->
+      </div>
+      <button class="action-btn cancel-btn" id="btnCloseTasks">Назад</button>
+    </div>
+  </div>
+
+  <!-- ==================== ОВЕРЛЕЙ 3: КАРТОЧКА СТАРТА УРОВНЯ ==================== -->
+  <div id="overlayPreLevel" class="ui-overlay hidden">
+    <div class="pre-level-card normal-diff" id="preLevelCard">
+      <h2 id="preLevelTitle">Уровень 1</h2>
+      <div class="diff-badge" id="preLevelDiffBadge">Обычная сложность</div>
+      
+      <div class="pre-level-goal">
+        <div class="goal-label">Задача вылазки:</div>
+        <div class="goal-value" id="preLevelGoalVal">12 ❤️ Вампирских Сердец</div>
+      </div>
+
+      <div class="pre-level-rewards">
+        <div class="reward-title">Награда:</div>
+        <div class="reward-row">
+          <span class="reward-pill">⭐ +1</span>
+          <span class="reward-pill">💰 +100₽</span>
+        </div>
+      </div>
+
+      <button class="action-btn start-btn" id="btnStartMatch3">В бой</button>
+      <button class="action-btn cancel-btn" id="btnCancelPreLevel">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ==================== ОВЕРЛЕЙ 4: РЕЗУЛЬТАТЫ УРОВНЯ ==================== -->
+  <div id="overlayResults" class="ui-overlay hidden">
+    <div class="ui-card">
+      <h2 id="resultsTitle">Вылазка успешна!</h2>
+      <div class="results-content" id="resultsText">
+        Вы получили: ⭐ +1 и 💰 +120₽
+      </div>
+      <button class="action-btn next-btn" id="btnResultsClose">Отлично</button>
+    </div>
+  </div>
+
+  <!-- ==================== СКРИПТЫ (Загружаются модульно) ==================== -->
+  <script src="state.js"></script>
+  <script src="levels.js"></script>
+  <script src="dialogs.js"></script>
+  <script src="novel.js"></script>
+  <script src="meta.js"></script>
+  <script src="map.js"></script>
+  <script src="match3.js"></script>
+
+</body>
+</html>
