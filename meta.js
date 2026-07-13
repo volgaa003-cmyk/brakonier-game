@@ -1,38 +1,57 @@
 // ================================================
-// meta.js (С СЮЖЕТНЫМИ ГЛАВАМИ ЗА ЗВЕЗДЫ)
+// meta.js (РАЗДЕЛЕННЫЙ РЕМОНТ И СЮЖЕТ)
 // Движок обустройства Убежища и покупки сюжета
 // ================================================
 
 (function() {
-    // ПОЛНАЯ БАЗА ДАННЫХ ЗАДАЧ (Сюжетные главы + Ремонт мебели)
-    const hideoutTasks = [
-        // Сюжетные главы (Покупка истории за звезды)
+    const DEFAULT_DECOR_NAMES = {
+        floor: "Гнилые доски",
+        walls: "Осыпающаяся штукатурка",
+        bed: "Пыльный матрас",
+        table: "Шатающийся верстак",
+        cabinet: "Сломанный комод",
+        windows: "Забиты фанерой"
+    };
+
+    // 1. СПИСОК СЮЖЕТНЫХ ГЛАВ КНИГИ (Покупаются за звезды в меню "Сюжет")
+    const storyChapters = [
         { 
             id: "story_prologue", 
-            title: "📖 Читать Пролог: Поездка к кочегарке Митрича", 
+            title: "📖 Пролог: Охота на измененного и штурм КПП", 
             cost: 1, 
-            dialog: "1", // ID диалога Пролога из dialogs.js
-            isStory: true 
+            dialog: "story_prologue" 
         },
-        
-        // Ремонт комнат (Покупка мебели за звезды)
+        { 
+            id: "story_chapter1", 
+            title: "📖 Глава 1: Пир в Зажопинске и страшное убийство", 
+            cost: 2, 
+            dialog: "story_chapter1" 
+        },
+        { 
+            id: "story_chapter2", 
+            title: "📖 Глава 2: Спасение брата и горькая правда", 
+            cost: 2, 
+            dialog: "story_chapter2" 
+        }
+    ];
+
+    // 2. СПИСОК ЗАДАЧ ПО РЕМОНТУ И СТРОИТЕЛЬСТВУ (Меню "Ремонт")
+    const hideoutTasks = [
         { 
             id: "floor", 
-            title: "🛠️ Отремонтировать гнилой пол в жилом блоке", 
+            title: "🪵 Отремонтировать гнилой пол в жилом блоке", 
             cost: 1, 
             dialog: "task_floor", 
             targetKey: "floor", 
-            newValue: "杜 дубовый паркет",
-            isStory: false
+            newValue: "🪵 Крепкий дубовый паркет"
         },
         { 
             id: "walls", 
-            title: "🧱 Укрепить стены стальными листами", 
+            title: "🧱 Укрепить осыпающиеся бетонные стены", 
             cost: 1, 
             dialog: "task_walls", 
             targetKey: "walls", 
-            newValue: "🧱 Бронированные стены",
-            isStory: false
+            newValue: "🧱 Бронированные стены"
         },
         { 
             id: "bed", 
@@ -40,51 +59,51 @@
             cost: 1, 
             dialog: "task_bed", 
             targetKey: "bed", 
-            newValue: "🛏️ Надежная армейская койка",
-            isStory: false
+            newValue: "🛏️ Надежная армейская койка"
         },
         { 
             id: "table", 
-            title: "🛠️ Поставить тяжелый стальной верстак", 
+            title: "🛠️ Собрать тяжелый стальной верстак браконьера", 
             cost: 1, 
             dialog: "task_table", 
             targetKey: "table", 
-            newValue: "🛠️ Стальной верстак браконьера",
-            isStory: false
+            newValue: "🛠️ Стальной верстак браконьера"
         },
         { 
             id: "cabinet", 
-            title: "🚪 Переделать шкаф в оружейный сейф", 
+            title: "🚪 Переделать шкаф под сейф для патронов", 
             cost: 2, 
             dialog: "task_cabinet", 
             targetKey: "cabinet", 
-            newValue: "🚪 Стальной сейф-шкаф",
-            isStory: false
+            newValue: "🚪 Стальной сейф-шкаф"
         },
         { 
             id: "windows", 
-            title: "🪟 Установить бронированные ставни на окна", 
+            title: "🪟 Установить бронированные ставни от вурдалаков", 
             cost: 2, 
             dialog: "task_windows", 
             targetKey: "windows", 
-            newValue: "🪟 Бронированные ставни",
-            isStory: false
+            newValue: "🪟 Бронированные ставни"
         }
     ];
 
+    // Элементы разметки
     const overlayTasks = document.getElementById('overlayTasks');
+    const overlayStory = document.getElementById('overlayStory');
     const tasksListContainer = document.getElementById('tasksListContainer');
+    const storyListContainer = document.getElementById('storyListContainer');
+
     const btnOpenTasks = document.getElementById('btnOpenTasks');
     const btnCloseTasks = document.getElementById('btnCloseTasks');
+    const btnOpenStory = document.getElementById('btnOpenStory');
+    const btnCloseStory = document.getElementById('btnCloseStory');
 
-    // ОТРИСОВКА СПИСКА ЗАДАНИЙ В МЕНЮ
+    // 3. ОТРИСОВКА СПИСКА СТРОИТЕЛЬНЫХ ЗАДАЧ
     function renderTasksList() {
         if (!tasksListContainer) return;
-        
         tasksListContainer.innerHTML = "";
 
         hideoutTasks.forEach(task => {
-            // Проверяем, выполнена ли задача через GameState
             const isCompleted = window.GameState ? window.GameState.isTaskCompleted(task.id) : false;
 
             const taskEl = document.createElement('div');
@@ -92,7 +111,7 @@
 
             let buttonContent = "";
             if (isCompleted) {
-                buttonContent = `<span style="color: var(--toxic); font-weight: 800; font-size: 13px;">Куплено ✔</span>`;
+                buttonContent = `<span style="color: var(--toxic); font-weight: 800; font-size: 12px;">Выполнено ✔</span>`;
             } else {
                 buttonContent = `<button class="task-btn" data-task-id="${task.id}">⭐ ${task.cost}</button>`;
             }
@@ -103,57 +122,115 @@
                 </div>
                 <div class="task-action-box">${buttonContent}</div>
             `;
-
             tasksListContainer.appendChild(taskEl);
         });
 
-        // Слушатели на кнопки покупки
         const actionButtons = tasksListContainer.querySelectorAll('.task-btn');
         actionButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const taskId = e.currentTarget.getAttribute('data-task-id');
-                executeTask(taskId);
+                executeUpgrade(taskId);
             });
         });
     }
 
-    // ПРОЦЕСС ВЫПОЛНЕНИЯ ЗАДАНИЯ
-    function executeTask(taskId) {
+    // ВЫПОЛНЕНИЕ РЕМОНТА
+    function executeUpgrade(taskId) {
         const task = hideoutTasks.find(t => t.id === taskId);
         if (!task) return;
 
-        // Списываем звезды
         if (window.GameState && window.GameState.spendStars(task.cost)) {
-            
-            // Записываем задачу как выполненную
             window.GameState.completeTask(task.id);
+            window.GameState.updateDecorItem(task.targetKey, task.newValue);
 
-            // Если это ремонт мебели — обновляем ее вид в Убежище
-            if (!task.isStory && task.targetKey && task.newValue) {
-                window.GameState.updateDecorItem(task.targetKey, task.newValue);
-            }
+            if (overlayTasks) overlayTasks.classList.add('hidden');
 
-            // Закрываем оверлей списка задач
-            if (overlayTasks) {
-                overlayTasks.classList.add('hidden');
-            }
-
-            // Запускаем сюжетный диалог (Новеллу Клуба Романтики)
             const storyDialog = window.gameDialogs ? window.gameDialogs[task.dialog] : null;
-            
             if (window.NovelEngine && storyDialog) {
                 window.NovelEngine.run(storyDialog, () => {
-                    showToast("Успешно!");
+                    showToast("Убежище отремонтировано!");
                     renderTasksList();
-                    if (window.showScreen) window.showScreen('screenHideout');
                 });
             } else {
-                showToast("Успешно!");
+                showToast("Убежище отремонтировано!");
                 renderTasksList();
-                if (window.showScreen) window.showScreen('screenHideout');
             }
         } else {
-            showToast("Недостаточно звезд! Пройдите уровень на КПП.");
+            showToast("Недостаточно звезд! Пройдите уровень на охоте.");
+        }
+    }
+
+    // 4. ОТРИСОВКА СПИСКА СЮЖЕТНЫХ ГЛАВ КНИГИ
+    function renderStoryList() {
+        if (!storyListContainer) return;
+        storyListContainer.innerHTML = "";
+
+        storyChapters.forEach(chapter => {
+            const isCompleted = window.GameState ? window.GameState.isTaskCompleted(chapter.id) : false;
+
+            const chapterEl = document.createElement('div');
+            chapterEl.className = 'task-item';
+
+            let buttonContent = "";
+            if (isCompleted) {
+                buttonContent = `<button class="task-btn" style="background:var(--sky);" data-story-id="${chapter.id}">Читать 📖</button>`;
+            } else {
+                buttonContent = `<button class="task-btn" data-story-id="${chapter.id}">⭐ ${chapter.cost}</button>`;
+            }
+
+            chapterEl.innerHTML = `
+                <div class="task-info">
+                  <div class="task-title" style="font-weight: 800;">${chapter.title}</div>
+                </div>
+                <div class="task-action-box">${buttonContent}</div>
+            `;
+            storyListContainer.appendChild(chapterEl);
+        });
+
+        const actionButtons = storyListContainer.querySelectorAll('.task-btn');
+        actionButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const storyId = e.currentTarget.getAttribute('data-story-id');
+                executeStoryBuy(storyId);
+            });
+        });
+    }
+
+    // ПОКУПКА / ЧТЕНИЕ ГЛАВЫ
+    function executeStoryBuy(storyId) {
+        const chapter = storyChapters.find(c => c.id === storyId);
+        if (!chapter) return;
+
+        const isAlreadyBought = window.GameState ? window.GameState.isTaskCompleted(chapter.id) : false;
+
+        if (isAlreadyBought) {
+            // Если глава уже куплена — читаем её бесплатно!
+            if (overlayStory) overlayStory.classList.add('hidden');
+            const storyDialog = window.gameDialogs ? window.gameDialogs[chapter.dialog] : null;
+            if (window.NovelEngine && storyDialog) {
+                window.NovelEngine.run(storyDialog, () => {
+                    renderStoryList();
+                });
+            }
+        } else {
+            // Если еще не куплена — покупаем за звезды
+            if (window.GameState && window.GameState.spendStars(chapter.cost)) {
+                window.GameState.completeTask(chapter.id);
+                if (overlayStory) overlayStory.classList.add('hidden');
+
+                const storyDialog = window.gameDialogs ? window.gameDialogs[chapter.dialog] : null;
+                if (window.NovelEngine && storyDialog) {
+                    window.NovelEngine.run(storyDialog, () => {
+                        showToast("Глава разблокирована!");
+                        renderStoryList();
+                    });
+                } else {
+                    showToast("Глава разблокирована!");
+                    renderStoryList();
+                }
+            } else {
+                showToast("Недостаточно звезд! Пройдите уровень на охоте.");
+            }
         }
     }
 
@@ -166,20 +243,28 @@
         }
     }
 
+    // Слушатели кнопок
     if (btnOpenTasks) {
         btnOpenTasks.addEventListener('click', () => {
             renderTasksList();
-            if (overlayTasks) {
-                overlayTasks.classList.remove('hidden');
-            }
+            if (overlayTasks) overlayTasks.classList.remove('hidden');
+        });
+    }
+    if (btnCloseTasks) {
+        btnCloseTasks.addEventListener('click', () => {
+            if (overlayTasks) overlayTasks.classList.add('hidden');
         });
     }
 
-    if (btnCloseTasks) {
-        btnCloseTasks.addEventListener('click', () => {
-            if (overlayTasks) {
-                overlayTasks.classList.add('hidden');
-            }
+    if (btnOpenStory) {
+        btnOpenStory.addEventListener('click', () => {
+            renderStoryList();
+            if (overlayStory) overlayStory.classList.remove('hidden');
+        });
+    }
+    if (btnCloseStory) {
+        btnCloseStory.addEventListener('click', () => {
+            if (overlayStory) overlayStory.classList.add('hidden');
         });
     }
 
@@ -188,5 +273,5 @@
         tasks: hideoutTasks
     };
 
-    console.log("meta.js: Сюжетные главы за звезды успешно подключены!");
+    console.log("meta.js: Квартира и Книга Сюжетов успешно разделены!");
 })();
