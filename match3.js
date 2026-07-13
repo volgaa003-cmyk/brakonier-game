@@ -1,6 +1,6 @@
 // ================================================
-// match3.js
-// Движок "Три в ряд" с авто-перемешиванием и генерацией бонусов
+// match3.js (ФИНАЛЬНЫЙ — АВТО-ПЕРЕМЕШИВАНИЕ ИСПРАВЛЕНО)
+// Движок "Три в ряд" с авто-перемешиванием и умной гравитацией
 // ================================================
 
 (function() {
@@ -305,7 +305,8 @@
                 const prev = getType(r,c-1);
                 if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
                 const len = c - runStart;
-                if(len>=3 && !isSpecial(prev) && prev !== 'box'){
+                // ИСПРАВЛЕНО: Добавлен строгий запрет на сборку пустых клеток (prev !== null)
+                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box'){
                     const cells=[]; 
                     for(let k=runStart;k<c;k++) cells.push([r,k]);
                     runs.push({cells, dir:'h', length:len, type:prev, used:false});
@@ -320,7 +321,8 @@
                 const prev = getType(r-1,c);
                 if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
                 const len = r - runStart;
-                if(len>=3 && !isSpecial(prev) && prev !== 'box'){
+                // ИСПРАВЛЕНО: Добавлен строгий запрет на сборку пустых клеток (prev !== null)
+                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box'){
                     const cells=[]; 
                     for(let k=runStart;k<r;k++) cells.push([k,c]);
                     runs.push({cells, dir:'v', length:len, type:prev, used:false});
@@ -544,7 +546,6 @@
         }, 500);
     }
 
-    // Умный поиск цели для Самолётика
     function findBestTargetForPlane(excludeRow, excludeCol) {
         let targetRow = excludeRow, targetCol = excludeCol;
         let foundTarget = false;
@@ -1114,6 +1115,11 @@
             if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
 
             buildInitialGrid();
+
+            // ВАЖНО: Добавлена принудительная стартовая проверка на тупик!
+            if (!hasPossibleMoves()) {
+                shuffleBoard();
+            }
 
             const dialogueIntro = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].intro : null;
             if (window.NovelEngine && dialogueIntro) {
