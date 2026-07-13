@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ — АВТО-ПЕРЕМЕШИВАНИЕ ИСПРАВЛЕНО)
+// match3.js (ИСПРАВЛЕННЫЙ — УНИЧТОЖЕНИЕ ЯЩИКОВ ВЫВЕРЕНО)
 // Движок "Три в ряд" с авто-перемешиванием и умной гравитацией
 // ================================================
 
@@ -305,7 +305,6 @@
                 const prev = getType(r,c-1);
                 if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
                 const len = c - runStart;
-                // ИСПРАВЛЕНО: Добавлен строгий запрет на сборку пустых клеток (prev !== null)
                 if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box'){
                     const cells=[]; 
                     for(let k=runStart;k<c;k++) cells.push([r,k]);
@@ -321,7 +320,6 @@
                 const prev = getType(r-1,c);
                 if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
                 const len = r - runStart;
-                // ИСПРАВЛЕНО: Добавлен строгий запрет на сборку пустых клеток (prev !== null)
                 if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box'){
                     const cells=[]; 
                     for(let k=runStart;k<r;k++) cells.push([k,c]);
@@ -546,6 +544,7 @@
         }, 500);
     }
 
+    // Умный поиск цели для Самолётика
     function findBestTargetForPlane(excludeRow, excludeCol) {
         let targetRow = excludeRow, targetCol = excludeCol;
         let foundTarget = false;
@@ -797,6 +796,7 @@
         clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
+    // ИСПРАВЛЕНА ПОЛОМКА КОРОБОК (Теперь всегда убирает статус 2 на 1 в levelLayout)
     function checkAndBreakBoxes(clearSet) {
         const boxesToBreak = new Set();
 
@@ -820,6 +820,7 @@
             const [br, bc] = k.split(',').map(Number);
             const boxTile = grid[br][bc];
             if (boxTile) {
+                // ВАЖНЕЙШЕЕ ИСПРАВЛЕНИЕ: Превращаем ячейку ящика в обычное поле (1) для корректной гравитации!
                 levelLayout[br][bc] = 1;
 
                 boxTile.el.classList.add('clearing');
@@ -842,6 +843,15 @@
             const t = grid[r] && grid[r][c];
             if(!t) return;
             if(t.type==='heart') heartsGained++;
+        });
+
+        // Напрямую проверяем, не уничтожили ли мы коробку (самолетиком, ракетой или бомбой)
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const t = grid[r] && grid[r][c];
+            if (t && t.type === 'box') {
+                levelLayout[r][c] = 1; // Превращаем её ячейку в обычное поле!
+            }
         });
 
         checkAndBreakBoxes(clearSet);
@@ -890,18 +900,21 @@
         }, CLEAR_MS);
     }
 
-    // УМНЫЙ АЛГОРИТМ ГРАВИТАЦИИ
+    // ИСПРАВЛЕННЫЙ АЛГОРИТМ УМНОЙ ГРАВИТАЦИИ (Гриф больше не ломается при падении фишек на место коробок)
     function applyGravityAndRefill(){
         for(let c=0;c<SIZE;c++){
+            // 1. Собираем все подвижные фишки из этой колонки (исключаем твердые коробки)
             const movableTiles = [];
             for(let r=0;r<SIZE;r++){
                 const t = grid[r][c];
+                // Ящики с кодом 2 не трогаем — они стоят намертво!
                 if(t && t.type !== 'box' && levelLayout[r][c] !== 2){
                     movableTiles.push(t);
-                    grid[r][c] = null; 
+                    grid[r][c] = null; // Освобождаем клетку в памяти
                 }
             }
 
+            // 2. Раскладываем подвижные фишки обратно снизу вверх только в разрешенные ячейки (1)
             let spawnOffset = 1;
             for(let r=SIZE-1;r>=0;r--){
                 const cellType = levelLayout[r][c];
@@ -912,12 +925,14 @@
                         grid[r][c] = t;
                         moveTileTo(t, r, c);
                     } else {
+                        // Если фишек не хватило — плавно насыпаем новые сверху
                         grid[r][c] = createTile(r, c, randType(), -spawnOffset);
                         spawnOffset++;
                     }
                 } else if (cellType === 2) {
                     // Коробка — стоит на месте
                 } else {
+                    // Пустота — оставляем null
                     grid[r][c] = null;
                 }
             }
