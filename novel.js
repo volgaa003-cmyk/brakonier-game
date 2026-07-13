@@ -1,19 +1,19 @@
 // ================================================
-// novel.js (ИСПРАВЛЕННЫЙ — РАБОЧИЙ)
+// novel.js (ИСПРАВЛЕННЫЙ И СТАБИЛЬНЫЙ)
 // Движок визуальной новеллы (в стиле Клуба Романтики)
 // ================================================
 
 (function() {
-    // Внутреннее состояние движка новеллы
-    let dialogueLines = [];           // Массив текущих реплик сцены
+    // Внутреннее состояние движка новеллы (Все переменные приведены к одному имени!)
+    let dialogueLines = [];         // Массив текущих реплик сцены
     let currentLineIndex = 0;       // Номер текущей реплики
-    let onEndCallback = null;        // Функция, которая сработает после окончания диалога
+    let onEndCallback = null;       // Функция, которая сработает после окончания диалога
     
     let isTyping = false;           // Печатается ли текст прямо сейчас
     let typingTimeoutId = null;     // ID таймера печати (нужен для пропуска)
     let currentText = "";           // Полный текст текущей реплики
 
-    // Находим HTML-элементы (ИСПРАВЛЕНО: ищем по классу .dialogue-window, чтобы избежать несовпадений!)
+    // Находим HTML-элементы
     const overlayDialogue = document.getElementById('overlayDialogue');
     const dialogueBox = document.querySelector('.dialogue-window') || document.getElementById('dialogueBox');
     const speakerNameEl = document.getElementById('dialogueSpeaker');
@@ -182,23 +182,23 @@
         }
     }
 
-    // 6. ПЕРЕХОД К СЛЕДУЮЩЕЙ РЕПЛИКЕ
+    // 6. ПРОВЕРКА ПЕРЕХОДА НА СЛЕДУЮЩУЮ СТРОКУ
     function advanceLine() {
         currentLineIndex++;
-        if (currentLineIndex < dialogLines.length) {
+        if (currentLineIndex < dialogueLines.length) {
             showLine();
         } else {
             endDialogue();
         }
     }
 
-    // 7. КОНЕЦ СЦЕНЫ
+    // 7. КОНЕЦ СЦЕНЫ ДИАЛОГА
     function endDialogue() {
         if (overlayDialogue) {
             overlayDialogue.classList.add('hidden');
         }
         
-        dialogLines = [];
+        dialogueLines = [];
         currentLineIndex = 0;
 
         if (onEndCallback) {
@@ -237,5 +237,5 @@
         run: startDialogue
     };
 
-    console.log("novel.js: Сцена успешно реагирует на клики!");
+    console.log("novel.js: Опечатки в имени переменной исправлены!");
 })();
