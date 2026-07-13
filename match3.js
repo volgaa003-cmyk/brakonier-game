@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (СУПЕР-КОМБИНАЦИИ БОНУСОВ)
-// Движок "Три в ряд" со сложными комбо-эффектами Homescapes
+// match3.js (С ПОДДЕРЖКОЙ СТАРТОВЫХ БУСТЕРОВ)
+// Движок "Три в ряд" с авто-перемешиванием и генерацией бонусов
 // ================================================
 
 (function() {
@@ -15,9 +15,9 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    const SWAP_MS = 240;  
-    const CLEAR_MS = 260; 
-    const FALL_MS = 300;  
+    const SWAP_MS = 180;  
+    const CLEAR_MS = 200; 
+    const FALL_MS = 240;  
 
     let currentLevelId = 1;
     let GOAL_HEARTS = 12;
@@ -166,6 +166,7 @@
         setTilePos(tile.el, row, col);
     }
 
+    // Инициализация поля с поддержкой спавна бустеров
     function buildInitialGrid(){
         boardEl.innerHTML = '';
         grid = [];
@@ -179,7 +180,24 @@
                     grid[r][c] = null;
                 } else if (cellType === 2) {
                     grid[r][c] = createTile(r, c, 'box', r);
-                } else {
+                } 
+                // СПАВН СТАРТОВЫХ БУСТЕРОВ В ЗАВИСИМОСТИ ОТ ЦИФРЫ В КАРТЕ УРОВНЯ
+                else if (cellType === 3) {
+                    grid[r][c] = createTile(r, c, 'bomb', r);
+                } 
+                else if (cellType === 4) {
+                    grid[r][c] = createTile(r, c, 'rocketRow', r);
+                } 
+                else if (cellType === 5) {
+                    grid[r][c] = createTile(r, c, 'rocketCol', r);
+                } 
+                else if (cellType === 6) {
+                    grid[r][c] = createTile(r, c, 'plane', r);
+                } 
+                else if (cellType === 7) {
+                    grid[r][c] = createTile(r, c, 'rainbow', r);
+                } 
+                else {
                     let t, guard=0;
                     do{ t=randType(); guard++; } 
                     while(guard<30 && (
@@ -533,12 +551,11 @@
         }, 500);
     }
 
-    // Умный поиск цели для Самолётика (Используется для авто-наведения)
+    // Умный поиск цели для Самолётика
     function findBestTargetForPlane(excludeRow, excludeCol) {
         let targetRow = excludeRow, targetCol = excludeCol;
         let foundTarget = false;
 
-        // 1. Сначала ищем коробки-препятствия
         for (let r=0; r<SIZE; r++) {
             for (let c=0; c<SIZE; c++) {
                 if (grid[r][c] && grid[r][c].type === 'box') {
@@ -550,7 +567,6 @@
             if (foundTarget) break;
         }
 
-        // 2. Если коробок нет — летим в сердца
         if (!foundTarget) {
             for (let r=0; r<SIZE; r++) {
                 for (let c=0; c<SIZE; c++) {
@@ -564,7 +580,6 @@
             }
         }
 
-        // 3. Иначе в любую случайную клетку на поле
         if (!foundTarget) {
             const candidates = [];
             for (let r=0; r<SIZE; r++) {
@@ -584,7 +599,7 @@
         return foundTarget ? { r: targetRow, c: targetCol } : null;
     }
 
-    // ==================== 2. СУПЕР-КОМБИНАЦИИ БУСТЕРОВ (НОВЫЙ БЛОК) ====================
+    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ ====================
 
     function comboFootprint(a, b){
         let cells = new Set();
@@ -592,7 +607,6 @@
         const has = t => kinds.includes(t);
         const isRocket = t => t === 'rocketRow' || t === 'rocketCol';
         
-        // КЛАССИКА 1: Радужный шар + любой Бустер (Ракеты, Бомбы, Самолётики)
         if (has('rainbow') && (has('bomb') || has('rocketRow') || has('rocketCol') || has('plane'))) {
             const boosterType = a.type === 'rainbow' ? b.type : a.type;
             const colors = presentColors();
@@ -608,7 +622,6 @@
                     }
                 }
 
-                // Превращаем все плитки этого цвета в данный бустер и последовательно взрываем!
                 targets.forEach(({r, c}) => {
                     const tile = grid[r][c];
                     if (tile) {
@@ -616,7 +629,6 @@
                         tile.inner.textContent = iconFor(boosterType);
                         applySpecialClass(tile);
 
-                        // Легкий разброс по времени взрыва для красивого хаотичного эффекта салюта
                         setTimeout(() => {
                             activateStandalone(tile);
                         }, Math.random() * 200 + 50);
@@ -630,12 +642,10 @@
             return cells;
         }
 
-        // КЛАССИКА 2: Самолётик + Самолётик (Запуск эскадрильи из 3-х птиц!)
         if (has('plane') && has('plane')) {
-            cells = computeActivationFootprint(a); // Очищаем крест в точке запуска
+            cells = computeActivationFootprint(a); 
             clearAndContinue(cells, []);
 
-            // По очереди отправляем 3 самолетика в разные важные цели!
             for (let i = 0; i < 3; i++) {
                 setTimeout(() => {
                     const target = findBestTargetForPlane(a.row, a.col);
@@ -649,22 +659,19 @@
             }
 
             pulseToast('✈️ Эскадрилья самолётиков!');
-            return new Set(); // Возвращаем пустоту, так как запуск и очистку мы сделали вручную
+            return new Set(); 
         }
 
-        // КЛАССИКА 3: Самолётик + Бомба / Ракета (Доставка взрывчатки в труднодоступное место)
         if (has('plane') && (has('bomb') || has('rocketRow') || has('rocketCol'))) {
             const boosterType = a.type === 'plane' ? b.type : a.type;
             const plane = a.type === 'plane' ? a : b;
 
-            cells = computeActivationFootprint(plane); // Очищаем крест на старте
+            cells = computeActivationFootprint(plane); 
             clearAndContinue(cells, []);
 
             const target = findBestTargetForPlane(plane.row, plane.col);
             if (target) {
-                // Самолётик летит и несёт бомбу/ракету с собой!
                 animatePlaneEffect(plane.row, plane.col, target.r, target.c, () => {
-                    // При приземлении подрываем перенесенный бустер на целевой клетке!
                     const dummyTile = { type: boosterType, row: target.r, col: target.c, id: 'dummy' };
                     let blastCells = new Set();
 
@@ -686,7 +693,6 @@
             return new Set();
         }
 
-        // Обычные слияния (Бомба+Бомба, Ракета+Бомба, Ракета+Ракета)
         if(has('bomb') && has('bomb')){
             const center = a;
             animateBombEffect(center.row, center.col);
@@ -754,7 +760,6 @@
             clearAndContinue(cells, []);
         } 
         else if (tile.type === 'plane') {
-            // Находим лучшую цель для самолетика через умный ИИ поиск
             const target = findBestTargetForPlane(tile.row, tile.col);
             let targetRow = tile.row, targetCol = tile.col;
 
@@ -762,13 +767,11 @@
                 targetRow = target.r; targetCol = target.c;
             }
 
-            // Убираем соседние 4 фишки
             cells = computeActivationFootprint(tile);
             cells.delete(key(targetRow, targetCol)); 
 
             clearAndContinue(cells, []);
 
-            // Полет самолетика
             animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                 const finalCell = new Set([key(targetRow, targetCol)]);
                 clearAndContinue(finalCell, []);
@@ -1207,5 +1210,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Супер-комбинации бустеров успешно настроены!");
+    console.log("match3.js: Процедурный спавн стартовых бустеров успешно отлажен!");
 })();
