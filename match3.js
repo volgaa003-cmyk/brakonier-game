@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ — С ПОДДЕРЖКОЙ КОВРОВ И ЛЬДА)
-// Движок "Три в ряд" с физикой Homescapes, Коврами и Льдом
+// match3.js (ФИНАЛЬНЫЙ — С НЕОНОВЫМИ МОЛНИЯМИ РАДУГИ)
+// Движок "Три в ряд" со светящимися лазерами Homescapes
 // ================================================
 
 (function() {
@@ -15,6 +15,7 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
+    // Мягкие и весомые Homescapes тайминги
     const SWAP_MS = 240;  
     const CLEAR_MS = 260; 
     const FALL_MS = 300;  
@@ -30,9 +31,9 @@
     let currentPhaseIndex = 0;
 
     // Состояние Ковров и Льда
-    let targetType = "heart"; // Тип цели уровня ("heart" или "carpet")
-    let carpetGrid = [];      // Сетка ковров (8х8, true/false)
-    let iceGrid = [];         // Сетка льда (8х8, true/false)
+    let targetType = "heart"; 
+    let carpetGrid = [];      
+    let iceGrid = [];         
 
     let grid = [];
     let selected = null;
@@ -40,10 +41,11 @@
     let busy = false;
     let tileIdCounter = 0;
 
+    // Счетчик активных самолетов и молний в воздухе
+    let activePlanesCount = 0;
+
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
-
-    let activePlanesCount = 0;
 
     const boardEl = document.getElementById('board');
     const m3GoalText = document.getElementById('m3GoalText');
@@ -87,7 +89,6 @@
         else if(t.type==='rainbow') t.el.classList.add('rainbow');
         else if(t.type==='box') t.el.classList.add('box');
         
-        // Вешаем визуальный лед, если фишка заморожена
         if(t.frozen) t.el.classList.add('frozen');
     }
 
@@ -97,7 +98,6 @@
     }
 
     function handleDragStart(e, tile) {
-        // Замороженные фишки 🧊 нельзя двигать пальцем!
         if (busy || tile.type === 'box' || tile.frozen) return;
         dragActiveTile = tile;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -126,7 +126,6 @@
 
             if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
                 const partner = grid[targetRow][targetCol];
-                // Замороженного партнера тоже нельзя свайпать!
                 if (partner && partner.type !== 'box' && !partner.frozen) {
                     dragActiveTile.el.classList.remove('selected');
                     selected = null;
@@ -151,7 +150,6 @@
         inner.textContent = iconFor(type);
         el.appendChild(inner);
 
-        // Проверяем, должна ли фишка быть во льду при спавне
         const isFrozen = iceGrid[row][col] === 1;
 
         const tile = {id, type, row, col, el, inner, frozen: isFrozen};
@@ -190,15 +188,13 @@
         grid = [];
         for(let r=0;r<SIZE;r++) grid.push(new Array(SIZE).fill(null));
 
-        // 1. СНАЧАЛА РИСУЕМ ФОНОВУЮ РЕШЕТКУ ЯЧЕЕК И СТЕЛИМ СТАРТОВЫЙ КОВЕР 🌿
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 if (levelLayout[r][c] !== 0) {
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
-                    cell.dataset.pos = `${r},${c}`; // Координаты ячейки для растекания ковра
+                    cell.dataset.pos = `${r},${c}`; 
 
-                    // Красим ковер
                     if (carpetGrid[r] && carpetGrid[r][c]) {
                         cell.classList.add('carpet');
                     }
@@ -208,7 +204,6 @@
             }
         }
         
-        // 2. РИСУЕМ ФИШКИ СВЕРХУ СЕТКИ
         for(let r=0;r<SIZE;r++){
             for(let c=0;c<SIZE;c++){
                 const cellType = levelLayout[r][c];
@@ -251,7 +246,6 @@
     function onTileClick(e){
         if(busy) return;
         const tile = findTileById(e.currentTarget.dataset.id);
-        // Замороженную фишку 🧊 нельзя выделять кликом
         if(!tile || tile.type === 'box' || tile.frozen) return;
 
         if(selected === null){
@@ -496,6 +490,7 @@
 
     // ==================== ДИНАМИЧЕСКИЕ АНИМАЦИИ БОНУСОВ ====================
 
+    // Медленный полет Ракет 🚀 (0.65 секунды)
     function animateRocketEffect(row, col, isRow) {
         const proj1 = document.createElement('div');
         const proj2 = document.createElement('div');
@@ -532,9 +527,10 @@
         setTimeout(() => {
             proj1.remove();
             proj2.remove();
-        }, 450);
+        }, 650);
     }
 
+    // Медленное раздувание взрывного купола Бомбы 💣 (0.35 секунды)
     function animateBombEffect(row, col) {
         const wave = document.createElement('div');
         wave.className = 'bomb-shockwave';
@@ -553,6 +549,7 @@
         }, 350);
     }
 
+    // Мягкий и красивый вираж Самолётика ✈️ (0.7 секунды)
     function animatePlaneEffect(startRow, startCol, targetRow, targetCol, onArrive) {
         const plane = document.createElement('div');
         plane.className = 'm3-projectile';
@@ -566,20 +563,76 @@
         const dy = targetRow - startRow;
         const angle = Math.atan2(dy, dx) * 180 / Math.PI + 45; 
 
+        // 1. Медленный запуск и петля взлета (60мс)
         setTimeout(() => {
             plane.style.transform = `scale(1.4) rotate(${angle - 180}deg)`;
         }, 60);
 
+        // 2. Размеренный перелет по дуге (180мс)
         setTimeout(() => {
             plane.style.left = (targetCol * 100 / SIZE) + '%';
             plane.style.top = (targetRow * 100 / SIZE) + '%';
             plane.style.transform = `scale(1.1) rotate(${angle}deg)`;
         }, 180);
 
+        // 3. Приземление и взрыв цели на 850мс
         setTimeout(() => {
             plane.remove();
             if (onArrive) onArrive();
-        }, 500);
+        }, 850);
+    }
+
+    // ⚡ ЭФФЕКТ НЕОНОВЫХ МОЛНИЙ РАДУЖНОГО ШАРА 🌈 (Щупальца)
+    function animateRainbowTentacles(startRow, startCol, targets, colorId) {
+        let laserBg = "linear-gradient(90deg, #ffffff, #fff)";
+        let glowColor = "rgba(255,255,255,0.8)";
+        
+        if (colorId === 'heart') { laserBg = "linear-gradient(90deg, #ffb3b3, var(--blood))"; glowColor = "var(--blood)"; }
+        else if (colorId === 'bullet') { laserBg = "linear-gradient(90deg, #b3ffb3, #2ecc71)"; glowColor = "#2ecc71"; }
+        else if (colorId === 'garlic') { laserBg = "linear-gradient(90deg, #ffffff, #bdc3c7)"; glowColor = "#bdc3c7"; }
+        else if (colorId === 'stake') { laserBg = "linear-gradient(90deg, #b3e6ff, var(--sky))"; glowColor = "var(--sky)"; }
+        else if (colorId === 'vial') { laserBg = "linear-gradient(90deg, #f9b3ff, #9b59b6)"; glowColor = "#9b59b6"; }
+        else if (colorId === 'coin') { laserBg = "linear-gradient(90deg, #fff4b3, var(--gold))"; glowColor = "var(--gold)"; }
+
+        const boardWidth = boardEl.offsetWidth;
+        const cellSize = boardWidth / SIZE;
+
+        // Находим координаты центра Радужного шара
+        const x1 = (startCol + 0.5) * cellSize;
+        const y1 = (startRow + 0.5) * cellSize;
+
+        targets.forEach(({r, c}) => {
+            const laser = document.createElement('div');
+            laser.className = 'rainbow-laser';
+            laser.style.background = laserBg;
+            laser.style.boxShadow = `0 0 10px ${glowColor}, inset 0 0 4px #fff`;
+            
+            laser.style.left = x1 + 'px';
+            laser.style.top = y1 + 'px';
+            laser.style.width = '0px';
+
+            const x2 = (c + 0.5) * cellSize;
+            const y2 = (r + 0.5) * cellSize;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            laser.style.transform = `rotate(${angle}deg)`;
+
+            boardEl.appendChild(laser);
+
+            // Выпускаем щупальце
+            setTimeout(() => {
+                laser.style.width = dist + 'px';
+            }, 16);
+
+            // Мягко растворяем лазер
+            setTimeout(() => {
+                laser.style.opacity = '0';
+                setTimeout(() => laser.remove(), 200);
+            }, 350);
+        });
     }
 
     // Умный поиск цели для Самолётика
@@ -653,18 +706,24 @@
                     }
                 }
 
-                targets.forEach(({r, c}) => {
-                    const tile = grid[r][c];
-                    if (tile) {
-                        tile.type = boosterType;
-                        tile.inner.textContent = iconFor(boosterType);
-                        applySpecialClass(tile);
+                // Запускаем молнии из центра Радуги ко всем целям!
+                animateRainbowTentacles(a.row, a.col, targets, color);
 
-                        setTimeout(() => {
-                            activateStandalone(tile);
-                        }, Math.random() * 200 + 50);
-                    }
-                });
+                // Взрываем с задержкой, пока летят молнии
+                setTimeout(() => {
+                    targets.forEach(({r, c}) => {
+                        const tile = grid[r][c];
+                        if (tile) {
+                            tile.type = boosterType;
+                            tile.inner.textContent = iconFor(boosterType);
+                            applySpecialClass(tile);
+
+                            setTimeout(() => {
+                                activateStandalone(tile);
+                            }, Math.random() * 200 + 50);
+                        }
+                    });
+                }, 350);
             }
 
             cells.add(key(a.row, a.col));
@@ -676,7 +735,6 @@
         if (has('plane') && has('plane')) {
             cells = computeActivationFootprint(a); 
             
-            // Включаем блокировку: летят 3 самолетика
             activePlanesCount += 3;
 
             clearAndContinue(cells, [], null, () => {
@@ -852,8 +910,20 @@
             const colors = presentColors();
             const color = colors.length ? colors[Math.floor(Math.random()*colors.length)] : null;
             cells = color ? cellsOfColor(color) : new Set();
-            cells.add(key(tile.row,tile.col));
-            clearAndContinue(cells, []);
+            
+            // Запускаем щупальца-молнии из центра Радуги к целям!
+            const targetsArray = [];
+            cells.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                targetsArray.push({r, c});
+            });
+            animateRainbowTentacles(tile.row, tile.col, targetsArray, color);
+
+            // Взрываем цели с задержкой, пока летят молнии
+            setTimeout(() => {
+                cells.add(key(tile.row, tile.col));
+                clearAndContinue(cells, []);
+            }, 350);
         }
     }
 
@@ -921,7 +991,6 @@
             if(t.type==='heart') heartsGained++;
         });
 
-        // Напрямую проверяем, не уничтожили ли мы коробку (самолетиком, ракетой или бомбой)
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
@@ -939,7 +1008,6 @@
         });
         hearts += heartsGained;
         
-        // ВАЖНЕЙШЕЕ ОБНОВЛЕНИЕ: Проверяем, стоял ли хоть один уничтоженный тайл на ковре!
         let hasCarpetInMatch = false;
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
@@ -948,14 +1016,11 @@
             }
         });
 
-        // Если да — ковер эффектно растекается на ВСЕ уничтоженные клетки!
         if (hasCarpetInMatch) {
             clearSet.forEach(k => {
                 const [r, c] = k.split(',').map(Number);
-                // Ковер ложится только на разрешенные клетки (1), не ложится на пустоты (0)
                 if (levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
                     carpetGrid[r][c] = true;
-                    // Красим фоновую ячейку
                     const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
                     if (cellEl) {
                         cellEl.classList.add('carpet');
@@ -964,7 +1029,6 @@
             });
         }
 
-        // Обновляем счетчик подложки в зависимости от цели
         if (targetType === "carpet") {
             let currentCarpetCount = 0;
             for (let r = 0; r < SIZE; r++) {
@@ -1146,7 +1210,7 @@
         }, 450);
     }
 
-    // ==================== 3. АЛГОРИТМ ПЕРЕКАТКИ И ПРОКРУТКИ КАМЕРЫ ====================
+    // ==================== АЛГОРИТМ ПЕРЕКАТКИ И ПРОКРУТКИ КАМЕРЫ ====================
 
     function transitionToNextPhase() {
         busy = true;
@@ -1161,7 +1225,6 @@
             levelLayout = JSON.parse(JSON.stringify(phaseData.layout));
             hearts = 0; 
 
-            // Сброс и подготовка ковров и льда под новую фазу
             targetType = phaseData.targetType || "heart";
             
             carpetGrid = [];
@@ -1240,7 +1303,6 @@
         currentLevelId = levelId;
         levelDifficulty = levelData.difficulty;
 
-        // Настройка сеток ковра, льда и типа цели
         targetType = levelData.targetType || "heart";
         
         carpetGrid = [];
@@ -1263,7 +1325,6 @@
             GOAL_HEARTS = levelData.phases[0].heartsGoal;
             levelLayout = JSON.parse(JSON.stringify(levelData.phases[0].layout));
             
-            // Спец-проверка для первой фазы
             const firstPhase = levelData.phases[0];
             targetType = firstPhase.targetType || "heart";
             if (firstPhase.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(firstPhase.carpetLayout));
@@ -1295,7 +1356,6 @@
         const title = document.getElementById('preLevelTitle');
         if (title) title.textContent = `Уровень ${currentLevelId}`;
 
-        // Настройка текста цели на пре-экране в зависимости от типа цели (Сердца или Ковер)
         const goalVal = document.getElementById('preGoalVal');
         if (goalVal) {
             if (targetType === "carpet") {
@@ -1367,7 +1427,6 @@
     }
 
     function checkEndConditions(){
-        // УСЛОВИЕ ПОБЕДЫ ДЛЯ КОВРА 🌿 И ДЛЯ СЕРДЕЦ ❤️
         let isVictory = false;
         if (targetType === "carpet") {
             let currentCarpetCount = 0;
@@ -1465,5 +1524,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Процедурный спавн и ковры успешно настроены!");
+    console.log("match3.js: Синхронизация авиа-полетов и разрушения коробок успешно отлажена!");
 })();
