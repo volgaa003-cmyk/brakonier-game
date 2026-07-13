@@ -1,6 +1,6 @@
 // ================================================
-// levels.js (ИСПРАВЛЕННЫЙ — ШАБЛОНЫ ВЫВЕРЕНЫ)
-// Процедурный генератор Homescapes-полей с умным усложнением
+// levels.js (ИСПРАВЛЕННЫЙ — РАЗДЕЛЕНИЕ ЛЬДА И ЯЩИКОВ)
+// Процедурный генератор Homescapes-полей с разделением препятствий
 // ================================================
 
 (function() {
@@ -8,11 +8,10 @@
     const LEVELS = [];
     const TOTAL_LEVELS = 10050;
 
-    console.log("levels.js: Расчет плавной кривой сложности...");
+    console.log("levels.js: Расчет разделения льда и коробок...");
 
-    // БИБЛИОТЕКА ШАБЛОНОВ ГЕОМЕТРИИ ПОЛЯ (ИСПРАВЛЕНО НА ОДНО ИМЯ — LAYOUTS)
+    // БАЗОВЫЕ ШАБЛОНЫ ПОЛЕЙ
     const LAYOUTS = {
-        // Полный квадрат 8х8
         square: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -23,7 +22,6 @@
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1]
         ],
-        // Дыра в центре (без ящиков)
         centerHole: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -34,14 +32,13 @@
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1]
         ],
-        // Сложная бабочка с ящиками
         butterflyWithBoxes: [
             [1, 1, 1, 0, 0, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 2, 2, 2, 2, 1, 1], // Ящики (2)
+            [1, 1, 2, 2, 2, 2, 1, 1], 
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 2, 2, 2, 2, 1, 1], // Ящики (2)
+            [1, 1, 2, 2, 2, 2, 1, 1], 
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 0, 0, 1, 1, 1]
         ],
@@ -111,27 +108,26 @@
             else layout = JSON.parse(JSON.stringify(LAYOUTS.square));
         } else {
             const cycle = levelId % 6;
-            if (cycle === 0) layout = JSON.parse(JSON.stringify(LAYOUTS.fortress));
-            else if (cycle === 1) {
-                layout = JSON.parse(JSON.stringify(LAYOUTS.islands));
-                layout[3][1] = 2;
-                layout[3][6] = 2;
-            } else if (cycle === 2) {
-                layout = JSON.parse(JSON.stringify(LAYOUTS.heart));
-                layout[3][3] = 2;
-                layout[3][4] = 2;
-            } else if (cycle === 3) {
-                layout = JSON.parse(JSON.stringify(LAYOUTS.butterflyWithBoxes));
-            } else if (cycle === 4) {
-                layout = JSON.parse(JSON.stringify(LAYOUTS.cross));
-                layout[2][0] = 2;
-                layout[2][7] = 2;
+            // ИСПРАВЛЕНИЕ: Если уровень ЧЕТНЫЙ — это уровень с Коробками (без Льда)
+            const isBoxLevel = levelId % 2 === 0;
+
+            if (isBoxLevel) {
+                if (cycle === 0) layout = JSON.parse(JSON.stringify(LAYOUTS.fortress));
+                else if (cycle === 2) {
+                    layout = JSON.parse(JSON.stringify(LAYOUTS.heart));
+                    layout[3][3] = 2;
+                    layout[3][4] = 2;
+                } else {
+                    layout = JSON.parse(JSON.stringify(LAYOUTS.islands));
+                    layout[3][1] = 2;
+                    layout[3][6] = 2;
+                }
             } else {
-                layout = JSON.parse(JSON.stringify(LAYOUTS.centerHole));
-                layout[2][3] = 2;
-                layout[2][4] = 2;
-                layout[5][3] = 2;
-                layout[5][4] = 2;
+                // Если уровень НЕЧЕТНЫЙ — это чистый уровень со Льдом (Ящиков 2 здесь НЕТ!)
+                if (cycle === 1) layout = JSON.parse(JSON.stringify(LAYOUTS.islands));
+                else if (cycle === 3) layout = JSON.parse(JSON.stringify(LAYOUTS.butterfly));
+                else if (cycle === 5) layout = JSON.parse(JSON.stringify(LAYOUTS.cross));
+                else layout = JSON.parse(JSON.stringify(LAYOUTS.centerHole));
             }
         }
 
@@ -161,7 +157,6 @@
         let difficulty = "normal";
         let layout = getLayoutForLevel(i);
         
-        // Новые массивы под Лёд и Ковер
         let iceLayout = [];
         let carpetLayout = [];
 
@@ -198,38 +193,37 @@
 
         if (heartsGoal > 130) heartsGoal = 130;
 
-        // --- ЛОГИКА ОБУЧЕНИЯ И СПАВНА ЛЬДА 🧊 (С 15 УРОВНЯ) ---
-        if (i >= 15 && i % 5 === 0) {
-            // Замораживаем случайные 4-6 клеток в центре
+        // --- ЛОГИКА СПАВНА ЛЬДА 🧊 (С 15 УРОВНЯ И ТОЛЬКО НА НЕЧЕТНЫХ УРОВНЯХ!) ---
+        const isIceLevel = i >= 15 && i % 2 === 1;
+        if (isIceLevel) {
             let frozenCount = 0;
             let safety = 0;
             while (frozenCount < 5 && safety < 100) {
                 safety++;
-                const r = Math.floor(Math.random() * 4) + 2; // Строки 2-5
-                const c = Math.floor(Math.random() * 4) + 2; // Колонки 2-5
-                if (layout[r][c] === 1) {
-                    iceLayout[r][c] = 1; // Замораживаем эту фишку!
+                const r = Math.floor(Math.random() * 8);
+                const c = Math.floor(Math.random() * 8);
+                // ИСПРАВЛЕНИЕ: Замораживаем ТОЛЬКО разрешенные обычные фишки (1)!
+                // Ни в коем случае не трогаем пустоту (0) или коробки (2)!
+                if (layout[r][c] === 1 && iceLayout[r][c] === 0) {
+                    iceLayout[r][c] = 1; 
                     frozenCount++;
                 }
             }
         }
 
-        // --- ЛОГИКА ОБУЧЕНИЯ И РАСТЕКАНИЯ КОВРА 🌿 (С 25 УРОВНЯ) ---
-        let targetType = "heart"; // По умолчанию цель — сердца
+        // --- ЛОГИКА РАСТЕКАНИЯ КОВРА 🌿 (С 25 УРОВНЯ) ---
+        let targetType = "heart"; 
         if (i >= 25 && i % 5 === 0) {
-            targetType = "carpet"; // Цель уровня меняется на "Постелить ковер"!
+            targetType = "carpet"; 
             
-            // Считаем общее количество доступных ячеек на поле
             let totalAvailableCells = 0;
             for (let r=0; r<SIZE; r++) {
                 for (let c=0; c<SIZE; c++) {
                     if (layout[r][c] !== 0) totalAvailableCells++;
                 }
             }
-            // Цель по ковру — застелить абсолютно все свободные клетки!
             heartsGoal = totalAvailableCells;
 
-            // Кладем стартовый кусочек ковра в самом центре поля (2х2)
             carpetLayout[3][3] = 1;
             carpetLayout[3][4] = 1;
             carpetLayout[4][3] = 1;
@@ -238,9 +232,10 @@
 
         // Запись обычного уровня
         if (i >= 20 && i % 20 === 0) {
-            // Многофазные уровни имеют свои настройки фаз (сохраняются)
             const phase1Goal = Math.floor(heartsGoal * 0.55);
             const phase2Goal = Math.floor(heartsGoal * 0.65);
+            
+            // На двухфазных уровнях пусть всегда будут коробки
             let phase1Layout = JSON.parse(JSON.stringify(LAYOUTS.islands));
             phase1Layout[3][1] = 2;
             phase1Layout[3][6] = 2;
@@ -268,9 +263,9 @@
                 moves: moves,
                 difficulty: difficulty,
                 layout: layout,
-                iceLayout: iceLayout,         // Добавляем сетку льда
-                carpetLayout: carpetLayout,     // Добавляем сетку ковра
-                targetType: targetType,       // Добавляем тип цели (heart или carpet)
+                iceLayout: iceLayout,         
+                carpetLayout: carpetLayout,     
+                targetType: targetType,       
                 completed: false,
                 bestScore: 0,
                 stars: 0
@@ -322,5 +317,5 @@
     };
 
     window.LEVELS = LEVELS;
-    console.log(`levels.js: Уровни со льдом 🧊 и коврами 🌿 успешно сгенерированы!`);
+    console.log(`levels.js: Уровни разделены: ящики отдельно 📦, лед отдельно 🧊!`);
 })();
