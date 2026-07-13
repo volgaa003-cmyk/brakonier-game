@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ — С НЕОНОВЫМИ МОЛНИЯМИ РАДУГИ)
-// Движок "Три в ряд" со светящимися лазерами Homescapes
+// match3.js (ФИНАЛЬНЫЙ — СИНХРОНИЗАЦИЯ ПОЛЕТОВ И ЛЬДА)
+// Движок "Три в ряд" с поддержкой мягкого таяния льда и авиа-контролем
 // ================================================
 
 (function() {
@@ -15,7 +15,6 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    // Мягкие и весомые Homescapes тайминги
     const SWAP_MS = 240;  
     const CLEAR_MS = 260; 
     const FALL_MS = 300;  
@@ -41,7 +40,7 @@
     let busy = false;
     let tileIdCounter = 0;
 
-    // Счетчик активных самолетов и молний в воздухе
+    // Счетчик активных самолетов в воздухе
     let activePlanesCount = 0;
 
     let dragStartX = 0, dragStartY = 0;
@@ -490,7 +489,6 @@
 
     // ==================== ДИНАМИЧЕСКИЕ АНИМАЦИИ БОНУСОВ ====================
 
-    // Медленный полет Ракет 🚀 (0.65 секунды)
     function animateRocketEffect(row, col, isRow) {
         const proj1 = document.createElement('div');
         const proj2 = document.createElement('div');
@@ -530,7 +528,6 @@
         }, 650);
     }
 
-    // Медленное раздувание взрывного купола Бомбы 💣 (0.35 секунды)
     function animateBombEffect(row, col) {
         const wave = document.createElement('div');
         wave.className = 'bomb-shockwave';
@@ -549,7 +546,6 @@
         }, 350);
     }
 
-    // Мягкий и красивый вираж Самолётика ✈️ (0.7 секунды)
     function animatePlaneEffect(startRow, startCol, targetRow, targetCol, onArrive) {
         const plane = document.createElement('div');
         plane.className = 'm3-projectile';
@@ -563,26 +559,23 @@
         const dy = targetRow - startRow;
         const angle = Math.atan2(dy, dx) * 180 / Math.PI + 45; 
 
-        // 1. Медленный запуск и петля взлета (60мс)
         setTimeout(() => {
             plane.style.transform = `scale(1.4) rotate(${angle - 180}deg)`;
         }, 60);
 
-        // 2. Размеренный перелет по дуге (180мс)
         setTimeout(() => {
             plane.style.left = (targetCol * 100 / SIZE) + '%';
             plane.style.top = (targetRow * 100 / SIZE) + '%';
             plane.style.transform = `scale(1.1) rotate(${angle}deg)`;
         }, 180);
 
-        // 3. Приземление и взрыв цели на 850мс
         setTimeout(() => {
             plane.remove();
             if (onArrive) onArrive();
         }, 850);
     }
 
-    // ⚡ ЭФФЕКТ НЕОНОВЫХ МОЛНИЙ РАДУЖНОГО ШАРА 🌈 (Щупальца)
+    // Светящиеся щупальца Радуги
     function animateRainbowTentacles(startRow, startCol, targets, colorId) {
         let laserBg = "linear-gradient(90deg, #ffffff, #fff)";
         let glowColor = "rgba(255,255,255,0.8)";
@@ -597,7 +590,6 @@
         const boardWidth = boardEl.offsetWidth;
         const cellSize = boardWidth / SIZE;
 
-        // Находим координаты центра Радужного шара
         const x1 = (startCol + 0.5) * cellSize;
         const y1 = (startRow + 0.5) * cellSize;
 
@@ -622,12 +614,10 @@
 
             boardEl.appendChild(laser);
 
-            // Выпускаем щупальце
             setTimeout(() => {
                 laser.style.width = dist + 'px';
             }, 16);
 
-            // Мягко растворяем лазер
             setTimeout(() => {
                 laser.style.opacity = '0';
                 setTimeout(() => laser.remove(), 200);
@@ -635,7 +625,6 @@
         });
     }
 
-    // Умный поиск цели для Самолётика
     function findBestTargetForPlane(excludeRow, excludeCol) {
         let targetRow = excludeRow, targetCol = excludeCol;
         let foundTarget = false;
@@ -706,10 +695,8 @@
                     }
                 }
 
-                // Запускаем молнии из центра Радуги ко всем целям!
                 animateRainbowTentacles(a.row, a.col, targets, color);
 
-                // Взрываем с задержкой, пока летят молнии
                 setTimeout(() => {
                     targets.forEach(({r, c}) => {
                         const tile = grid[r][c];
@@ -897,6 +884,7 @@
                 animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                     const finalCell = new Set([key(targetRow, targetCol)]);
                     clearAndContinue(finalCell, [], null, () => {
+                        // Полет завершен, мгновенно снижаем счетчик без задержек!
                         activePlanesCount--;
                         if (activePlanesCount === 0) {
                             busy = false;
@@ -911,7 +899,6 @@
             const color = colors.length ? colors[Math.floor(Math.random()*colors.length)] : null;
             cells = color ? cellsOfColor(color) : new Set();
             
-            // Запускаем щупальца-молнии из центра Радуги к целям!
             const targetsArray = [];
             cells.forEach(k => {
                 const [r, c] = k.split(',').map(Number);
@@ -919,7 +906,6 @@
             });
             animateRainbowTentacles(tile.row, tile.col, targetsArray, color);
 
-            // Взрываем цели с задержкой, пока летят молнии
             setTimeout(() => {
                 cells.add(key(tile.row, tile.col));
                 clearAndContinue(cells, []);
@@ -1524,5 +1510,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Синхронизация авиа-полетов и разрушения коробок успешно отлажена!");
+    console.log("match3.js: Все асинхронные авиа-полеты и комбо-эффекты синхронизированы!");
 })();
