@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (ИСПРАВЛЕННЫЙ И СТАБИЛЬНЫЙ)
+// match3.js (ФИНАЛЬНЫЙ И ИСПРАВЛЕННЫЙ)
 // Движок "Три в ряд" с поддержкой жестов (свайпов) и бонусов
 // ================================================
 
@@ -36,13 +36,16 @@
     let dragActiveTile = null;
 
     const boardEl = document.getElementById('board');
-    const heartsVal = document.getElementById('hudHearts');
     const m3GoalText = document.getElementById('m3GoalText');
     const m3MovesText = document.getElementById('m3MovesText');
+    const toastEl = document.getElementById('toast');
 
+    // Находим оверлеи по точным ID из index.html
     const overlayResults = document.getElementById('overlayResults');
     const resultsTitle = document.getElementById('resultsTitle');
     const resultsText = document.getElementById('resultsText');
+    const overlayPreLevel = document.getElementById('overlayPreLevel');
+    const preCard = document.getElementById('preLevelCard');
 
     // Навешиваем слушатели для отслеживания жеста сдвига (свайпа)
     window.addEventListener('mousemove', handleDragMove);
@@ -124,7 +127,6 @@
         dragActiveTile = null;
     }
 
-    // 2. СОЗДАНИЕ ОПТИМИЗИРОВАННЫХ ФИШЕК
     function createTile(row, col, type, spawnRow){
         const id = 'tile'+(tileIdCounter++);
         const el = document.createElement('div');
@@ -135,10 +137,8 @@
         inner.textContent = iconFor(type);
         el.appendChild(inner);
 
-        // Сначала гарантированно создаем объект фишки
         const tile = {id, type, row, col, el, inner};
 
-        // Привязываем все события
         el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
         el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
         el.addEventListener('click', onTileClick);
@@ -199,7 +199,7 @@
         const tile = findTileById(e.currentTarget.dataset.id);
         if(!tile) return;
         if(selected === null){
-            if(isSpecial(tile.type)){ activateStandalone(tile); return; }
+            if(isSpecial(tile.type)) { activateStandalone(tile); return; }
             selected = tile;
             tile.el.classList.add('selected');
             return;
@@ -527,7 +527,7 @@
         result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
         result.normalCells.forEach(k=>scoreSet.add(k));
         
-        const atKeys = new Set(specialSpawns.map(s=>key(s.at[0],s.at[1])));
+        const atKeys = new Set(specialSpawns.map(s=>key(s.at[0], s.at[1])));
         const clearSet = new Set();
         scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
         
@@ -553,7 +553,6 @@
         hearts += heartsGained;
         
         // Обновляем счетчики реалтайм
-        if (heartsVal) heartsVal.textContent = hearts;
         if (m3GoalText) m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         
         if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
@@ -640,9 +639,9 @@
         if (m3MovesText) m3MovesText.textContent = moves;
     }
 
-    // 5. МЕТОД ОТКРЫТИЯ СТАРТОВОГО ОКНА УРОВНЯ
+    // 5. МЕТОД ОТКРЫТИЯ СТАРТОВОГО ОКНА УРОВНЯ (ИСПРАВЛЕНЫ ВСЕ ID ОВЕРЛЕЕВ!)
     function openPreLevelScreen(levelId) {
-        // ИСПРАВЛЕНО: Теперь гарантированно берем window.LEVELS
+        // Гарантированно берем window.LEVELS
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) {
             console.error("Не удалось найти данные уровня в window.LEVELS:", levelId);
@@ -655,7 +654,6 @@
         levelDifficulty = levelData.difficulty;
 
         // Настройка цветности карточки в стиле Homescapes
-        const preCard = document.getElementById('preLevelCard');
         if (preCard) {
             preCard.className = 'pre-card';
             let diffClass = 'diff-normal';
@@ -684,16 +682,15 @@
         const preCoins = document.getElementById('preRewardCoins');
         if (preCoins) preCoins.textContent = `💰 +${rewards.base}₽`;
 
-        const preLevelOverlay = document.getElementById('preLevelOverlay');
-        if (preLevelOverlay) preLevelOverlay.classList.remove('hidden');
+        // ИСПРАВЛЕНО: Теперь открываем по правильному ID — "overlayPreLevel"
+        if (overlayPreLevel) overlayPreLevel.classList.remove('hidden');
     }
 
     // Клик "Отмена" на пре-карточке
     const btnCancelPreLevel = document.getElementById('btnCancelPreLevel');
     if (btnCancelPreLevel) {
         btnCancelPreLevel.addEventListener('click', () => {
-            const preLevelOverlay = document.getElementById('preLevelOverlay');
-            if (preLevelOverlay) preLevelOverlay.classList.add('hidden');
+            if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
             if (window.showScreen) window.showScreen('screenMap');
         });
     }
@@ -702,8 +699,7 @@
     const btnStartMatch3 = document.getElementById('btnStartMatch3');
     if (btnStartMatch3) {
         btnStartMatch3.addEventListener('click', () => {
-            const preLevelOverlay = document.getElementById('preLevelOverlay');
-            if (preLevelOverlay) preLevelOverlay.classList.add('hidden');
+            if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
             
             // Открываем игровой экран
             if (window.showScreen) {
@@ -713,8 +709,7 @@
             // Сбрасываем счетчики уровня
             hearts = 0;
             moves = START_MOVES;
-            if (heartsVal) heartsVal.textContent = 0;
-            if (m3MovesText) m3MovesText.textContent = moves;
+            updateMatch3HUD();
             if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
 
             // Выстраиваем сетку
@@ -779,11 +774,12 @@
         }
     }
 
+    // ИСПРАВЛЕНО: Метод вывода окна результатов теперь использует верный ID — "overlayResults"
     function showOverlay(title, text) {
-        if (overlay) {
+        if (overlayResults) {
             if (resultsTitle) resultsTitle.textContent = title;
             if (resultsText) resultsText.textContent = text;
-            overlay.classList.remove('hidden');
+            overlayResults.classList.remove('hidden');
         }
     }
 
@@ -800,7 +796,7 @@
     const btnResultsClose = document.getElementById('btnResultsClose');
     if (btnResultsClose) {
         btnResultsClose.addEventListener('click', () => {
-            if (overlay) overlay.classList.add('hidden');
+            if (overlayResults) overlayResults.classList.add('hidden');
             
             if (hearts >= GOAL_HEARTS) {
                 if (window.GameState) {
