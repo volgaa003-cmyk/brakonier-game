@@ -397,7 +397,7 @@
     ]
   };
 
-  // Если внешний файл dialogs.js загрузился — объединяем
+  // Если внешний файл dialogs.js загрузился — объединяем его
   if (window.DIALOGS) {
     gameDialogs = Object.assign(gameDialogs, window.DIALOGS);
   }
@@ -419,6 +419,7 @@
   ];
   const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
+  // Быстрые тайминги анимаций
   const SWAP_MS = 180;  
   const CLEAR_MS = 200; 
   const FALL_MS = 240;  
@@ -437,7 +438,7 @@
   let busy = false;
   let tileIdCounter = 0;
 
-  // Координаты для свайпов
+  // Перетаскивание жестов (СВАЙПОВ)
   let dragStartX = 0, dragStartY = 0;
   let dragActiveTile = null;
 
@@ -548,10 +549,10 @@
     inner.textContent = iconFor(type);
     el.appendChild(inner);
 
-    // Сначала создаем объект фишки (Объявлен ДО слушателей событий)
+    // Сначала гарантированно создаем объект фишки
     const tile = {id, type, row, col, el, inner};
 
-    // Привязываем события
+    // Привязываем все события
     el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
     el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
     el.addEventListener('click', onTileClick);
@@ -1087,27 +1088,32 @@
     boardEl.style.opacity = "0.15"; 
   }
 
+  // Нажатие кнопки «Начать охоту»
   document.getElementById('prePlayBtn').addEventListener('click', () => {
     preLevelOverlay.classList.add('hidden');
 
+    // Сбрасываем счетчики под конкретную игру
     hearts = 0;
     moves = START_MOVES;
     heartsVal.textContent = 0;
     movesVal.textContent = moves;
     document.getElementById('goalText').textContent = `${GOAL_HEARTS} ❤️ вампирских сердец`;
 
+    // 1. СНАЧАЛА генерируем и показываем яркое игровое поле
+    buildInitialGrid();
+
+    // 2. Затем, если есть вводный диалог, показываем его поверх поля
     if (gameDialogs && gameDialogs[currentLevelId] && gameDialogs[currentLevelId].intro) {
+      boardEl.style.opacity = "0.2"; // Слегка приглушаем поле на время диалога
       runDialogue(gameDialogs[currentLevelId].intro, () => {
-        boardEl.style.opacity = "1";
-        buildInitialGrid();
+        boardEl.style.opacity = "1"; // Возвращаем яркость после диалога
       });
     } else {
       boardEl.style.opacity = "1";
-      buildInitialGrid();
     }
   });
 
-  // Проверка конца игры
+  // Проверка условий победы/поражения
   function checkEndConditions(){
     if(hearts >= GOAL_HEARTS){
       const rewards = getRewards(levelDifficulty);
@@ -1232,6 +1238,7 @@
     }
   });
 
+  // Первоначальный запуск
   openPreLevelScreen(1);
 })();
 </script>
