@@ -51,10 +51,70 @@
   .stat.moves .value{color:var(--violet);}
   .stat.cash .value{color:#8a6a1a;}
   
-  /* Кнопки интерфейса */
-  .hud-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:4px 8px;font-weight:bold;font-size:11px;box-shadow:var(--panel-shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;text-transform:uppercase;}
+  /* Общие стили для Кнопок */
+  .hud-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:6px 12px;font-weight:bold;font-size:12px;box-shadow:var(--panel-shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;text-transform:uppercase;}
   .help-btn{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;box-shadow:var(--panel-shadow);cursor:pointer;flex-shrink:0;}
-  
+
+  /* Настройки экранов локаций */
+  .screen {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px;
+  }
+  .screen.hidden { display: none !important; }
+
+  /* ЭКРАН 1: СТИЛИ КВАРТИРЫ/УБЕЖИЩА */
+  .hideout-room {
+    background: rgba(255, 255, 255, 0.05);
+    border: 3px solid var(--paper);
+    border-radius: 16px;
+    width: 100%;
+    padding: 16px;
+    box-shadow: var(--panel-shadow);
+    margin-top: 10px;
+  }
+  .hideout-title { font-family: 'Bangers', cursive; font-size: 26px; color: var(--gold); text-shadow: 2px 2px 0 var(--ink); margin-bottom: 12px; text-align: center; }
+  .decor-status-list { text-align: left; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
+  .decor-status-item { background: rgba(0,0,0,0.4); border: 1px solid var(--paper); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .decor-status-item b { color: var(--gold); }
+
+  /* ЭКРАН 2: СТИЛИ КАРТЫ И КПП */
+  .map-box {
+    background: rgba(0, 0, 0, 0.4);
+    border: 3px dashed var(--paper);
+    border-radius: 16px;
+    width: 100%;
+    padding: 20px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  .map-road { display: flex; flex-direction: column; align-items: center; gap: 14px; position: relative; margin: 20px 0; }
+  .map-road::before { content: ""; position: absolute; top: 10px; bottom: 10px; width: 4px; background: var(--paper); opacity: 0.3; z-index: 1; }
+  .map-node {
+    background: var(--paper);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-weight: 800;
+    font-size: 14px;
+    z-index: 2;
+    box-shadow: 4px 4px 0 var(--blood);
+    width: 80%;
+    max-width: 280px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .map-node.active { background: var(--gold); border-color: var(--ink); box-shadow: 4px 4px 0 var(--toxic); }
+  .map-node.locked { opacity: 0.55; background: #999; box-shadow: none; cursor: not-allowed; }
+
+  /* ЭКРАН 3: ТРИ В РЯД */
   .goal{width:100%;max-width:420px;background:var(--blood);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
   .goal b{font-family:'Bangers',cursive;font-size:16px;letter-spacing:1px;}
   .legend{display:flex;gap:6px;width:100%;max-width:420px;margin-bottom:10px;font-size:9px;flex-wrap:wrap;justify-content:center;opacity:.85;}
@@ -62,7 +122,7 @@
   #boardWrap{background:var(--ink);border:4px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 rgba(0,0,0,.5);padding:6px;width:min(420px, 94vw);}
   #board{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;transition:opacity 0.2s ease;}
   
-  /* Фишки (Оптимизация рендеринга и поддержка тача) */
+  /* Фишки */
   .tile{
     position:absolute;
     width:calc(100% / var(--size));
@@ -106,7 +166,7 @@
   #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;box-shadow:var(--panel-shadow);padding:10px 18px;font-family:'Bangers',cursive;font-size:18px;letter-spacing:1px;opacity:0;transition:all .2s ease;pointer-events:none;z-index:50;max-width:80vw;text-align:center;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
   
-  /* Всплывающие окна */
+  /* Оверлеи */
   .overlay{position:fixed;inset:0;background:rgba(13,11,15,.92);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto;}
   .overlay.hidden{display:none;}
   .card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:16px;box-shadow:8px 8px 0 var(--blood);padding:24px;max-width:380px;text-align:left;width:100%;}
@@ -116,7 +176,7 @@
   .btn{font-family:'Bangers',cursive;letter-spacing:1px;font-size:18px;background:var(--blood);color:var(--paper);border:3px solid var(--ink);border-radius:10px;box-shadow:4px 4px 0 var(--ink);padding:10px 24px;margin-top:18px;cursor:pointer;transition:transform .1s;width:100%;}
   .btn:active{transform:translate(2px,2px); box-shadow:2px 2px 0 var(--ink);}
 
-  /* Окна старта */
+  /* Стили окна старта уровня */
   .pre-card {
     border: 4px solid var(--ink);
     border-radius: 16px;
@@ -154,9 +214,7 @@
     z-index: 150;
     padding: 20px;
   }
-  .dialogue-overlay.hidden {
-    display: none;
-  }
+  .dialogue-overlay.hidden { display: none; }
   .dialogue-box {
     background: var(--paper);
     color: var(--ink);
@@ -199,14 +257,8 @@
     align-items: center;
     gap: 8px;
   }
-  .task-info {
-    text-align: left;
-  }
-  .task-title {
-    font-size: 13px;
-    font-weight: bold;
-    color: var(--ink);
-  }
+  .task-info { text-align: left; }
+  .task-title { font-size: 13px; font-weight: bold; color: var(--ink); }
   .task-btn {
     background: var(--toxic);
     color: var(--paper);
@@ -225,40 +277,81 @@
   <h1>БРАКОНЬЕР</h1>
   <div class="subtitle">Охота на сердца · Пролог</div>
  
+  <!-- ГЛОБАЛЬНЫЙ HUD ПАНЕЛЬ (Показывается всегда) -->
   <div class="hud">
-    <div class="hud-btn" id="tasksBtn">📋 Задачи</div>
     <div class="stat stars-stat"><div class="label">⭐ Звезды</div><div class="value" id="starsVal">0</div></div>
     <div class="stat hearts"><div class="label">❤️ Сердца</div><div class="value" id="heartsVal">0</div></div>
     <div class="stat moves"><div class="label">🎬 Ходы</div><div class="value" id="movesVal">20</div></div>
-    <div class="stat cash"><div class="label">💰 Выручка</div><div class="value" id="cashVal">0₽</div></div>
+    <div class="stat cash"><div class="label">💰 Валюта</div><div class="value" id="cashVal">0₽</div></div>
     <div class="help-btn" id="helpBtn">?</div>
   </div>
- 
-  <div class="goal">
-    <span>Заказ скупщика:</span>
-    <b id="goalText">12 ❤️ вампирских сердец</b>
+
+  <!-- ==================== ЭКРАН 1: УБЕЖИЩЕ (Главный хаб браконьера) ==================== -->
+  <div id="hideoutScreen" class="screen">
+    <div class="hideout-room">
+      <div class="hideout-title">🏠 Твое Убежище</div>
+      <p style="font-size: 12px; opacity:0.8; margin-bottom: 16px; text-align: center;">Твоя база в безопасной зоне. Обустраивай её, чтобы стать сильнее и выжить.</p>
+      
+      <!-- Статус интерьера (Изменяется динамически) -->
+      <div class="decor-status-list">
+        <div class="decor-status-item">🚪 Входная дверь: <b id="decorDoor">Хлипкая деревянная</b></div>
+        <div class="decor-status-item">🛠️ Оружейный верстак: <b id="decorWorkbench">Отсутствует</b></div>
+        <div class="decor-status-item">💡 Энергия/Освещение: <b id="decorLights">Тусклая свеча</b></div>
+      </div>
+
+      <button class="btn" id="hideoutTasksBtn" style="background: var(--gold); color: var(--ink);">📋 Дела браконьера</button>
+      <button class="btn" id="goToHuntBtn" style="background: var(--blood);">🔫 Выйти на охоту (КПП)</button>
+    </div>
   </div>
- 
-  <div class="legend">
-    <span>4 в ряд 🚀 ракета</span>
-    <span>Уголком 5 💣 бомба</span>
-    <span>2×2 ✈️ самолётик</span>
-    <span>5 в ряд 🌈 радуга</span>
+
+  <!-- ==================== ЭКРАН 2: КАРТА И ПУТЬ К ОХОТЕ (КПП) ==================== -->
+  <div id="mapScreen" class="screen hidden">
+    <div class="map-box">
+      <div class="hideout-title">🗺️ Карта вылазки</div>
+      <p style="font-size: 12px; opacity:0.8;">Тебе нужно пройти КПП ворот города, чтобы добраться до вампирских руин.</p>
+      
+      <!-- Линейный путь продвижения по сюжету -->
+      <div class="map-road">
+        <div class="map-node">
+          <span>🏠 Моя База</span>
+          <span style="color:var(--toxic);">Безопасно</span>
+        </div>
+        <div class="map-node active" id="mapNodeKPP">
+          <span>🚧 Городской КПП</span>
+          <span id="nodeKPPText">Уровень 1</span>
+        </div>
+        <div class="map-node locked" id="mapNodeRuins">
+          <span>🏙️ Разрушенный город</span>
+          <span>Закрыто</span>
+        </div>
+      </div>
+
+      <!-- Кнопка начать текущий уровень три в ряд -->
+      <button class="btn" id="startLevelFromMap" style="background: var(--toxic); color:var(--paper);">Пробиться на охоту</button>
+      <button class="btn" id="backToHideoutBtn" style="background: var(--paper); color: var(--ink);">Вернуться в убежище</button>
+    </div>
   </div>
- 
-  <div id="boardWrap"><div id="board"></div></div>
-  <div class="footer">Свапни два бонуса — получи мощное комбо!</div>
+
+  <!-- ==================== ЭКРАН 3: ИГРОВОЕ ПОЛЕ (ТРИ В РЯД) ==================== -->
+  <div id="gameScreen" class="screen hidden">
+    <div class="goal">
+      <span>Заказ скупщика:</span>
+      <b id="goalText">12 ❤️ вампирских сердец</b>
+    </div>
+    <div id="boardWrap"><div id="board"></div></div>
+    <div class="footer">Свапни два бонуса — получи мощное комбо!</div>
+  </div>
  
   <div id="toast"></div>
 
-  <!-- ОКНО СТАРТА УРОВНЯ -->
+  <!-- ОКНО СТАРТА УРОВНЯ (Перед Три в ряд) -->
   <div class="overlay hidden" id="preLevelOverlay">
     <div class="pre-card" id="preCard">
       <div class="pre-title" id="preTitle">Уровень 1</div>
       <div class="pre-subtitle" id="preDifficultyText">Обычный уровень</div>
       
       <div class="pre-goal-box">
-        <div class="pre-goal-title">Цель уровня</div>
+        <div class="pre-goal-title">Цель вылазки</div>
         <div class="pre-goal-val" id="preGoalVal">12 ❤️ Вампирских Сердец</div>
       </div>
 
@@ -268,16 +361,16 @@
         <div class="reward-item" id="preRewardCoins">💰 +100₽</div>
       </div>
 
-      <button class="btn" id="prePlayBtn" style="background:var(--toxic); box-shadow:4px 4px 0 var(--ink);">Начать охоту</button>
+      <button class="btn" id="prePlayBtn" style="background:var(--toxic); box-shadow:4px 4px 0 var(--ink);">Начать бой</button>
     </div>
   </div>
  
-  <!-- Экран результатов -->
+  <!-- Экран результатов уровня -->
   <div class="overlay hidden" id="overlay">
     <div class="card">
       <h2 id="overlayTitle">Заказ выполнен!</h2>
       <p id="overlayText"></p>
-      <button class="btn" id="overlayBtn">Продолжить охоту</button>
+      <button class="btn" id="overlayBtn">Вернуться к Карте</button>
     </div>
   </div>
  
@@ -297,13 +390,13 @@
     </div>
   </div>
 
-  <!-- ОКНО ЗАДАНИЙ СЮЖЕТА -->
+  <!-- ОКНО ЗАДАНИЙ СЮЖЕТА (Мета-магазин) -->
   <div class="overlay hidden" id="tasksOverlay">
     <div class="card" style="max-width: 400px;">
       <h2>🧾 Дела браконьера</h2>
-      <p style="font-size: 12px; margin-bottom: 16px; text-align: center;">Тратьте заработанные звезды на продвижение по сюжету:</p>
+      <p style="font-size: 12px; margin-bottom: 16px; text-align: center;">Тратьте заработанные звезды на продвижение по сюжету и ремонт:</p>
       <div id="tasksList"></div>
-      <button class="btn" id="closeTasksBtn">Назад к охоте</button>
+      <button class="btn" id="closeTasksBtn">Назад к убежищу</button>
     </div>
   </div>
 
@@ -323,7 +416,7 @@
     if(tg){ tg.ready(); tg.expand(); }
   }catch(e){}
 
-  // 1. Создаем дефолтные уровни прямо здесь (если levels.js не загрузился или пустой)
+  // 1. Уровни (Fallback)
   let gameLevels = [];
   for (let i = 1; i <= 300; i++) {
     let heartsGoal = 12;
@@ -367,12 +460,11 @@
     });
   }
 
-  // Если внешние уровни загрузились успешно — берем их
   if (window.LEVELS && window.LEVELS.length > 0) {
     gameLevels = window.LEVELS;
   }
 
-  // 2. Создаем дефолтные диалоги
+  // 2. Сюжетные диалоги (Fallback)
   let gameDialogs = {
     1: {
       intro: [
@@ -387,25 +479,30 @@
         { name: "Скупщик", text: "Эй! Ты упустил их! Нам теперь не поздоровится..." }
       ]
     },
-    "task_hideout": [
-      { name: "Ты", text: "Так, логово обустроено. Развесил сушиться чеснок, почистил серебряные пули." },
-      { name: "Скупщик", text: "Отлично. Безопасность превыше всего. В наших краях вампиры обнаглели." }
+    // Диалоги для заданий
+    "task_door": [
+      { name: "Ты", text: "Установил тяжелую сейфовую дверь со стальными ригелями." },
+      { name: "Скупщик", text: "Хорошая мысль. Теперь вурдалакам придется сильно постараться, чтобы войти к тебе на чай." }
     ],
-    "task_bar": [
-      { name: "Трактирщик", text: "Шепчутся, вчера у кладбища видели бледную девицу... береги шею, браконьер." },
-      { name: "Ты", text: "Девица, говоришь? Интересно. Надо проверить." }
+    "task_workbench": [
+      { name: "Ты", text: "Завершил сборку верстака. Теперь я могу собирать патроны с серебряной крошкой вручную." },
+      { name: "Скупщик", text: "Ствол почисть, браконьер. И забудь про ржавые колья." }
+    ],
+    "task_lights": [
+      { name: "Ты", text: "Запитал старый аккумулятор и пустил светодиодную ленту под потолком." },
+      { name: "Ты", text: "Больше никаких свечей. Свет слепит глаза, но зато я вижу углы." }
     ]
   };
 
-  // Если внешний файл dialogs.js загрузился — объединяем его
   if (window.DIALOGS) {
     gameDialogs = Object.assign(gameDialogs, window.DIALOGS);
   }
 
-  // Список заданий
+  // 3. СПИСОК ЗАДАНИЙ ДЛЯ ИНТЕРЬЕРА КВАРТИРЫ
   let playerTasks = [
-    { id: "hideout", title: "Обустроить безопасное убежище", cost: 1, completed: false, dialog: "task_hideout" },
-    { id: "bar", title: "Расспросить трактирщика о вампирах", cost: 2, completed: false, dialog: "task_bar" }
+    { id: "door", title: "Заменить хлипкую деревянную дверь на стальную сейф-дверь", cost: 1, completed: false, dialog: "task_door", targetElement: "decorDoor", newValue: "🛡️ Стальная Сейф-Дверь" },
+    { id: "workbench", title: "Собрать верстак для патронов и заточки колье", cost: 1, completed: false, dialog: "task_workbench", targetElement: "decorWorkbench", newValue: "⚙️ Верстак Браконьера" },
+    { id: "lights", title: "Провести стабильное электрическое освещение", cost: 2, completed: false, dialog: "task_lights", targetElement: "decorLights", newValue: "💡 Светодиодные ленты" }
   ];
 
   const SIZE = 8;
@@ -419,7 +516,6 @@
   ];
   const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-  // Быстрые тайминги анимаций
   const SWAP_MS = 180;  
   const CLEAR_MS = 200; 
   const FALL_MS = 240;  
@@ -438,7 +534,6 @@
   let busy = false;
   let tileIdCounter = 0;
 
-  // Перетаскивание жестов (СВАЙПОВ)
   let dragStartX = 0, dragStartY = 0;
   let dragActiveTile = null;
 
@@ -490,7 +585,13 @@
     el.style.top = (row*100/SIZE)+'%';
   }
 
-  // Считывание жестов (СВАЙПОВ)
+  // Переключение экранов
+  function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById(screenId).classList.remove('hidden');
+  }
+
+  // Считывание свайпов
   function handleDragStart(e, tile) {
     if (busy) return;
     dragActiveTile = tile;
@@ -549,10 +650,8 @@
     inner.textContent = iconFor(type);
     el.appendChild(inner);
 
-    // Сначала гарантированно создаем объект фишки
     const tile = {id, type, row, col, el, inner};
 
-    // Привязываем все события
     el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
     el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
     el.addEventListener('click', onTileClick);
@@ -1023,29 +1122,7 @@
     }
   }
 
-  // ВЫЧИСЛЕНИЕ НАГРАДЫ
-  function getRewards(diff) {
-    let starsGained = 1;
-    let baseCoins = 100;
-
-    if (diff === "medium") {
-      baseCoins = 150;
-    } else if (diff === "hard") {
-      baseCoins = 250;
-    } else if (diff === "extreme") {
-      baseCoins = 400;
-    } else if (diff === "challenge") {
-      starsGained = 3;
-      baseCoins = 300;
-    }
-
-    let bonusCoins = moves * 10; 
-    let totalCoins = baseCoins + bonusCoins;
-
-    return { stars: starsGained, coins: totalCoins, base: baseCoins, bonus: bonusCoins };
-  }
-
-  // ЭКРАН ПОДГОТОВКИ К УРОВНЮ
+  // СТАРТ УРОВНЯ
   function openPreLevelScreen(levelId) {
     const levelData = gameLevels ? gameLevels[levelId - 1] : null;
     if (!levelData) return;
@@ -1054,6 +1131,9 @@
     GOAL_HEARTS = levelData.heartsGoal;
     START_MOVES = levelData.moves;
     levelDifficulty = levelData.difficulty;
+
+    // Обновляем текст на карте
+    document.getElementById('nodeKPPText').textContent = `Уровень ${currentLevelId}`;
 
     const preCard = document.getElementById('preCard');
     preCard.className = 'pre-card';
@@ -1085,35 +1165,36 @@
     document.getElementById('preRewardCoins').textContent = `💰 +${r.base}₽`;
 
     preLevelOverlay.classList.remove('hidden');
-    boardEl.style.opacity = "0.15"; 
   }
 
-  // Нажатие кнопки «Начать охоту»
+  // Клик "Начать бой" на карточке старта
   document.getElementById('prePlayBtn').addEventListener('click', () => {
     preLevelOverlay.classList.add('hidden');
+    
+    // Переключаем интерфейс на экран игры
+    showScreen('gameScreen');
 
-    // Сбрасываем счетчики под конкретную игру
     hearts = 0;
     moves = START_MOVES;
     heartsVal.textContent = 0;
     movesVal.textContent = moves;
     document.getElementById('goalText').textContent = `${GOAL_HEARTS} ❤️ вампирских сердец`;
 
-    // 1. СНАЧАЛА генерируем и показываем яркое игровое поле
+    // Сначала строим поле
     buildInitialGrid();
 
-    // 2. Затем, если есть вводный диалог, показываем его поверх поля
+    // Затем запускаем диалог перед боем (если есть)
     if (gameDialogs && gameDialogs[currentLevelId] && gameDialogs[currentLevelId].intro) {
-      boardEl.style.opacity = "0.2"; // Слегка приглушаем поле на время диалога
+      boardEl.style.opacity = "0.2"; 
       runDialogue(gameDialogs[currentLevelId].intro, () => {
-        boardEl.style.opacity = "1"; // Возвращаем яркость после диалога
+        boardEl.style.opacity = "1"; 
       });
     } else {
       boardEl.style.opacity = "1";
     }
   });
 
-  // Проверка условий победы/поражения
+  // Проверка конца игры
   function checkEndConditions(){
     if(hearts >= GOAL_HEARTS){
       const rewards = getRewards(levelDifficulty);
@@ -1163,7 +1244,7 @@
     pulseToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1200);
   }
 
-  // ==================== ЛОГИКА МЕНЮ ЗАДАНИЙ (ЗВЕЗДЫ) ====================
+  // ==================== ЛОГИКА МЕНЮ ЗАДАНИЙ (ОБУСТРОЙСТВО) ====================
 
   function renderTasks() {
     tasksListEl.innerHTML = "";
@@ -1188,6 +1269,7 @@
     });
   }
 
+  // Изменение интерьера при покупке за Звезды
   window.completeTask = function(taskId) {
     const task = playerTasks.find(t => t.id === taskId);
     if (!task) return;
@@ -1197,49 +1279,70 @@
       starsVal.textContent = globalStars;
       task.completed = true;
       
+      // Обновляем визуальный текст в квартире на экране Убежища
+      document.getElementById(task.targetElement).textContent = task.newValue;
+
+      // Закрываем меню задач
       tasksOverlay.classList.add('hidden');
 
+      // Показываем сюжетный диалог, привязанный к обустройству
       if (gameDialogs && gameDialogs[task.dialog]) {
         runDialogue(gameDialogs[task.dialog], () => {
-          pulseToast("Задание выполнено!");
-          openPreLevelScreen(currentLevelId); 
+          pulseToast("Убежище улучшено!");
+          showScreen('hideoutScreen'); // Оставляем игрока в обновленной комнате
         });
       } else {
-        pulseToast("Задание выполнено!");
-        openPreLevelScreen(currentLevelId);
+        pulseToast("Убежище улучшено!");
+        showScreen('hideoutScreen');
       }
     } else {
-      pulseToast("Недостаточно звезд! Проходите уровни.");
+      pulseToast("Недостаточно звезд! Пройдите уровень на КПП.");
     }
   };
 
-  document.getElementById('tasksBtn').addEventListener('click', () => {
+  // Слушатели кнопок Экранов
+  document.getElementById('hideoutTasksBtn').addEventListener('click', () => {
     renderTasks();
     tasksOverlay.classList.remove('hidden');
-    boardEl.style.opacity = "0.15";
   });
 
   document.getElementById('closeTasksBtn').addEventListener('click', () => {
     tasksOverlay.classList.add('hidden');
-    boardEl.style.opacity = "0.15";
-    openPreLevelScreen(currentLevelId);
+  });
+
+  document.getElementById('goToHuntBtn').addEventListener('click', () => {
+    openPreLevelScreen(currentLevelId); // Подтягиваем данные перед выходом на карту
+    showScreen('mapScreen');
+  });
+
+  document.getElementById('backToHideoutBtn').addEventListener('click', () => {
+    showScreen('hideoutScreen');
+  });
+
+  document.getElementById('startLevelFromMap').addEventListener('click', () => {
+    openPreLevelScreen(currentLevelId); // Открывает пре-карточку
   });
 
   document.getElementById('helpBtn').addEventListener('click', () => helpOverlay.classList.remove('hidden'));
   document.getElementById('closeHelpBtn').addEventListener('click', () => helpOverlay.classList.add('hidden'));
   
+  // Кнопка продолжения после победы/поражения
   document.getElementById('overlayBtn').addEventListener('click', ()=>{
     overlay.classList.add('hidden');
     
     if (hearts >= GOAL_HEARTS) {
+      // Игрок победил -> перекидывает на Карту и готовит следующий уровень
+      showScreen('mapScreen');
       openPreLevelScreen(currentLevelId + 1); 
     } else {
+      // Поражение -> возвращает на Карту переигрывать текущий уровень
+      showScreen('mapScreen');
       openPreLevelScreen(currentLevelId); 
     }
   });
 
-  // Первоначальный запуск
-  openPreLevelScreen(1);
+  // Запуск игры с первого экрана - Убежища
+  showScreen('hideoutScreen');
 })();
 </script>
 </body>
