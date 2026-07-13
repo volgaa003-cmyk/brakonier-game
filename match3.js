@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ С МНОГОФАЗНЫМИ УРОВНЯМИ)
-// Движок "Три в ряд" со скроллингом и перекаткой полей
+// match3.js (ФИНАЛЬНЫЙ — С ПОДДЕРЖКОЙ КОВРОВ И ЛЬДА)
+// Движок "Три в ряд" с физикой Homescapes, Коврами и Льдом
 // ================================================
 
 (function() {
@@ -15,9 +15,9 @@
     ];
     const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    const SWAP_MS = 180;  
-    const CLEAR_MS = 200; 
-    const FALL_MS = 240;  
+    const SWAP_MS = 240;  
+    const CLEAR_MS = 260; 
+    const FALL_MS = 300;  
 
     let currentLevelId = 1;
     let GOAL_HEARTS = 12;
@@ -29,6 +29,11 @@
     let isMultiPhase = false;
     let currentPhaseIndex = 0;
 
+    // Состояние Ковров и Льда
+    let targetType = "heart"; // Тип цели уровня ("heart" или "carpet")
+    let carpetGrid = [];      // Сетка ковров (8х8, true/false)
+    let iceGrid = [];         // Сетка льда (8х8, true/false)
+
     let grid = [];
     let selected = null;
     let hearts = 0, moves = 20;
@@ -38,7 +43,6 @@
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
 
-    // Счетчик активных самолетов в воздухе
     let activePlanesCount = 0;
 
     const boardEl = document.getElementById('board');
@@ -75,13 +79,16 @@
     }
 
     function applySpecialClass(t){
-        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box');
+        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box', 'frozen');
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
         else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
         else if(t.type==='plane') t.el.classList.add('plane');
         else if(t.type==='rainbow') t.el.classList.add('rainbow');
         else if(t.type==='box') t.el.classList.add('box');
+        
+        // Вешаем визуальный лед, если фишка заморожена
+        if(t.frozen) t.el.classList.add('frozen');
     }
 
     function setTilePos(el, row, col){
@@ -90,7 +97,8 @@
     }
 
     function handleDragStart(e, tile) {
-        if (busy || tile.type === 'box') return;
+        // Замороженные фишки 🧊 нельзя двигать пальцем!
+        if (busy || tile.type === 'box' || tile.frozen) return;
         dragActiveTile = tile;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -118,7 +126,8 @@
 
             if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
                 const partner = grid[targetRow][targetCol];
-                if (partner && partner.type !== 'box') {
+                // Замороженного партнера тоже нельзя свайпать!
+                if (partner && partner.type !== 'box' && !partner.frozen) {
                     dragActiveTile.el.classList.remove('selected');
                     selected = null;
                     performSwap(dragActiveTile, partner);
@@ -142,7 +151,10 @@
         inner.textContent = iconFor(type);
         el.appendChild(inner);
 
-        const tile = {id, type, row, col, el, inner};
+        // Проверяем, должна ли фишка быть во льду при спавне
+        const isFrozen = iceGrid[row][col] === 1;
+
+        const tile = {id, type, row, col, el, inner, frozen: isFrozen};
 
         el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
         el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
@@ -177,7 +189,26 @@
         boardEl.innerHTML = '';
         grid = [];
         for(let r=0;r<SIZE;r++) grid.push(new Array(SIZE).fill(null));
+
+        // 1. СНАЧАЛА РИСУЕМ ФОНОВУЮ РЕШЕТКУ ЯЧЕЕК И СТЕЛИМ СТАРТОВЫЙ КОВЕР 🌿
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (levelLayout[r][c] !== 0) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.dataset.pos = `${r},${c}`; // Координаты ячейки для растекания ковра
+
+                    // Красим ковер
+                    if (carpetGrid[r] && carpetGrid[r][c]) {
+                        cell.classList.add('carpet');
+                    }
+
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
         
+        // 2. РИСУЕМ ФИШКИ СВЕРХУ СЕТКИ
         for(let r=0;r<SIZE;r++){
             for(let c=0;c<SIZE;c++){
                 const cellType = levelLayout[r][c];
@@ -220,7 +251,8 @@
     function onTileClick(e){
         if(busy) return;
         const tile = findTileById(e.currentTarget.dataset.id);
-        if(!tile || tile.type === 'box') return;
+        // Замороженную фишку 🧊 нельзя выделять кликом
+        if(!tile || tile.type === 'box' || tile.frozen) return;
 
         if(selected === null){
             if(isSpecial(tile.type)) { activateStandalone(tile); return; }
@@ -598,7 +630,7 @@
         return foundTarget ? { r: targetRow, c: targetCol } : null;
     }
 
-    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ (МНОГОФАЗНЫЕ ИСПРАВЛЕНИЯ) ====================
+    // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ ====================
 
     function comboFootprint(a, b){
         let cells = new Set();
@@ -889,6 +921,7 @@
             if(t.type==='heart') heartsGained++;
         });
 
+        // Напрямую проверяем, не уничтожили ли мы коробку (самолетиком, ракетой или бомбой)
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
@@ -906,7 +939,43 @@
         });
         hearts += heartsGained;
         
-        if (m3GoalText) m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        // ВАЖНЕЙШЕЕ ОБНОВЛЕНИЕ: Проверяем, стоял ли хоть один уничтоженный тайл на ковре!
+        let hasCarpetInMatch = false;
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            if (carpetGrid[r] && carpetGrid[r][c]) {
+                hasCarpetInMatch = true;
+            }
+        });
+
+        // Если да — ковер эффектно растекается на ВСЕ уничтоженные клетки!
+        if (hasCarpetInMatch) {
+            clearSet.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                // Ковер ложится только на разрешенные клетки (1), не ложится на пустоты (0)
+                if (levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
+                    carpetGrid[r][c] = true;
+                    // Красим фоновую ячейку
+                    const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
+                    if (cellEl) {
+                        cellEl.classList.add('carpet');
+                    }
+                }
+            });
+        }
+
+        // Обновляем счетчик подложки в зависимости от цели
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            if (m3GoalText) m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+        } else {
+            if (m3GoalText) m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        }
         
         if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
         
@@ -1077,38 +1146,54 @@
         }, 450);
     }
 
-    // ==================== 3. АЛГОРИТМ ПЕРЕКАТКИ И ПРОКРУТКИ КАМЕРЫ (НОВЫЙ БЛОК) ====================
+    // ==================== 3. АЛГОРИТМ ПЕРЕКАТКИ И ПРОКРУТКИ КАМЕРЫ ====================
 
     function transitionToNextPhase() {
         busy = true;
         currentPhaseIndex++;
         pulseToast(`➔ Фаза ${currentPhaseIndex + 1}!`);
 
-        // Сдвигаем старое поле влево
         boardEl.classList.add('scroll-out');
 
         setTimeout(() => {
-            // Подгружаем геометрию и цели следующей фазы
             const phaseData = window.LEVELS[currentLevelId - 1].phases[currentPhaseIndex];
             GOAL_HEARTS = phaseData.heartsGoal;
             levelLayout = JSON.parse(JSON.stringify(phaseData.layout));
-            hearts = 0; // Сбрасываем сердца конкретно для этой фазы
+            hearts = 0; 
 
-            // Смена HUD
-            m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
+            // Сброс и подготовка ковров и льда под новую фазу
+            targetType = phaseData.targetType || "heart";
+            
+            carpetGrid = [];
+            iceGrid = [];
+            for (let r = 0; r < SIZE; r++) {
+                carpetGrid.push(new Array(SIZE).fill(false));
+                iceGrid.push(new Array(SIZE).fill(0));
+            }
 
-            // Быстро выкатываем пустое поле с правого края без анимации
+            if (phaseData.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(phaseData.carpetLayout));
+            if (phaseData.iceLayout) iceGrid = JSON.parse(JSON.stringify(phaseData.iceLayout));
+
+            if (targetType === "carpet") {
+                let currentCarpetCount = 0;
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (carpetGrid[r][c]) currentCarpetCount++;
+                    }
+                }
+                m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+            } else {
+                m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
+            }
+
             boardEl.classList.remove('scroll-out');
             boardEl.classList.add('scroll-in');
 
-            // Перестраиваем сетку
             buildInitialGrid();
 
-            // Вкатываем новое поле на экран слева
             setTimeout(() => {
                 boardEl.classList.remove('scroll-in');
                 
-                // Проверяем на тупик при старте новой фазы
                 if (!hasPossibleMoves()) {
                     shuffleBoard();
                 } else {
@@ -1155,12 +1240,34 @@
         currentLevelId = levelId;
         levelDifficulty = levelData.difficulty;
 
-        // ИСПРАВЛЕНЫ МНОГОФАЗНЫЕ ИНИЦИАЛИЗАЦИИ
+        // Настройка сеток ковра, льда и типа цели
+        targetType = levelData.targetType || "heart";
+        
+        carpetGrid = [];
+        iceGrid = [];
+        for (let r = 0; r < SIZE; r++) {
+            carpetGrid.push(new Array(SIZE).fill(false));
+            iceGrid.push(new Array(SIZE).fill(0));
+        }
+
+        if (levelData.carpetLayout && levelData.carpetLayout.length > 0) {
+            carpetGrid = JSON.parse(JSON.stringify(levelData.carpetLayout));
+        }
+        if (levelData.iceLayout && levelData.iceLayout.length > 0) {
+            iceGrid = JSON.parse(JSON.stringify(levelData.iceLayout));
+        }
+
         if (levelData.phases && levelData.phases.length > 0) {
             isMultiPhase = true;
             currentPhaseIndex = 0;
             GOAL_HEARTS = levelData.phases[0].heartsGoal;
             levelLayout = JSON.parse(JSON.stringify(levelData.phases[0].layout));
+            
+            // Спец-проверка для первой фазы
+            const firstPhase = levelData.phases[0];
+            targetType = firstPhase.targetType || "heart";
+            if (firstPhase.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(firstPhase.carpetLayout));
+            if (firstPhase.iceLayout) iceGrid = JSON.parse(JSON.stringify(firstPhase.iceLayout));
         } else {
             isMultiPhase = false;
             GOAL_HEARTS = levelData.heartsGoal;
@@ -1188,8 +1295,15 @@
         const title = document.getElementById('preLevelTitle');
         if (title) title.textContent = `Уровень ${currentLevelId}`;
 
+        // Настройка текста цели на пре-экране в зависимости от типа цели (Сердца или Ковер)
         const goalVal = document.getElementById('preGoalVal');
-        if (goalVal) goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
+        if (goalVal) {
+            if (targetType === "carpet") {
+                goalVal.textContent = `${GOAL_HEARTS} 🌿 Зеленых Ковров`;
+            } else {
+                goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
+            }
+        }
 
         const rewards = getRewards(levelDifficulty);
         const preStars = document.getElementById('preRewardStars');
@@ -1221,7 +1335,18 @@
             hearts = 0;
             moves = START_MOVES;
             updateMatch3HUD();
-            if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
+            
+            if (targetType === "carpet") {
+                let currentCarpetCount = 0;
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (carpetGrid[r][c]) currentCarpetCount++;
+                    }
+                }
+                if (m3GoalText) m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+            } else {
+                if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
+            }
 
             buildInitialGrid();
 
@@ -1242,14 +1367,28 @@
     }
 
     function checkEndConditions(){
-        if(hearts >= GOAL_HEARTS){
-            // КРИТИЧЕСКИЙ ШАГ: Если это многофазный уровень — перекатываемся в следующую фазу!
+        // УСЛОВИЕ ПОБЕДЫ ДЛЯ КОВРА 🌿 И ДЛЯ СЕРДЕЦ ❤️
+        let isVictory = false;
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            isVictory = currentCarpetCount >= GOAL_HEARTS;
+        } else {
+            isVictory = hearts >= GOAL_HEARTS;
+        }
+
+        if(isVictory){
             if (isMultiPhase && currentPhaseIndex < window.LEVELS[currentLevelId - 1].phases.length - 1) {
                 transitionToNextPhase();
                 return;
             }
 
             const rewards = getRewards(levelDifficulty);
+            
             if (window.GameState) {
                 window.GameState.addStars(rewards.stars);
                 window.GameState.addCash(rewards.coins);
@@ -1274,7 +1413,7 @@
             }
 
             const dialogueLose = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].lose : null;
-            const loseText = `Тебе не хватило ходов. Было собрано всего ${hearts} из ${GOAL_HEARTS} сердец.\n\nЖизнь: -1 ❤️`;
+            const loseText = `Тебе не хватило ходов.\n\nЖизнь: -1 ❤️`;
 
             if (window.NovelEngine && dialogueLose) {
                 window.NovelEngine.run(dialogueLose, () => {
@@ -1313,7 +1452,7 @@
         btnResultsClose.addEventListener('click', () => {
             if (overlayResults) overlayResults.classList.add('hidden');
             
-            if (hearts >= GOAL_HEARTS) {
+            if (hearts >= GOAL_HEARTS || (targetType === "carpet" && document.querySelectorAll('.grid-cell.carpet').length >= GOAL_HEARTS)) {
                 if (window.GameState) {
                     window.GameState.nextLevel(); 
                 }
@@ -1326,5 +1465,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Многофазность и перекатка полей успешно подключены!");
+    console.log("match3.js: Процедурный спавн и ковры успешно настроены!");
 })();
