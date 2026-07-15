@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ИСПРАВЛЕННЫЙ — ОШИБКА GETREWARDS УСТРАНЕНА)
-// Премиальный движок три в ряд с частицами, отдачей и подсказками
+// match3.js (ФИНАЛЬНАЯ СТАБИЛЬНАЯ ВЕРСИЯ — БЕЗ ОШИБОК)
+// Полный игровой движок со всеми элементами и исправленными связями
 // ================================================
 
 (function() {
@@ -216,6 +216,7 @@
             default: return TYPES.find(t=>t.id===type).icon;
         }
     }
+
     function applySpecialClass(t){
         t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box', 'frozen', 'chained', 'webbed', 'steam-layer');
         if(t.type==='bomb') t.el.classList.add('bomb');
@@ -235,6 +236,7 @@
         if(t.webbed) t.el.classList.add('webbed'); // Паутина
         if(t.steam) t.el.classList.add('steam-layer'); // Пар
     }
+
     function setTilePos(el, row, col){
         el.style.left = (col*100/SIZE)+'%';
         el.style.top = (row*100/SIZE)+'%';
@@ -595,6 +597,9 @@
         }, SWAP_MS);
     }
 
+    // Исключаем все препятствия и специальные объекты из алгоритма сбора горизонтальных/вертикальных линий
+    const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata'].includes(type);
+
     function collectRuns(){
         const runs = [];
         for(let r=0;r<SIZE;r++){
@@ -602,9 +607,9 @@
             for(let c=1;c<=SIZE;c++){
                 const cur = c<SIZE ? getType(r,c) : null;
                 const prev = getType(r,c-1);
-                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box' && cur !== 'donut') continue;
+                if(cur!==null && cur===prev && !isNotMatchable(cur)) continue;
                 const len = c - runStart;
-                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box' && prev !== 'donut'){
+                if(len>=3 && prev !== null && !isNotMatchable(prev)){
                     const cells=[]; 
                     for(let k=runStart;k<c;k++) cells.push([r,k]);
                     runs.push({cells, dir:'h', length:len, type:prev, used:false});
@@ -617,9 +622,9 @@
             for(let r=1;r<=SIZE;r++){
                 const cur = r<SIZE ? getType(r,c) : null;
                 const prev = getType(r-1,c);
-                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box' && cur !== 'donut') continue;
+                if(cur!==null && cur===prev && !isNotMatchable(cur)) continue;
                 const len = r - runStart;
-                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box' && prev !== 'donut'){
+                if(len>=3 && prev !== null && !isNotMatchable(prev)){
                     const cells=[]; 
                     for(let k=runStart;k<r;k++) cells.push([k,c]);
                     runs.push({cells, dir:'v', length:len, type:prev, used:false});
@@ -652,7 +657,7 @@
                 const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
                 if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
                 const t0 = getType(r,c);
-                if(!t0 || isSpecial(t0) || t0 === 'box' || t0 === 'donut') continue;
+                if(!t0 || isNotMatchable(t0)) continue;
                 if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
                     squares.push({type:'plane', at:[r,c], cells});
                     cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
@@ -1127,207 +1132,208 @@
             });
         }
 
-     const finalClearSet = new Set();
-    const brokenBoxes = new Set();
+        const finalClearSet = new Set();
+        const brokenBoxes = new Set();
 
-    // 2. Раскол льда, снятие цепей, взлом ящиков, спавн искр-частиц и сложных механизмов
-    clearSet.forEach(k => {
-        const [r, c] = k.split(',').map(Number);
-        const t = grid[r] && grid[r][c];
-        if (t) {
-            // Вызываем сочные искры при уничтожении
-            spawnMatchParticles(r, c, t.type);
+        // 2. Раскол льда, снятие цепей, взлом ящиков, спавн искр-частиц и сложных механизмов
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const t = grid[r] && grid[r][c];
+            if (t) {
+                // Вызываем сочные искры при уничтожении
+                spawnMatchParticles(r, c, t.type);
 
-            // Паутина (Web) - рвется при любом матче/взрыве
-            if (t.webbed) {
-                t.webbed = false;
-                t.el.classList.remove('webbed');
-                return;
-            }
-
-            // Пар (Steam) - убирается при воздействии
-            if (t.steam) {
-                t.steam = false;
-                t.el.classList.remove('steam-layer');
-            }
-
-            if (t.frozen) {
-                t.frozen = false;
-                iceGrid[r][c] = 0;
-                t.el.classList.remove('frozen');
-                if (targetType === "ice") {
-                    iceMelted++;
+                // Паутина (Web) - рвется при любом матче/взрыве
+                if (t.webbed) {
+                    t.webbed = false;
+                    t.el.classList.remove('webbed');
+                    return;
                 }
-            } else if (t.chained) {
-                const isRegular = !isSpecial(t.type) && t.type !== 'donut';
-                if (isRegular || isExplosion) {
-                    t.chained = false;
-                    chainGrid[r][c] = 0;
-                    t.el.classList.remove('chained');
-                    pulseToast("🔗 Цепь разбита!");
+
+                // Пар (Steam) - убирается при воздействии
+                if (t.steam) {
+                    t.steam = false;
+                    t.el.classList.remove('steam-layer');
                 }
-            } else if (t.type === 'box' || t.type === 'vase') {
-                levelLayout[r][c] = 1; 
-                t.el.classList.add('clearing');
-                if (targetType === t.type) hearts++;
-                setTimeout(() => {
-                    if (grid[r][c] === t) {
-                        t.el.remove();
-                        grid[r][c] = null;
+
+                if (t.frozen) {
+                    t.frozen = false;
+                    iceGrid[r][c] = 0;
+                    t.el.classList.remove('frozen');
+                    if (targetType === "ice") {
+                        iceMelted++;
                     }
-                }, CLEAR_MS);
-            } else if (t.type === 'brick') {
-                // Кирпич: убирается ТОЛЬКО при взрывах (isExplosion)
-                if (isExplosion) {
+                } else if (t.chained) {
+                    const isRegular = !isSpecial(t.type) && t.type !== 'donut';
+                    if (isRegular || isExplosion) {
+                        t.chained = false;
+                        chainGrid[r][c] = 0;
+                        t.el.classList.remove('chained');
+                        pulseToast("🔗 Цепь разбита!");
+                    }
+                } else if (t.type === 'box' || t.type === 'vase') {
+                    levelLayout[r][c] = 1; 
+                    t.el.classList.add('clearing');
+                    if (targetType === t.type) hearts++;
+                    setTimeout(() => {
+                        if (grid[r][c] === t) {
+                            t.el.remove();
+                            grid[r][c] = null;
+                        }
+                    }, CLEAR_MS);
+                } else if (t.type === 'brick') {
+                    // Кирпич: убирается ТОЛЬКО при взрывах (isExplosion)
+                    if (isExplosion) {
+                        levelLayout[r][c] = 1;
+                        t.el.classList.add('clearing');
+                        setTimeout(() => {
+                            if (grid[r][c] === t) { t.el.remove(); grid[r][c] = null; }
+                        }, CLEAR_MS);
+                    }
+                } else if (t.type === 'capsule') {
+                    // Капсула: при разрушении спавнит 2 случайных бонуса
                     levelLayout[r][c] = 1;
                     t.el.classList.add('clearing');
                     setTimeout(() => {
-                        if (grid[r][c] === t) { t.el.remove(); grid[r][c] = null; }
+                        if (grid[r][c] === t) {
+                            t.el.remove();
+                            grid[r][c] = null;
+                            spawnBonusAt(r, c, 'bomb');
+                            spawnBonusAt(Math.max(0, r - 1), c, 'plane');
+                        }
                     }, CLEAR_MS);
-                }
-            } else if (t.type === 'capsule') {
-                // Капсула: при разрушении спавнит 2 случайных бонуса
-                levelLayout[r][c] = 1;
-                t.el.classList.add('clearing');
-                setTimeout(() => {
-                    if (grid[r][c] === t) {
-                        t.el.remove();
-                        grid[r][c] = null;
-                        spawnBonusAt(r, c, 'bomb');
-                        spawnBonusAt(Math.max(0, r - 1), c, 'plane');
+                } else {
+                    finalClearSet.add(k);
+                    if (targetType === t.type) {
+                        hearts++;
                     }
-                }, CLEAR_MS);
-            } else {
-                finalClearSet.add(k);
-                if (targetType === t.type) {
-                    hearts++;
                 }
             }
+        });
+
+        // Вспомогательная функция спавна бонуса на поле при взрыве капсулы
+        function spawnBonusAt(row, col, bonusType) {
+            if (grid[row] && grid[row][col] === null) {
+                grid[row][col] = createTile(row, col, bonusType, row);
+            }
         }
-    });
 
-    // Вспомогательная функция спавна бонуса на поле при взрыве капсулы
-    function spawnBonusAt(row, col, bonusType) {
-        if (grid[row] && grid[row][col] === null) {
-            grid[row][col] = createTile(row, col, bonusType, row);
-        }
-    }
+        // 3. Обработка соседних Homescapes-элементов (собираются матчами рядом)
+        finalClearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const neighbors = [
+                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+            ];
 
-    // 3. Обработка соседних Homescapes-элементов (собираются матчами рядом)
-    finalClearSet.forEach(k => {
-        const [r, c] = k.split(',').map(Number);
-        const neighbors = [
-            [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
-        ];
-
-        neighbors.forEach(([nr, nc]) => {
-            if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
-                const t = grid[nr][nc];
-                if (t) {
-                    // Собираемые рядом фрукты/предметы: Яблоки, Вишни, Сыр, Книги
-                    if (['apple', 'cherry', 'cheese', 'book'].includes(t.type)) {
-                        t.el.classList.add('clearing');
-                        if (targetType === t.type) hearts++;
-                        setTimeout(() => {
-                            if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
-                        }, CLEAR_MS);
-                    }
-                    // Орехи - собираются ТОЛЬКО бонусами
-                    else if (t.type === 'nut' && isExplosion) {
-                        t.el.classList.add('clearing');
-                        if (targetType === 'nut') hearts++;
-                        setTimeout(() => {
-                            if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
-                        }, CLEAR_MS);
-                    }
-                    // Кольцо в футляре (Ring) - требует 2 хита
-                    else if (t.type === 'ring') {
-                        if (!t.damagedOnce) {
-                            t.damagedOnce = true;
-                            t.inner.textContent = '💍✨'; // Открываем футляр
-                        } else {
+            neighbors.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                    const t = grid[nr][nc];
+                    if (t) {
+                        // Собираемые рядом фрукты/предметы: Яблоки, Вишни, Сыр, Книги
+                        if (['apple', 'cherry', 'cheese', 'book'].includes(t.type)) {
                             t.el.classList.add('clearing');
-                            if (targetType === 'ring') hearts++;
+                            if (targetType === t.type) hearts++;
                             setTimeout(() => {
                                 if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
                             }, CLEAR_MS);
                         }
+                        // Орехи - собираются ТОЛЬКО бонусами
+                        else if (t.type === 'nut' && isExplosion) {
+                            t.el.classList.add('clearing');
+                            if (targetType === 'nut') hearts++;
+                            setTimeout(() => {
+                                if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
+                            }, CLEAR_MS);
+                        }
+                        // Кольцо в футляре (Ring) - требует 2 хита
+                        else if (t.type === 'ring') {
+                            if (!t.damagedOnce) {
+                                t.damagedOnce = true;
+                                t.inner.textContent = '💍✨'; // Открываем футляр
+                            } else {
+                                t.el.classList.add('clearing');
+                                if (targetType === 'ring') hearts++;
+                                setTimeout(() => {
+                                    if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
+                                }, CLEAR_MS);
+                            }
+                        }
                     }
                 }
-            }
+            });
         });
-    });
 
-    const activeBrokenBoxes = checkAndBreakBoxes(finalClearSet);
+        const activeBrokenBoxes = checkAndBreakBoxes(finalClearSet);
 
-    finalClearSet.forEach(k=>{
-        const [r,c] = k.split(',').map(Number);
-        const t = grid[r] && grid[r][c];
-        if(t) t.el.classList.add('clearing');
-    });
-
-    if (targetType === "heart") {
-        hearts += heartsGained;
-    }
-
-    // 4. Покрытие коврами
-    if (!preventCarpet && hasCarpetInMatch) {
-        clearSet.forEach(k => {
-            const [r, c] = k.split(',').map(Number);
-            spreadCarpetAt(r, c);
-        });
-        activeBrokenBoxes.forEach(k => {
-            const [r, c] = k.split(',').map(Number);
-            spreadCarpetAt(r, c);
-        });
-    }
-    
-    updateMatch3HUD();
-    
-    if(heartsGained > 0 && targetType === "heart") {
-        pulseToast('+' + heartsGained + ' ❤️');
-    }
-    
-    setTimeout(()=>{
         finalClearSet.forEach(k=>{
             const [r,c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
-            if(t){ t.el.remove(); grid[r][c]=null; }
+            if(t) t.el.classList.add('clearing');
         });
-        specialSpawns.forEach(s=>{
-            const [r,c] = s.at;
-            if(!grid[r]) return;
-            let t = grid[r][c];
-            if(!t){
-                t = createTile(r,c,s.type,r);
-                grid[r][c] = t;
-            } else {
-                t.type = s.type;
-                t.inner.textContent = iconFor(s.type);
-                applySpecialClass(t);
-            }
-        });
-        applyGravityAndRefill();
+
+        if (targetType === "heart") {
+            hearts += heartsGained;
+        }
+
+        // 4. Покрытие коврами
+        if (!preventCarpet && hasCarpetInMatch) {
+            clearSet.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                spreadCarpetAt(r, c);
+            });
+            activeBrokenBoxes.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                spreadCarpetAt(r, c);
+            });
+        }
+        
+        updateMatch3HUD();
+        
+        if(heartsGained > 0 && targetType === "heart") {
+            pulseToast('+' + heartsGained + ' ❤️');
+        }
         
         setTimeout(()=>{
-            const result = analyzeMatches();
-            const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
-            
-            if (onComplete) {
-                onComplete();
-            }
-
-            if(!hasMore){
-                if (activePlanesCount === 0) {
-                    busy = false;
-                    checkEndConditions();
+            finalClearSet.forEach(k=>{
+                const [r,c] = k.split(',').map(Number);
+                const t = grid[r] && grid[r][c];
+                if(t){ t.el.remove(); grid[r][c]=null; }
+            });
+            specialSpawns.forEach(s=>{
+                const [r,c] = s.at;
+                if(!grid[r]) return;
+                let t = grid[r][c];
+                if(!t){
+                    t = createTile(r,c,s.type,r);
+                    grid[r][c] = t;
+                } else {
+                    t.type = s.type;
+                    t.inner.textContent = iconFor(s.type);
+                    applySpecialClass(t);
                 }
-            } else {
-                applyResolutionFull(result);
-            }
-        }, FALL_MS + 20); 
-    }, CLEAR_MS);
-}
+            });
+            applyGravityAndRefill();
+            
+            setTimeout(()=>{
+                const result = analyzeMatches();
+                const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+                
+                if (onComplete) {
+                    onComplete();
+                }
+
+                if(!hasMore){
+                    if (activePlanesCount === 0) {
+                        busy = false;
+                        checkEndConditions();
+                    }
+                } else {
+                    applyResolutionFull(result);
+                }
+            }, FALL_MS + 20); 
+        }, CLEAR_MS);
+    }
+
     // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ПОРТАЛАМИ И ПОНЧИКАМИ
     // УЛУЧШЕННЫЙ ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ОБХОДОМ ПУСТОТ
     function applyGravityAndRefill(){
@@ -1399,9 +1405,10 @@
         }
 
         collectDoughnuts();
-        processThreatsAndJesters(); // <-- Вставить эту строчку здесь!
+        processThreatsAndJesters();
         resetHintTimer(); 
     }
+
     // РАСЧЕТ НАГРАД ЗА УРОВЕНЬ
     function getRewards(diff) {
         let starsGained = 1;
@@ -1727,7 +1734,8 @@
             }
         });
     }
-function processThreatsAndJesters() {
+
+    function processThreatsAndJesters() {
         let spawnedFoam = false;
 
         // Поведение попугая (Parrot) - взлетает на 1 клетку вверх, если над ним пусто
@@ -1792,6 +1800,54 @@ function processThreatsAndJesters() {
             }
         }
     }
+
+    function findBestTargetForPlane(excludeRow, excludeCol) {
+        let targetRow = excludeRow, targetCol = excludeCol;
+        let foundTarget = false;
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'box') {
+                    targetRow = r; targetCol = c;
+                    foundTarget = true;
+                    break;
+                }
+            }
+            if (foundTarget) break;
+        }
+
+        if (!foundTarget) {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type === 'heart') {
+                        targetRow = r; targetCol = c;
+                        foundTarget = true;
+                        break;
+                    }
+                }
+                if (foundTarget) break;
+            }
+        }
+
+        if (!foundTarget) {
+            const candidates = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
+                        candidates.push([r, c]);
+                    }
+                }
+            }
+            if (candidates.length) {
+                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
+                targetRow = rnd[0]; targetCol = rnd[1];
+                foundTarget = true;
+            }
+        }
+
+        return foundTarget ? { r: targetRow, c: targetCol } : null;
+    }
+
     function hasPossibleMoves() {
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
@@ -1828,7 +1884,8 @@ function processThreatsAndJesters() {
         }
         return false; 
     }
-function updateMatch3HUD() {
+
+    function updateMatch3HUD() {
         if (m3MovesText) m3MovesText.textContent = moves;
         if (!m3GoalText) return;
 
@@ -1847,12 +1904,13 @@ function updateMatch3HUD() {
         } else if (targetType === "donut") {
             m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`;
         } else if (["vase", "apple", "cherry", "nut", "ring", "cheese", "book", "pinata", "capsule"].includes(targetType)) {
-            // Для всех новых Homescapes целей сбора используем универсальный счетчик
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ${iconFor(targetType)}`;
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
     }
+
     window.openPreLevelScreen = openPreLevelScreen;
     console.log("match3.js: Все асинхронные авиа-полеты, комбо-эффекты и бустеры синхронизированы!");
 })();
+--- END OF FILE match3.js ---
