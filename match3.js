@@ -1719,29 +1719,40 @@
         });
     }
 
+// Обработчик нажатия кнопки "В бой" на карточке подготовки к уровню
     if (btnStartMatch3) {
         btnStartMatch3.addEventListener('click', () => {
+            // Списываем или покупаем выбранные пре-бустеры перед началом раунда
             ['rainbow', 'combo', 'doublePlanes'].forEach(type => {
                 if (selectedPreBoosters[type]) {
                     window.GameState.useOrBuyPreBooster(type, 500);
                 }
             });
 
+            // Закрываем пре-экран и переключаемся на игровое поле
             if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
             if (window.showScreen) window.showScreen('screenMatch3');
 
-            hearts = 0; boxesBroken = 0; iceMelted = 0; donutsCollected = 0;
-            activeBooster = null; gloveSelectedTile = null;
+            // Полностью обнуляем все показатели раунда
+            hearts = 0; 
+            boxesBroken = 0; 
+            iceMelted = 0; 
+            donutsCollected = 0;
+            activeBooster = null; 
+            gloveSelectedTile = null;
             if (boardEl) boardEl.classList.remove('aiming');
             
+            // Обновляем HUD активных инструментов
             refreshActiveBoostersHUD();
 
+            // Запускаем и отрисовываем уровень
             moves = START_MOVES;
             buildInitialGrid();
             updateMatch3HUD();
         });
     }
 
+    // Экспортируем функцию открытия пре-экрана глобально для карты
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Движок полностью готов к игре!");
+    console.log("match3.js: Все модули игры успешно запущены в едином пространстве!");
 })();
