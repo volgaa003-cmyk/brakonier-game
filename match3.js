@@ -904,7 +904,21 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 7: ГРАВИТАЦИЯ, ПОРТАЛЫ И ДИАГОНАЛЬНОЕ ОГИБАНИЕ ПРЕПЯТСТВИЙ
     // ----------------------------------------------------------------------
-// Движок пошаговой гравитации: вертикальное падение фишек и диагональное огибание препятствий
+
+    // 1. Функция подсчета пончиков (Самостоятельная, на одном уровне со всеми)
+    function countActiveDonuts() {
+        let count = 0;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'donut') {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // 2. Движок пошаговой гравитации: вертикальное падение фишек и диагональное огибание препятствий
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
@@ -919,13 +933,13 @@
                         let sourceCol = c;
                         const cellKey = key(r, c);
 
-                        // 1. Проверяем связь ячейки с телепортационным порталом
+                        // Проверяем связь ячейки с телепортационным порталом
                         if (portals[cellKey]) {
                             const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
                             sourceRow = ep_r;
                             sourceCol = ep_c;
                         } else {
-                            // 2. Ищем заполненную фишку по вертикали выше
+                            // Ищем заполненную фишку по вертикали выше
                             for (let checkR = r - 1; checkR >= 0; checkR--) {
                                 if (levelLayout[checkR][c] === 0) break;
                                 if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
@@ -971,7 +985,7 @@
                 }
             }
             
-// Заполнение пустых мест фишками сверху (ИСПРАВЛЕНО: Добавлен спавн Пончиков сверху)
+            // Заполнение пустых мест фишками сверху (ИСПРАВЛЕНО: Добавлен спавн Пончиков сверху)
             for (let c = 0; c < SIZE; c++) {
                 for (let r = 0; r < SIZE; r++) {
                     const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
@@ -991,7 +1005,8 @@
         processThreatsAndJesters();
         resetHintTimer(); 
     }
-    // Сбор пончиков у самого низа игрового поля (аналог лимонадов из Homescapes)
+
+    // 3. Сбор пончиков у самого низа игрового поля (аналог лимонадов из Homescapes)
     function collectDoughnuts() {
         let collectedThisTurn = 0;
         for (let c = 0; c < SIZE; c++) {
@@ -1012,7 +1027,7 @@
         }
     }
 
-    // Обработка движения угроз: перемещение попугаев, рост плюща и мыльной пены
+    // 4. Обработка движения угроз: перемещение попугаев, рост плюща и мыльной пены
     function processThreatsAndJesters() {
         let spawnedFoam = false;
 
@@ -1059,7 +1074,7 @@
         }
     }
 
-// Обновление показателей интерфейса HUD во время уровня три в ряд
+    // Обновление показателей интерфейса HUD во время уровня три в ряд
     function updateMatch3HUD() {
         if (m3MovesText) m3MovesText.textContent = moves;
         if (!m3GoalText) return;
@@ -1082,7 +1097,8 @@
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
     }
-// Проверка условий победы или поражения (завершение раунда)
+
+    // Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
         let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
                         (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
