@@ -2170,7 +2170,9 @@
                             sourceCol = ep_c;
                         } else {
                             for (let checkR = r - 1; checkR >= 0; checkR--) {
-                                if (levelLayout[checkR][c] === 2) {
+                                if (levelLayout[checkR][c] === 0 || levelLayout[checkR][c] === 2) {
+                                    // Настоящая дыра (0) или зарезервированная клетка-ящик (2) —
+                                    // здесь колонка физически прерывается, дальше вверх фишки падать не могут.
                                     break; 
                                 }
                                 if (levelLayout[checkR][c] === 1) {
@@ -2191,7 +2193,7 @@
                             }
                         }
 
-                        // 2. Диагональный затек по бокам (если вертикальный путь заблокирован льдом/ящиком)
+                        // 2. Диагональный затек по бокам (если вертикальный путь заблокирован льдом/ящиком/дырой)
                         if (grid[r][c] === null && !portals[cellKey]) {
                             const sideDirections = [-1, 1]; 
                             if (Math.random() < 0.5) sideDirections.reverse(); 
@@ -2218,23 +2220,20 @@
                 }
             }
 
-            // Наполнение колонок из спавнеров
+            // Наполнение колонок из спавнеров — теперь пополняем верх КАЖДОГО отдельного
+            // сегмента столбца (а не только самую верхнюю строку всего столбца целиком),
+            // иначе куски поля ниже разрыва (layout===0) навсегда остаются пустыми "дырами".
             for (let c = 0; c < SIZE; c++) {
-                let topRow = -1;
                 for (let r = 0; r < SIZE; r++) {
-                    if (levelLayout[r][c] === 1) {
-                        topRow = r;
-                        break;
+                    const isSegmentTop = levelLayout[r][c] === 1 && (r === 0 || levelLayout[r - 1][c] !== 1);
+                    if (isSegmentTop && grid[r][c] === null) {
+                        let spawnType = randType();
+                        if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
+                            spawnType = "donut";
+                        }
+                        grid[r][c] = createTile(r, c, spawnType, r - 1);
+                        moved = true;
                     }
-                }
-                
-                if (topRow !== -1 && grid[topRow][c] === null) {
-                    let spawnType = randType();
-                    if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
-                        spawnType = "donut";
-                    }
-                    grid[topRow][c] = createTile(topRow, c, spawnType, topRow - 1);
-                    moved = true;
                 }
             }
         }
@@ -2379,6 +2378,126 @@ function pulseToast(msg) {
         if (!hasPossibleMoves()) {
             shuffleBoard();
         }
+    }
+
+    // ==================== ЦВЕТОВЫЕ ХЕЛПЕРЫ ДЛЯ РАДУГИ (ранее отсутствовали) ====================
+    function presentColors() {
+        const normalTypes = TYPES.map(t => t.id);
+        const colors = new Set();
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && normalTypes.includes(t.type)) {
+                    colors.add(t.type);
+                }
+            }
+        }
+        return Array.from(colors);
+    }
+
+    function cellsOfColor(type) {
+        const cells = new Set();
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && t.type === type) {
+                    cells.add(key(r, c));
+                }
+            }
+        }
+        return cells;
+    }
+
+    // ==================== АКТИВАЦИЯ ОДИНОЧНОГО СПЕЦ-БОНУСА ТАПОМ (ранее отсутствовала) ====================
+    function activateStandalone(tile) {
+        if (busy) return;
+        busy = true;
+        moves--;
+        updateMatch3HUD();
+
+        let cells;
+        if (tile.type === 'rainbow') {
+            const colors = presentColors();
+            const color = colors.length ? colors[Math.floor(Math.random() * colors.length)] : null;
+            cells = color ? cellsOfColor(color) : new Set();
+            cells.add(key(tile.row, tile.col));
+            pulseToast('🌈 Радуга уничтожает цвет!');
+        } else {
+            if (tile.type === 'bomb') animateBombEffect(tile.row, tile.col);
+            else if (tile.type === 'rocketRow') animateRocketEffect(tile.row, tile.col, true);
+            else if (tile.type === 'rocketCol') animateRocketEffect(tile.row, tile.col, false);
+            cells = computeActivationFootprint(tile);
+        }
+
+        clearAndContinue(cells, [], null, null, false, false, true);
+    }
+
+    // ==================== БУСТЕРЫ: МОЛОТОК И МЕТЛА (обработчиков не было вообще) ====================
+    const BOOSTER_COST = { hammer: 150, broom: 300 };
+
+    function setBoosterUI(type) {
+        if (btnHammer) btnHammer.classList.toggle('active', type === 'hammer');
+        if (btnBroom) btnBroom.classList.toggle('active', type === 'broom');
+        if (type) boardEl.classList.add('aiming');
+        else boardEl.classList.remove('aiming');
+    }
+
+    function toggleBoosterMode(type) {
+        if (busy) return;
+
+        // Повторный клик по уже выбранному бустеру — отмена режима
+        if (activeBooster === type) {
+            activeBooster = null;
+            setBoosterUI(null);
+            return;
+        }
+
+        const cost = BOOSTER_COST[type];
+        if (!window.GameState || window.GameState.getCash() < cost) {
+            pulseToast('Недостаточно денег на бустер!');
+            return;
+        }
+
+        activeBooster = type;
+        setBoosterUI(type);
+        pulseToast(type === 'hammer' ? '🔨 Выберите фишку для удара!' : '🧹 Выберите фишку — метла очистит весь ряд!');
+    }
+
+    if (btnHammer) {
+        btnHammer.addEventListener('click', () => toggleBoosterMode('hammer'));
+    }
+    if (btnBroom) {
+        btnBroom.addEventListener('click', () => toggleBoosterMode('broom'));
+    }
+
+    function executeBoosterAction(tile) {
+        const type = activeBooster;
+        const cost = BOOSTER_COST[type];
+
+        if (!window.GameState || !window.GameState.spendCash(cost)) {
+            pulseToast('Недостаточно денег на бустер!');
+            activeBooster = null;
+            setBoosterUI(null);
+            return;
+        }
+
+        activeBooster = null;
+        setBoosterUI(null);
+        busy = true;
+
+        let cells;
+        if (type === 'hammer') {
+            cells = new Set([key(tile.row, tile.col)]);
+            pulseToast('🔨 Фишка уничтожена!');
+        } else {
+            cells = new Set();
+            for (let c = 0; c < SIZE; c++) cells.add(key(tile.row, c));
+            animateRocketEffect(tile.row, tile.col, true);
+            pulseToast('🧹 Ряд очищен!');
+        }
+
+        // Бустеры не тратят ход игрока — только деньги
+        clearAndContinue(cells, [], null, null, false, false, true);
     }
 
     function openPreLevelScreen(levelId) {
