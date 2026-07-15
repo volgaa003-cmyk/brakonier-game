@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ — СИНХРОНИЗАЦИЯ ПОЛЕТОВ И ЛЬДА)
-// Движок "Три в ряд" с поддержкой мягкого таяния льда и авиа-контролем
+// match3.js (ФИНАЛЬНЫЙ — СИНХРОНИЗАЦИЯ ПОЛЕТОВ, ЛЬДА И БУСТЕРОВ)
+// Движок "Три в ряд" с поддержкой мягкого таяния льда, авиа-контроля и бустеров
 // ================================================
 
 (function() {
@@ -29,7 +29,7 @@
     let isMultiPhase = false;
     let currentPhaseIndex = 0;
 
-    // Состояние Ковров и Льда
+    // Состояние Ковров, Льда и Ящиков
     let targetType = "heart"; 
     let carpetGrid = [];      
     let iceGrid = [];         
@@ -37,8 +37,13 @@
     let grid = [];
     let selected = null;
     let hearts = 0, moves = 20;
+    let boxesBroken = 0;
+    let iceMelted = 0;
     let busy = false;
     let tileIdCounter = 0;
+
+    // Режим бустера
+    let activeBooster = null; // 'hammer' или 'broom'
 
     // Счетчик активных самолетов в воздухе
     let activePlanesCount = 0;
@@ -51,11 +56,13 @@
     const m3MovesText = document.getElementById('m3MovesText');
     const toastEl = document.getElementById('toast');
 
+    const btnHammer = document.getElementById('btnHammer');
+    const btnBroom = document.getElementById('btnBroom');
+
     const overlayResults = document.getElementById('overlayResults');
     const resultsTitle = document.getElementById('resultsTitle');
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
-    const preCard = document.getElementById('preLevelCard');
 
     window.addEventListener('mousemove', handleDragMove);
     window.addEventListener('touchmove', handleDragMove, {passive: false});
@@ -66,6 +73,32 @@
     const randType = () => TYPES[Math.floor(Math.random()*TYPES.length)].id;
     const key = (r,c) => r+','+c;
     const getType = (r,c) => grid[r] && grid[r][c] ? grid[r][c].type : null;
+
+    // Инициализация кнопок бустеров
+    if (btnHammer) btnHammer.addEventListener('click', () => selectBooster('hammer'));
+    if (btnBroom) btnBroom.addEventListener('click', () => selectBooster('broom'));
+
+    function selectBooster(type) {
+        if (busy) return;
+        const cost = type === 'hammer' ? 150 : 300;
+        if (window.GameState && window.GameState.getCash() < cost) {
+            pulseToast("Недостаточно рублей! 💰");
+            return;
+        }
+
+        if (activeBooster === type) {
+            activeBooster = null;
+            boardEl.classList.remove('aiming');
+            if (btnHammer) btnHammer.classList.remove('active');
+            if (btnBroom) btnBroom.classList.remove('active');
+        } else {
+            activeBooster = type;
+            boardEl.classList.add('aiming');
+            if (btnHammer) btnHammer.classList.toggle('active', type === 'hammer');
+            if (btnBroom) btnBroom.classList.toggle('active', type === 'broom');
+            pulseToast(type === 'hammer' ? "Молоток: выберите любую клетку" : "Метла: выберите центр перекрестка");
+        }
+    }
 
     function iconFor(type){
         switch(type){
@@ -97,7 +130,7 @@
     }
 
     function handleDragStart(e, tile) {
-        if (busy || tile.type === 'box' || tile.frozen) return;
+        if (busy || activeBooster || tile.type === 'box' || tile.frozen) return;
         dragActiveTile = tile;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -149,7 +182,7 @@
         inner.textContent = iconFor(type);
         el.appendChild(inner);
 
-        const isFrozen = iceGrid[row][col] === 1;
+        const isFrozen = iceGrid[row] && iceGrid[row][col] === 1;
 
         const tile = {id, type, row, col, el, inner, frozen: isFrozen};
 
@@ -245,7 +278,15 @@
     function onTileClick(e){
         if(busy) return;
         const tile = findTileById(e.currentTarget.dataset.id);
-        if(!tile || tile.type === 'box' || tile.frozen) return;
+        if(!tile) return;
+
+        // Если активирован бустер
+        if (activeBooster) {
+            executeBoosterAction(tile);
+            return;
+        }
+
+        if(tile.type === 'box' || tile.frozen) return;
 
         if(selected === null){
             if(isSpecial(tile.type)) { activateStandalone(tile); return; }
@@ -269,6 +310,75 @@
         const a = selected, b = tile;
         selected = null;
         performSwap(a,b);
+    }
+
+    // ВЫПОЛНЕНИЕ БУСТЕРОВ
+    function executeBoosterAction(tile) {
+        busy = true;
+        const r = tile.row;
+        const c = tile.col;
+        const booster = activeBooster;
+        const cost = booster === 'hammer' ? 150 : 300;
+
+        // Снимаем оплату
+        if (window.GameState) {
+            window.GameState.spendCash(cost);
+        }
+
+        // Отключаем прицел
+        activeBooster = null;
+        boardEl.classList.remove('aiming');
+        if (btnHammer) btnHammer.classList.remove('active');
+        if (btnBroom) btnBroom.classList.remove('active');
+
+        if (booster === 'hammer') {
+            pulseToast("🔨 Молоток задействован!");
+            if (tile.type === 'box') {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                if (targetType === "box") boxesBroken++;
+                setTimeout(() => {
+                    tile.el.remove();
+                    grid[r][c] = null;
+                    applyGravityAndRefill();
+                    setTimeout(checkEndAfterAction, FALL_MS + 40);
+                }, CLEAR_MS);
+            } else if (tile.frozen) {
+                tile.frozen = false;
+                iceGrid[r][c] = 0;
+                tile.el.classList.remove('frozen');
+                if (targetType === "ice") iceMelted++;
+                busy = false;
+                updateMatch3HUD();
+                checkEndConditions();
+            } else {
+                const clearSet = new Set([key(r, c)]);
+                clearAndContinue(clearSet, []);
+            }
+        } 
+        else if (booster === 'broom') {
+            pulseToast("🧹 Метла задействована!");
+            animateRocketEffect(r, c, true);
+            animateRocketEffect(r, c, false);
+
+            const clearSet = new Set();
+            for (let i = 0; i < SIZE; i++) {
+                clearSet.add(key(r, i));
+                clearSet.add(key(i, c));
+            }
+            clearAndContinue(clearSet, []);
+        }
+    }
+
+    function checkEndAfterAction() {
+        const result = analyzeMatches();
+        const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+        if (hasMore) {
+            applyResolutionFull(result);
+        } else {
+            busy = false;
+            checkEndConditions();
+        }
     }
 
     function swapInGrid(a,b){
@@ -575,7 +685,6 @@
         }, 850);
     }
 
-    // Светящиеся щупальца Радуги
     function animateRainbowTentacles(startRow, startCol, targets, colorId) {
         let laserBg = "linear-gradient(90deg, #ffffff, #fff)";
         let glowColor = "rgba(255,255,255,0.8)";
@@ -884,7 +993,6 @@
                 animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                     const finalCell = new Set([key(targetRow, targetCol)]);
                     clearAndContinue(finalCell, [], null, () => {
-                        // Полет завершен, мгновенно снижаем счетчик без задержек!
                         activePlanesCount--;
                         if (activePlanesCount === 0) {
                             busy = false;
@@ -954,8 +1062,12 @@
             const boxTile = grid[br][bc];
             if (boxTile) {
                 levelLayout[br][bc] = 1;
-
                 boxTile.el.classList.add('clearing');
+                
+                if (targetType === "box") {
+                    boxesBroken++;
+                }
+
                 setTimeout(() => {
                     if (grid[br][bc] === boxTile) {
                         boxTile.el.remove();
@@ -977,25 +1089,55 @@
             if(t.type==='heart') heartsGained++;
         });
 
+        const finalClearSet = new Set();
+
+        // Логика раскалывания льда и уничтожения ящиков при прямом попадании
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
-            if (t && t.type === 'box') {
-                levelLayout[r][c] = 1; 
+            if (t) {
+                if (t.frozen) {
+                    // Растопить лед, но сохранить фишку
+                    t.frozen = false;
+                    iceGrid[r][c] = 0;
+                    t.el.classList.remove('frozen');
+                    if (targetType === "ice") {
+                        iceMelted++;
+                    }
+                } else if (t.type === 'box') {
+                    // Уничтожить ящик
+                    levelLayout[r][c] = 1; 
+                    t.el.classList.add('clearing');
+                    if (targetType === "box") {
+                        boxesBroken++;
+                    }
+                    setTimeout(() => {
+                        if (grid[r][c] === t) {
+                            t.el.remove();
+                            grid[r][c] = null;
+                        }
+                    }, CLEAR_MS);
+                } else {
+                    finalClearSet.add(k);
+                }
             }
         });
 
-        checkAndBreakBoxes(clearSet);
+        // Поломать соседние ящики
+        checkAndBreakBoxes(finalClearSet);
 
-        clearSet.forEach(k=>{
+        finalClearSet.forEach(k=>{
             const [r,c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
             if(t) t.el.classList.add('clearing');
         });
-        hearts += heartsGained;
+
+        if (targetType === "heart") {
+            hearts += heartsGained;
+        }
         
         let hasCarpetInMatch = false;
-        clearSet.forEach(k => {
+        finalClearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             if (carpetGrid[r] && carpetGrid[r][c]) {
                 hasCarpetInMatch = true;
@@ -1003,7 +1145,7 @@
         });
 
         if (hasCarpetInMatch) {
-            clearSet.forEach(k => {
+            finalClearSet.forEach(k => {
                 const [r, c] = k.split(',').map(Number);
                 if (levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
                     carpetGrid[r][c] = true;
@@ -1015,22 +1157,14 @@
             });
         }
 
-        if (targetType === "carpet") {
-            let currentCarpetCount = 0;
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (carpetGrid[r][c]) currentCarpetCount++;
-                }
-            }
-            if (m3GoalText) m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
-        } else {
-            if (m3GoalText) m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        updateMatch3HUD();
+        
+        if(heartsGained > 0 && targetType === "heart") {
+            pulseToast('+' + heartsGained + ' ❤️');
         }
         
-        if(heartsGained>0) pulseToast('+'+heartsGained+' ❤️');
-        
         setTimeout(()=>{
-            clearSet.forEach(k=>{
+            finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r] && grid[r][c];
                 if(t){ t.el.remove(); grid[r][c]=null; }
@@ -1210,6 +1344,8 @@
             GOAL_HEARTS = phaseData.heartsGoal;
             levelLayout = JSON.parse(JSON.stringify(phaseData.layout));
             hearts = 0; 
+            boxesBroken = 0;
+            iceMelted = 0;
 
             targetType = phaseData.targetType || "heart";
             
@@ -1223,22 +1359,11 @@
             if (phaseData.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(phaseData.carpetLayout));
             if (phaseData.iceLayout) iceGrid = JSON.parse(JSON.stringify(phaseData.iceLayout));
 
-            if (targetType === "carpet") {
-                let currentCarpetCount = 0;
-                for (let r = 0; r < SIZE; r++) {
-                    for (let c = 0; c < SIZE; c++) {
-                        if (carpetGrid[r][c]) currentCarpetCount++;
-                    }
-                }
-                m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
-            } else {
-                m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
-            }
-
             boardEl.classList.remove('scroll-out');
             boardEl.classList.add('scroll-in');
 
             buildInitialGrid();
+            updateMatch3HUD();
 
             setTimeout(() => {
                 boardEl.classList.remove('scroll-in');
@@ -1251,8 +1376,6 @@
             }, 50);
         }, 250);
     }
-
-    // ======================================================================================
 
     function getRewards(diff) {
         let starsGained = 1;
@@ -1277,6 +1400,23 @@
 
     function updateMatch3HUD() {
         if (m3MovesText) m3MovesText.textContent = moves;
+        if (!m3GoalText) return;
+
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+        } else if (targetType === "box") {
+            m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
+        } else if (targetType === "ice") {
+            m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
+        } else {
+            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        }
     }
 
     function openPreLevelScreen(levelId) {
@@ -1288,7 +1428,6 @@
 
         currentLevelId = levelId;
         levelDifficulty = levelData.difficulty;
-
         targetType = levelData.targetType || "heart";
         
         carpetGrid = [];
@@ -1321,6 +1460,30 @@
             levelLayout = JSON.parse(JSON.stringify(levelData.layout));
         }
 
+        // Динамический перерасчет целей в зависимости от типа
+        let initialBoxes = 0;
+        let initialIce = 0;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (levelLayout[r][c] === 2) initialBoxes++;
+                if (iceGrid[r] && iceGrid[r][c] === 1) initialIce++;
+            }
+        }
+
+        if (targetType === "box") {
+            GOAL_HEARTS = initialBoxes;
+        } else if (targetType === "ice") {
+            GOAL_HEARTS = initialIce;
+        } else if (targetType === "carpet") {
+            let carpetCellsCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] !== 0) carpetCellsCount++;
+                }
+            }
+            GOAL_HEARTS = carpetCellsCount;
+        }
+
         START_MOVES = levelData.moves;
 
         const preCard = document.getElementById('preLevelCard');
@@ -1342,10 +1505,14 @@
         const title = document.getElementById('preLevelTitle');
         if (title) title.textContent = `Уровень ${currentLevelId}`;
 
-        const goalVal = document.getElementById('preGoalVal');
+        const goalVal = document.getElementById('preLevelGoalVal');
         if (goalVal) {
             if (targetType === "carpet") {
                 goalVal.textContent = `${GOAL_HEARTS} 🌿 Зеленых Ковров`;
+            } else if (targetType === "box") {
+                goalVal.textContent = `${GOAL_HEARTS} 📦 Деревянных Ящиков`;
+            } else if (targetType === "ice") {
+                goalVal.textContent = `${GOAL_HEARTS} 🧊 Клеток со Льдом`;
             } else {
                 goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
             }
@@ -1379,22 +1546,17 @@
             }
 
             hearts = 0;
-            moves = START_MOVES;
-            updateMatch3HUD();
-            
-            if (targetType === "carpet") {
-                let currentCarpetCount = 0;
-                for (let r = 0; r < SIZE; r++) {
-                    for (let c = 0; c < SIZE; c++) {
-                        if (carpetGrid[r][c]) currentCarpetCount++;
-                    }
-                }
-                if (m3GoalText) m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
-            } else {
-                if (m3GoalText) m3GoalText.textContent = `0/${GOAL_HEARTS} ❤️`;
-            }
+            boxesBroken = 0;
+            iceMelted = 0;
+            activeBooster = null;
+            boardEl.classList.remove('aiming');
+            if (btnHammer) btnHammer.classList.remove('active');
+            if (btnBroom) btnBroom.classList.remove('active');
 
+            moves = START_MOVES;
+            
             buildInitialGrid();
+            updateMatch3HUD();
 
             if (!hasPossibleMoves()) {
                 shuffleBoard();
@@ -1422,6 +1584,10 @@
                 }
             }
             isVictory = currentCarpetCount >= GOAL_HEARTS;
+        } else if (targetType === "box") {
+            isVictory = boxesBroken >= GOAL_HEARTS;
+        } else if (targetType === "ice") {
+            isVictory = iceMelted >= GOAL_HEARTS;
         } else {
             isVictory = hearts >= GOAL_HEARTS;
         }
@@ -1497,7 +1663,12 @@
         btnResultsClose.addEventListener('click', () => {
             if (overlayResults) overlayResults.classList.add('hidden');
             
-            if (hearts >= GOAL_HEARTS || (targetType === "carpet" && document.querySelectorAll('.grid-cell.carpet').length >= GOAL_HEARTS)) {
+            const isCompleted = hearts >= GOAL_HEARTS || 
+                                (targetType === "carpet" && document.querySelectorAll('.grid-cell.carpet').length >= GOAL_HEARTS) ||
+                                (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
+                                (targetType === "ice" && iceMelted >= GOAL_HEARTS);
+
+            if (isCompleted) {
                 if (window.GameState) {
                     window.GameState.nextLevel(); 
                 }
@@ -1510,5 +1681,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Все асинхронные авиа-полеты и комбо-эффекты синхронизированы!");
+    console.log("match3.js: Все асинхронные авиа-полеты, комбо-эффекты и бустеры синхронизированы!");
 })();
