@@ -639,7 +639,7 @@
         dragActiveTile = null;
     }
 
-    // Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
+    /// Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
     function createTile(row, col, type, spawnRow){
         const id = 'tile'+(tileIdCounter++);
         const el = document.createElement('div');
@@ -689,7 +689,8 @@
         if(spawnRow !== undefined && spawnRow !== row){
             setTimeout(() => {
                 el.style.transition = '';
-                setTilePos(el, row, col);
+                // ИСПРАВЛЕНО: Используем динамические tile.row и tile.col вместо статических row и col!
+                setTilePos(el, tile.row, tile.col); 
             }, 16); 
         }
         
