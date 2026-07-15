@@ -755,55 +755,122 @@
             }
         }
     }
-    // Алгоритм поиска наилучшей цели для Бумажного самолетика (Homescapes AI)
+// Интеллектуальный алгоритм поиска наилучшей цели для Бумажного самолетика (Homescapes Goal AI)
     function findBestTargetForPlane(excludeRow, excludeCol) {
         let targetRow = excludeRow, targetCol = excludeCol;
         let foundTarget = false;
 
-        // Приоритет 1: Ищем коробки на поле (первоочередная преграда)
+        // Вспомогательная функция проверки валидности ячейки для удара
+        const isValidTarget = (r, c) => {
+            if (r === excludeRow && c === excludeCol) return false;
+            const t = grid[r] && grid[r][c];
+            if (!t) return false;
+            if (t.type === 'donut') return false; // Запрещаем бить по самим пончикам, их нужно только ронять
+            return true;
+        };
+
+        // ==========================================================================
+        // ЭТАП 1: УМНОЕ НАВЕДЕНИЕ НА КЛЮЧЕВУЮ ЦЕЛЬ УРОВНЯ
+        // ==========================================================================
+        
+        // А. Если цель раунда — Лёд 🧊: ищем замороженные ячейки
+        if (targetType === "ice") {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (isValidTarget(r, c) && grid[r][c].frozen) {
+                        return { r, c };
+                    }
+                }
+            }
+        }
+
+        // Б. Если цель раунда — Коробки 📦: ищем коробки
+        if (targetType === "box") {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (isValidTarget(r, c) && grid[r][c].type === 'box') {
+                        return { r, c };
+                    }
+                }
+            }
+        }
+
+        // В. Если цель раунда — Пончики 🍩: ищем фишки строго ПОД пончиками, чтобы они покатились вниз!
+        if (targetType === "donut") {
+            for (let r = 0; r < SIZE - 1; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const t = grid[r][c];
+                    if (t && t.type === 'donut') {
+                        // Ищем ближайшую преграждающую фишку на вертикали строго под пончиком
+                        for (let checkR = r + 1; checkR < SIZE; checkR++) {
+                            if (isValidTarget(checkR, c)) {
+                                return { r: checkR, c };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Г. Если цель раунда — Ковры 🌿: ищем ячейки без коврового покрытия
+        if (targetType === "carpet") {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (isValidTarget(r, c) && levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
+                        return { r, c };
+                    }
+                }
+            }
+        }
+
+        // Д. Если цель — обычные Сердца: ищем фишки этого типа
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
-                if (grid[r][c] && grid[r][c].type === 'box') {
-                    targetRow = r; targetCol = c;
-                    foundTarget = true;
-                    break;
+                if (isValidTarget(r, c) && grid[r][c].type === targetType) {
+                    return { r, c };
                 }
-            }
-            if (foundTarget) break;
-        }
-
-        // Приоритет 2: Ищем целевые сердца (основная цель сбора уровня)
-        if (!foundTarget) {
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type === 'heart') {
-                        targetRow = r; targetCol = c;
-                        foundTarget = true;
-                        break;
-                    }
-                }
-                if (foundTarget) break;
             }
         }
 
-        // Приоритет 3: Если коробок и сердец нет, выбираем любую случайную фишку на поле
-        if (!foundTarget) {
-            const candidates = [];
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
-                        candidates.push([r, c]);
-                    }
+        // ==========================================================================
+        // ЭТАП 2: ФОЛБЕК НА ОБЩИЕ ПРЕПЯТСТВИЯ (если цели уже убраны)
+        // ==========================================================================
+        
+        // Проверяем оставшиеся ящики
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (isValidTarget(r, c) && grid[r][c].type === 'box') {
+                    return { r, c };
                 }
             }
-            if (candidates.length) {
-                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
-                targetRow = rnd[0]; targetCol = rnd[1];
-                foundTarget = true;
+        }
+        
+        // Проверяем оставшийся лед или цепи
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (isValidTarget(r, c) && (grid[r][c].frozen || grid[r][c].chained)) {
+                    return { r, c };
+                }
             }
         }
 
-        return foundTarget ? { r: targetRow, c: targetCol } : null;
+        // ==========================================================================
+        // ЭТАП 3: СЛУЧАЙНАЯ ФИШКА (если поле уже полностью зачищено)
+        // ==========================================================================
+        const candidates = [];
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (isValidTarget(r, c)) {
+                    candidates.push([r, c]);
+                }
+            }
+        }
+        if (candidates.length) {
+            const rnd = candidates[Math.floor(Math.random() * candidates.length)];
+            return { r: rnd[0], c: rnd[1] };
+        }
+
+        return null;
     }
     // Алгоритм авто-взлома соседних коробок при матчах или взрывах бонусов рядом с ними
     function checkAndBreakBoxes(clearSet, isExplosion) {
