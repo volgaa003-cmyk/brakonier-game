@@ -103,7 +103,7 @@
     </footer>
   </main>
 
-  <!-- ==================== ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ) ==================== -->
+<!-- ==================== ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ) ==================== -->
   <main id="screenMatch3" class="game-screen hidden">
     <div class="match3-header">
       <div class="goal-box">
@@ -121,10 +121,13 @@
       <div id="board"></div>
     </div>
 
-    <!-- Интерактивная панель бустеров -->
+    <!-- Обновленная интерактивная панель активных бустеров (5 штук) -->
     <div class="booster-panel">
-      <button class="booster-btn" id="btnHammer">🔨 Молоток <span class="cost">(150₽)</span></button>
-      <button class="booster-btn" id="btnBroom">🧹 Метла <span class="cost">(300₽)</span></button>
+      <button class="booster-btn" id="btnHammer">🔨 <span class="b-count" id="countHammer">3</span><span class="cost">(150₽)</span></button>
+      <button class="booster-btn" id="btnGlove">🖐 <span class="b-count" id="countGlove">3</span><span class="cost">(200₽)</span></button>
+      <button class="booster-btn" id="btnBroom">🧹 <span class="b-count" id="countBroom">3</span><span class="cost">(300₽)</span></button>
+      <button class="booster-btn" id="btnWeight">🥌 <span class="b-count" id="countWeight">3</span><span class="cost">(300₽)</span></button>
+      <button class="booster-btn" id="btnFan">🌪️ <span class="b-count" id="countFan">3</span><span class="cost">(100₽)</span></button>
     </div>
 
     <div class="match3-footer">Свапни два бонуса — получи комбо!</div>
@@ -180,6 +183,25 @@
       <div class="pre-level-goal">
         <div class="goal-label">Задача вылазки:</div>
         <div class="goal-value" id="preLevelGoalVal">12 ❤️ Вампирских Сердец</div>
+      </div>
+
+      <!-- Блок выбора стартовых бустеров (Homescapes Style) -->
+      <div class="pre-boosters-selection">
+        <div class="pre-booster-title">Выберите стартовые бонусы:</div>
+        <div class="pre-boosters-row">
+          <button class="pre-booster-btn" id="preBtnRainbow" data-type="rainbow">
+            <span class="b-icon">🪩</span>
+            <span class="b-tag" id="labelRainbow">0</span>
+          </button>
+          <button class="pre-booster-btn" id="preBtnCombo" data-type="combo">
+            <span class="b-icon">🚀</span>
+            <span class="b-tag" id="labelCombo">0</span>
+          </button>
+          <button class="pre-booster-btn" id="preBtnDoublePlanes" data-type="doublePlanes">
+            <span class="b-icon">✈️</span>
+            <span class="b-tag" id="labelDoublePlanes">0</span>
+          </button>
+        </div>
       </div>
 
       <div class="pre-level-rewards">
