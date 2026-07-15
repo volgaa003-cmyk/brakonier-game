@@ -1040,7 +1040,7 @@
         }
     }
 
-    // Обновление показателей интерфейса HUD во время уровня три в ряд
+// Обновление показателей интерфейса HUD во время уровня три в ряд
     function updateMatch3HUD() {
         if (m3MovesText) m3MovesText.textContent = moves;
         if (!m3GoalText) return;
@@ -1057,15 +1057,17 @@
             m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
         } else if (targetType === "ice") {
             m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
+        } else if (targetType === "donut") {
+            m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`; // ИСПРАВЛЕНО: Отображаем прогресс сбора пончиков
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
     }
-
-    // Проверка условий победы или поражения (завершение раунда)
+// Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
         let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
                         (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
+                        (targetType === "donut" && donutsCollected >= GOAL_HEARTS) || // ИСПРАВЛЕНО: Условие победы при сборе всех пончиков
                         (targetType === "heart" && hearts >= GOAL_HEARTS);
 
         if(isVictory){
