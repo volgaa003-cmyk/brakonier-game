@@ -1,13 +1,13 @@
 // ================================================
 // state.js (ОБНОВЛЕННЫЙ)
-// Модуль управления сохранениями, ресурсами и задачами
+// Модуль управления сохранениями, ресурсами, задачами и бустерами
 // ================================================
 
 (function() {
     const DEFAULT_STATE = {
         lives: 5,               
-        stars: 1,               // Даем 1 звезду на старт, чтобы можно было сразу купить Пролог!
-        cash: 250,              
+        stars: 1,               
+        cash: 1000, // Даем больше монет для тестов бустеров             
         reputation: 10,         
         currentLevel: 1,        
         decor: {
@@ -18,7 +18,21 @@
             cabinet: "Сломанный комод",
             windows: "Забиты фанерой"
         },
-        completedTasks: []      // Список ID купленных сюжетных глав и выполненных задач
+        completedTasks: [],
+        // Склад пре-гейм бустеров
+        boostersPre: {
+            rainbow: 2,
+            combo: 2,
+            doublePlanes: 2
+        },
+        // Склад активных бустеров
+        boostersActive: {
+            hammer: 3,
+            glove: 3,
+            broom: 3,
+            weight: 3,
+            fan: 3
+        }
     };
 
     let state = {};
@@ -36,10 +50,9 @@
         if (savedData) {
             try {
                 state = JSON.parse(savedData);
-                // Защита: если у старого игрока нет этого поля, создаем его
-                if (!state.completedTasks) {
-                    state.completedTasks = [];
-                }
+                if (!state.completedTasks) state.completedTasks = [];
+                if (!state.boostersPre) state.boostersPre = { rainbow: 2, combo: 2, doublePlanes: 2 };
+                if (!state.boostersActive) state.boostersActive = { hammer: 3, glove: 3, broom: 3, weight: 3, fan: 3 };
             } catch (e) {
                 state = JSON.parse(JSON.stringify(DEFAULT_STATE));
             }
@@ -87,7 +100,9 @@
         getCurrentLevel: () => state.currentLevel,
         getDecor: (item) => state.decor[item],
         
-        // Проверка: куплена ли задача/глава
+        getPreBoosterCount: (type) => state.boostersPre[type] || 0,
+        getActiveBoosterCount: (type) => state.boostersActive[type] || 0,
+
         isTaskCompleted: (taskId) => state.completedTasks.includes(taskId),
 
         addStars: (amount) => {
@@ -155,12 +170,51 @@
             }
         },
 
-        // Помечаем сюжет или ремонт как выполненный/купленный
         completeTask: (taskId) => {
             if (!state.completedTasks.includes(taskId)) {
                 state.completedTasks.push(taskId);
                 saveGame();
             }
+        },
+
+        // Использование или покупка бустеров перед началом уровня
+        useOrBuyPreBooster: (type, cost) => {
+            if (state.boostersPre[type] > 0) {
+                state.boostersPre[type]--;
+                saveGame();
+                return true;
+            } else if (state.cash >= cost) {
+                state.cash -= cost;
+                updateHUD();
+                saveGame();
+                return true;
+            }
+            return false;
+        },
+
+        // Использование или покупка активных бустеров
+        useOrBuyActiveBooster: (type, cost) => {
+            if (state.boostersActive[type] > 0) {
+                state.boostersActive[type]--;
+                saveGame();
+                return true;
+            } else if (state.cash >= cost) {
+                state.cash -= cost;
+                updateHUD();
+                saveGame();
+                return true;
+            }
+            return false;
+        },
+
+        addPreBooster: (type, amount) => {
+            state.boostersPre[type] = (state.boostersPre[type] || 0) + amount;
+            saveGame();
+        },
+
+        addActiveBooster: (type, amount) => {
+            state.boostersActive[type] = (state.boostersActive[type] || 0) + amount;
+            saveGame();
         },
 
         resetAll: () => {
@@ -175,6 +229,6 @@
 
     document.addEventListener("DOMContentLoaded", () => {
         loadGame();
-        console.log("state.js: Сохранения обновлены!");
+        console.log("state.js: Хранилище бустеров инициализировано!");
     });
 })();
