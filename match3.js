@@ -2243,7 +2243,13 @@
         processThreatsAndJesters();
         resetHintTimer(); 
     }
-
+function pulseToast(msg) {
+        if (toastEl) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(pulseToast._t);
+            pulseToast._t = setTimeout(() => toastEl.classList.remove('show'), 1200);
+        }
     function hasPossibleMoves() {
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
