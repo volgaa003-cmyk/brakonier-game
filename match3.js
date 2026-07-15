@@ -1,5 +1,5 @@
 // ================================================
-// match3.js — ЧАСТЬ 1: ИНИЦИАЛИЗАЦИЯ И ХЕЛПЕРЫ
+// match3.js (ПОЛНАЯ, АБСОЛЮТНО РАБОЧАЯ СБОРКА)
 // ================================================
 
 (function() {
@@ -70,7 +70,9 @@
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
 
-    // Экран результатов
+    // ==========================================================================
+    // СИСТЕМНЫЕ ФУНКЦИИ И ХЕЛПЕРЫ (Безопасное объявление)
+    // ==========================================================================
     let pendingResultIsWin = null;
 
     const showOverlay = function(title, text, isWin) {
@@ -91,6 +93,16 @@
             if (window.showScreen) window.showScreen('screenMap');
         });
     }
+
+    const getRewards = function(diff) {
+        let starsGained = 1;
+        let baseCoins = 100;
+        if (diff === "medium") baseCoins = 150;
+        else if (diff === "hard") baseCoins = 250;
+        else if (diff === "extreme") baseCoins = 400;
+        else if (diff === "challenge") { starsGained = 3; baseCoins = 300; }
+        return { stars: starsGained, coins: baseCoins + moves * 10, base: baseCoins, bonus: moves * 10 };
+    };
 
     // Внедрение Homescapes-стилей
     (function injectStyles() {
@@ -120,7 +132,12 @@
         document.head.appendChild(style);
     })();
 
-    // Базовые хелперы
+    // Хелперы вычислений
+    const isSpecial = t => SPECIALS.includes(t);
+    const randType = () => TYPES[Math.floor(Math.random()*TYPES.length)].id;
+    const key = (r,c) => r+','+c;
+    const getType = (r,c) => grid[r] && grid[r][c] ? grid[r][c].type : null;
+
     function triggerBoardShake(intensityClass = 'shake-mild') {
         if (!boardEl) return;
         boardEl.classList.remove('shake-mild', 'shake-intense');
@@ -201,7 +218,337 @@
         return null;
     }
 
-    // Синхронизация препятствий
+    function resetHintTimer() {
+        clearTimeout(hintTimeout);
+        removeCurrentHints();
+        hintTimeout = setTimeout(highlightPossibleMove, 4500); 
+    }
+
+    function removeCurrentHints() {
+        document.querySelectorAll('.match-hint').forEach(el => el.classList.remove('match-hint'));
+    }
+
+    function highlightPossibleMove() {
+        if (busy || activeBooster) return;
+        const move = findValidSwapMove();
+        if (move) {
+            move.a.el.classList.add('match-hint');
+            move.b.el.classList.add('match-hint');
+        }
+    }
+
+    function findValidSwapMove() {
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE - 1; c++) {
+                const a = grid[r][c];
+                const b = grid[r][c+1];
+                if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
+                    swapInGrid(a, b);
+                    const hasMatch = collectRuns().length > 0;
+                    swapInGrid(a, b); 
+                    if (hasMatch) return { a, b };
+                }
+            }
+        }
+        return null;
+    }
+
+    function handleDragStart(e, tile) {
+        if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
+        dragActiveTile = tile;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragStartX = clientX;
+        dragStartY = clientY;
+        resetHintTimer();
+    }
+
+    function handleDragMove(e) {
+        if (!dragActiveTile || busy) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const dx = clientX - dragStartX;
+        const dy = clientY - dragStartY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 30) { 
+            let targetRow = dragActiveTile.row;
+            let targetCol = dragActiveTile.col;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0) targetCol++; else targetCol--;
+            } else {
+                if (dy > 0) targetRow++; else targetRow--;
+            }
+
+            if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
+                const partner = grid[targetRow][targetCol];
+                if (partner && partner.type !== 'box' && !partner.frozen && !partner.chained) {
+                    dragActiveTile.el.classList.remove('selected');
+                    selected = null;
+                    performSwap(dragActiveTile, partner);
+                }
+            }
+            dragActiveTile = null; 
+        }
+    }
+
+    function handleDragEnd() { dragActiveTile = null; }
+
+    function createTile(row, col, type, spawnRow){
+        const id = 'tile'+(tileIdCounter++);
+        const el = document.createElement('div');
+        el.className = 'tile';
+        el.dataset.id = id;
+        
+        const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 0;
+        const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
+        const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
+
+        const inner = document.createElement('div');
+        inner.className = 'tile-inner';
+        inner.textContent = iconFor(type, initBoxLayers);
+        el.appendChild(inner);
+
+        const tile = {
+            id, 
+            type, 
+            row, 
+            col, 
+            el, 
+            inner, 
+            frozen: initFrozenLayers > 0, 
+            frozenLayers: initFrozenLayers,
+            chained: initChainedLayers > 0,
+            chainedLayers: initChainedLayers,
+            boxLayers: initBoxLayers
+        };
+
+        el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
+        el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
+        el.addEventListener('click', onTileClick);
+
+        if(spawnRow !== undefined && spawnRow !== row){
+            el.style.transition = 'none';
+            setTilePos(el, spawnRow, col);
+        } else {
+            setTilePos(el, row, col);
+        }
+
+        if (boardEl) boardEl.appendChild(el);
+
+        if(spawnRow !== undefined && spawnRow !== row){
+            setTimeout(() => {
+                el.style.transition = '';
+                setTilePos(el, row, col);
+            }, 16); 
+        }
+        
+        applySpecialClass(tile);
+        return tile;
+    }
+
+    function moveTileTo(tile, row, col){
+        tile.row = row; tile.col = col;
+        setTilePos(tile.el, row, col);
+    }
+
+    function findBestTargetForPlane(excludeRow, excludeCol) {
+        let targetRow = excludeRow, targetCol = excludeCol;
+        let foundTarget = false;
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'box') {
+                    targetRow = r; targetCol = c;
+                    foundTarget = true;
+                    break;
+                }
+            }
+            if (foundTarget) break;
+        }
+
+        if (!foundTarget) {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type === 'heart') {
+                        targetRow = r; targetCol = c;
+                        foundTarget = true;
+                        break;
+                    }
+                }
+                if (foundTarget) break;
+            }
+        }
+
+        if (!foundTarget) {
+            const candidates = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
+                        candidates.push([r, c]);
+                    }
+                }
+            }
+            if (candidates.length) {
+                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
+                targetRow = rnd[0]; targetCol = rnd[1];
+                foundTarget = true;
+            }
+        }
+
+        return foundTarget ? { r: targetRow, c: targetCol } : null;
+    }
+
+    function checkAndBreakBoxes(clearSet, isExplosion) {
+        const boxesToBreak = new Set();
+
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const neighbors = [
+                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+            ];
+
+            neighbors.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                    const tile = grid[nr][nc];
+                    if (tile && tile.type === 'box') {
+                        boxesToBreak.add(key(nr, nc));
+                    }
+                }
+            });
+        });
+
+        boxesToBreak.forEach(k => {
+            const [br, bc] = k.split(',').map(Number);
+            const boxTile = grid[br][bc];
+            if (boxTile) {
+                damageObstacle(boxTile, br, bc, isExplosion);
+            }
+        });
+        return boxesToBreak;
+    }
+
+    function damageObstacle(tile, r, c, isExplosion) {
+        const damage = isExplosion ? 2 : 1; 
+        
+        if (tile.type === 'box') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('box', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                if (targetType === "box") boxesBroken++;
+                setTimeout(() => {
+                    if (grid[r][c] === tile) {
+                        tile.el.remove();
+                        grid[r][c] = null;
+                    }
+                }, CLEAR_MS);
+            }
+        }
+        
+        if (tile.frozen) {
+            tile.frozenLayers -= damage;
+            if (tile.frozenLayers > 0) {
+                applySpecialClass(tile);
+            } else {
+                tile.frozen = false;
+                tile.frozenLayers = 0;
+                iceGrid[r][c] = 0;
+                applySpecialClass(tile);
+                if (targetType === "ice") iceMelted++;
+            }
+        }
+
+        if (tile.chained) {
+            tile.chainedLayers -= damage;
+            if (tile.chainedLayers > 0) {
+                applySpecialClass(tile);
+            } else {
+                tile.chained = false;
+                tile.chainedLayers = 0;
+                chainGrid[r][c] = 0;
+                applySpecialClass(tile);
+                pulseToast("🔗 Цепь полностью снята!");
+            }
+        }
+    }
+
+    function spreadCarpetAt(r, c) {
+        if (levelLayout[r] && levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
+            carpetGrid[r][c] = true;
+            const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
+            if (cellEl) cellEl.classList.add('carpet');
+        }
+    }
+
+    function countActiveDonuts() {
+        let count = 0;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'donut') count++;
+            }
+        }
+        return count;
+    }
+
+    function collectDoughnuts() {
+        let collectedThisTurn = 0;
+        for (let c = 0; c < SIZE; c++) {
+            const t = grid[SIZE - 1][c];
+            if (t && t.type === 'donut') {
+                t.el.classList.add('clearing');
+                grid[SIZE - 1][c] = null;
+                donutsCollected++;
+                collectedThisTurn++;
+                setTimeout(((tileToKill) => () => tileToKill.el.remove())(t), CLEAR_MS);
+            }
+        }
+        if (collectedThisTurn > 0) {
+            updateMatch3HUD();
+            pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
+            applyGravityAndRefill();
+        }
+    }
+
+    function processThreatsAndJesters() {
+        let spawnedFoam = false;
+
+        for (let r = 1; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && t.type === 'parrot' && levelLayout[r-1][c] === 1 && grid[r-1][c] === null) {
+                    grid[r-1][c] = t;
+                    grid[r][c] = null;
+                    moveTileTo(t, r - 1, c);
+                }
+            }
+        }
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && (t.type === 'foam' || t.type === 'ivy') && !spawnedFoam) {
+                    const neighbors = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+                    for (const [nr, nc] of neighbors) {
+                        if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && levelLayout[nr][nc] === 1 && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
+                            const victim = grid[nr][nc];
+                            victim.el.remove();
+                            grid[nr][nc] = createTile(nr, nc, t.type, nr);
+                            spawnedFoam = true;
+                            pulseToast(t.type === 'foam' ? "🧼 Мыло затекает!" : "🌿 Плющ наступает!");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     function synchronizeObstaclesAndGoals() {
         let playableCells = [];
         let currentBoxes = 0;
@@ -241,9 +588,6 @@
         }
         doublePlanesActive = selectedPreBoosters.doublePlanes;
     }
-    // ================================================
-// match3.js — ЧАСТЬ 2: ДВИЖОК ГРАВИТАЦИИ И МАТЧИНГА
-// ================================================
 
     function buildInitialGrid(){
         if (!boardEl) return;
@@ -528,7 +872,6 @@
         return {bombs, rockets, rainbows, squares, normalCells};
     }
 
-    // Очистка клеток и продолжение комбо
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -566,7 +909,7 @@
         updateMatch3HUD();
         
         setTimeout(()=>{
-            // Исправленная критическая очистка фишек во встроенной памяти
+            // Очистка фишек во встроенной памяти
             finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r][c]; 
@@ -624,9 +967,6 @@
         footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
         return cells;
     }
-    // ================================================
-// match3.js — ЧАСТЬ 3: ИНСТРУМЕНТЫ, БУСТЕРЫ И УПРАВЛЕНИЕ
-// ================================================
 
     // Логика активных внутриигровых бустеров
     const ACTIVE_BOOSTER_COSTS = { hammer: 150, glove: 200, broom: 300, weight: 300, fan: 100 };
@@ -993,5 +1333,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Сборка полностью завершена.");
+    console.log("match3.js: Все модули игры успешно запущены в едином пространстве!");
 })();
