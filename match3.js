@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ИСПРАВЛЕННЫЙ — БЕЗ ЗАВИСАНИЙ)
-// Движок "Три в ряд" с гарантированным вызовом анимаций полета
+// match3.js (ФИНАЛЬНЫЙ — С ПОДДЕРЖКОЙ ВСЕХ МЕХАНИК)
+// Движок "Три в ряд" с цепями, порталами и пончиками
 // ================================================
 
 (function() {
@@ -29,23 +29,24 @@
     let isMultiPhase = false;
     let currentPhaseIndex = 0;
 
-    // Состояние Ковров, Льда и Ящиков
+    // Состояние игровых слоев
     let targetType = "heart"; 
     let carpetGrid = [];      
     let iceGrid = [];         
+    let chainGrid = [];
+    let portals = {};
 
     let grid = [];
     let selected = null;
     let hearts = 0, moves = 20;
     let boxesBroken = 0;
     let iceMelted = 0;
+    let donutsCollected = 0;
     let busy = false;
     let tileIdCounter = 0;
 
     // Режим бустера
     let activeBooster = null; // 'hammer' или 'broom'
-
-    // Счетчик активных самолетов в воздухе
     let activePlanesCount = 0;
 
     let dragStartX = 0, dragStartY = 0;
@@ -64,6 +65,45 @@
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
 
+    // ДИНАМИЧЕСКИЙ СТИЛИЗАТОР НОВЫХ МЕХАНИК
+    (function injectStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .tile.chained .tile-inner::after {
+              content: "🔗";
+              position: absolute;
+              inset: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 28px;
+              background: rgba(13, 11, 15, 0.45);
+              border-radius: 8px;
+              z-index: 7;
+              animation: chainPulse 1.2s infinite alternate;
+            }
+            @keyframes chainPulse {
+              from { filter: drop-shadow(0 0 2px #fff); }
+              to { filter: drop-shadow(0 0 6px var(--blood)); }
+            }
+            .grid-cell.portal-entrance {
+              border: 2px dashed #00e5ff !important;
+              box-shadow: inset 0 0 8px rgba(0, 229, 255, 0.4);
+            }
+            .grid-cell.portal-exit {
+              border: 2px dashed #d500f9 !important;
+              box-shadow: inset 0 0 8px rgba(213, 0, 249, 0.4);
+            }
+            .match3-footer::after {
+              content: " ⬇️ Ингредиенты🍩 выводите в самый низ поля!";
+              display: block;
+              margin-top: 4px;
+              color: var(--gold);
+            }
+        `;
+        document.head.appendChild(style);
+    })();
+
     window.addEventListener('mousemove', handleDragMove);
     window.addEventListener('touchmove', handleDragMove, {passive: false});
     window.addEventListener('mouseup', handleDragEnd);
@@ -74,7 +114,6 @@
     const key = (r,c) => r+','+c;
     const getType = (r,c) => grid[r] && grid[r][c] ? grid[r][c].type : null;
 
-    // Инициализация кнопок бустеров
     if (btnHammer) btnHammer.addEventListener('click', () => selectBooster('hammer'));
     if (btnBroom) btnBroom.addEventListener('click', () => selectBooster('broom'));
 
@@ -108,12 +147,13 @@
             case 'plane': return '✈️';
             case 'rainbow': return '🌈';
             case 'box': return '📦';
+            case 'donut': return '🍩';
             default: return TYPES.find(t=>t.id===type).icon;
         }
     }
 
     function applySpecialClass(t){
-        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box', 'frozen');
+        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box', 'frozen', 'chained');
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
         else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
@@ -122,6 +162,7 @@
         else if(t.type==='box') t.el.classList.add('box');
         
         if(t.frozen) t.el.classList.add('frozen');
+        if(t.chained) t.el.classList.add('chained');
     }
 
     function setTilePos(el, row, col){
@@ -130,7 +171,7 @@
     }
 
     function handleDragStart(e, tile) {
-        if (busy || activeBooster || tile.type === 'box' || tile.frozen) return;
+        if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
         dragActiveTile = tile;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -158,7 +199,7 @@
 
             if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
                 const partner = grid[targetRow][targetCol];
-                if (partner && partner.type !== 'box' && !partner.frozen) {
+                if (partner && partner.type !== 'box' && !partner.frozen && !partner.chained) {
                     dragActiveTile.el.classList.remove('selected');
                     selected = null;
                     performSwap(dragActiveTile, partner);
@@ -183,8 +224,9 @@
         el.appendChild(inner);
 
         const isFrozen = iceGrid[row] && iceGrid[row][col] === 1;
+        const isChained = chainGrid[row] && chainGrid[row][col] === 1;
 
-        const tile = {id, type, row, col, el, inner, frozen: isFrozen};
+        const tile = {id, type, row, col, el, inner, frozen: isFrozen, chained: isChained};
 
         el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
         el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
@@ -231,6 +273,17 @@
                         cell.classList.add('carpet');
                     }
 
+                    // Визуализация порталов
+                    const cellKey = key(r, c);
+                    if (portals[cellKey]) {
+                        cell.classList.add('portal-exit');
+                        const entranceKey = portals[cellKey];
+                        setTimeout(() => {
+                            const entCell = document.querySelector(`.grid-cell[data-pos="${entranceKey}"]`);
+                            if (entCell) entCell.classList.add('portal-entrance');
+                        }, 50);
+                    }
+
                     boardEl.appendChild(cell);
                 }
             }
@@ -267,52 +320,6 @@
         }
     }
 
-    function findTileById(id){
-        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-            const t = grid[r][c];
-            if(t && t.id===id) return t;
-        }
-        return null;
-    }
-
-    function onTileClick(e){
-        if(busy) return;
-        const tile = findTileById(e.currentTarget.dataset.id);
-        if(!tile) return;
-
-        // Если активирован бустер
-        if (activeBooster) {
-            executeBoosterAction(tile);
-            return;
-        }
-
-        if(tile.type === 'box' || tile.frozen) return;
-
-        if(selected === null){
-            if(isSpecial(tile.type)) { activateStandalone(tile); return; }
-            selected = tile;
-            tile.el.classList.add('selected');
-            return;
-        }
-        if(selected === tile){
-            selected = null;
-            tile.el.classList.remove('selected');
-            return;
-        }
-        const adjacent = Math.abs(selected.row-tile.row) + Math.abs(selected.col-tile.col) === 1;
-        selected.el.classList.remove('selected');
-        if(!adjacent){
-            if(isSpecial(tile.type)){ selected=null; activateStandalone(tile); return; }
-            selected = tile;
-            tile.el.classList.add('selected');
-            return;
-        }
-        const a = selected, b = tile;
-        selected = null;
-        performSwap(a,b);
-    }
-
-    // ВЫПОЛНЕНИЕ БУСТЕРОВ
     function executeBoosterAction(tile) {
         busy = true;
         const r = tile.row;
@@ -320,12 +327,10 @@
         const booster = activeBooster;
         const cost = booster === 'hammer' ? 150 : 300;
 
-        // Снимаем оплату
         if (window.GameState) {
             window.GameState.spendCash(cost);
         }
 
-        // Отключаем прицел
         activeBooster = null;
         boardEl.classList.remove('aiming');
         if (btnHammer) btnHammer.classList.remove('active');
@@ -343,17 +348,19 @@
                     applyGravityAndRefill();
                     setTimeout(checkEndAfterAction, FALL_MS + 40);
                 }, CLEAR_MS);
-            } else if (tile.frozen) {
+            } else if (tile.frozen || tile.chained) {
+                // Прямой удар бустером размораживает или снимает цепь
                 tile.frozen = false;
+                tile.chained = false;
                 iceGrid[r][c] = 0;
-                tile.el.classList.remove('frozen');
-                if (targetType === "ice") iceMelted++;
+                chainGrid[r][c] = 0;
+                tile.el.classList.remove('frozen', 'chained');
                 busy = false;
                 updateMatch3HUD();
                 checkEndConditions();
             } else {
                 const clearSet = new Set([key(r, c)]);
-                clearAndContinue(clearSet, []);
+                clearAndContinue(clearSet, [], null, null, true, false, true); 
             }
         } 
         else if (booster === 'broom') {
@@ -366,7 +373,7 @@
                 clearSet.add(key(r, i));
                 clearSet.add(key(i, c));
             }
-            clearAndContinue(clearSet, []);
+            clearAndContinue(clearSet, [], null, null, false, false, true);
         }
     }
 
@@ -413,7 +420,7 @@
                 } else {
                     cells = computeActivationFootprint(special);
                 }
-                clearAndContinue(cells, []);
+                clearAndContinue(cells, [], null, null, false, false, true);
                 return;
             }
             const result = analyzeMatches();
@@ -444,9 +451,9 @@
             for(let c=1;c<=SIZE;c++){
                 const cur = c<SIZE ? getType(r,c) : null;
                 const prev = getType(r,c-1);
-                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
+                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box' && cur !== 'donut') continue;
                 const len = c - runStart;
-                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box'){
+                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box' && prev !== 'donut'){
                     const cells=[]; 
                     for(let k=runStart;k<c;k++) cells.push([r,k]);
                     runs.push({cells, dir:'h', length:len, type:prev, used:false});
@@ -459,9 +466,9 @@
             for(let r=1;r<=SIZE;r++){
                 const cur = r<SIZE ? getType(r,c) : null;
                 const prev = getType(r-1,c);
-                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box') continue;
+                if(cur!==null && cur===prev && !isSpecial(cur) && cur !== 'box' && cur !== 'donut') continue;
                 const len = r - runStart;
-                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box'){
+                if(len>=3 && prev !== null && !isSpecial(prev) && prev !== 'box' && prev !== 'donut'){
                     const cells=[]; 
                     for(let k=runStart;k<r;k++) cells.push([k,c]);
                     runs.push({cells, dir:'v', length:len, type:prev, used:false});
@@ -494,7 +501,7 @@
                 const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
                 if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
                 const t0 = getType(r,c);
-                if(!t0 || isSpecial(t0) || t0 === 'box') continue;
+                if(!t0 || isSpecial(t0) || t0 === 'box' || t0 === 'donut') continue;
                 if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
                     squares.push({type:'plane', at:[r,c], cells});
                     cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
@@ -592,7 +599,7 @@
     function presentColors(){
         const set = new Set();
         for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-            if(grid[r][c] && !isSpecial(grid[r][c].type) && grid[r][c].type !== 'box') set.add(grid[r][c].type);
+            if(grid[r][c] && !isSpecial(grid[r][c].type) && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut') set.add(grid[r][c].type);
         }
         return Array.from(set);
     }
@@ -766,7 +773,7 @@
             const candidates = [];
             for (let r=0; r<SIZE; r++) {
                 for (let c=0; c<SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type !== 'box' && !(r === excludeRow && c === excludeCol)) {
+                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
                         candidates.push([r, c]);
                     }
                 }
@@ -831,6 +838,7 @@
         if (has('plane') && has('plane')) {
             cells = computeActivationFootprint(a); 
             
+            const comboCarpet = (carpetGrid[a.row] && carpetGrid[a.row][a.col]) || (carpetGrid[b.row] && carpetGrid[b.row][b.col]);
             activePlanesCount += 3;
 
             clearAndContinue(cells, [], null, () => {
@@ -840,13 +848,16 @@
                         if (target) {
                             animatePlaneEffect(a.row, a.col, target.r, target.c, () => {
                                 const targetCell = new Set([key(target.r, target.c)]);
+                                if (comboCarpet) {
+                                    spreadCarpetAt(target.r, target.c);
+                                }
                                 clearAndContinue(targetCell, [], null, () => {
                                     activePlanesCount--;
                                     if (activePlanesCount === 0) {
                                         busy = false;
                                         checkEndConditions();
                                     }
-                                });
+                                }, false, comboCarpet, true);
                             });
                         } else {
                             activePlanesCount--;
@@ -857,7 +868,7 @@
                         }
                     }, i * 120);
                 }
-            });
+            }, false, comboCarpet, true);
 
             pulseToast('✈️ Эскадрилья самолётиков!');
             return new Set(); 
@@ -867,6 +878,7 @@
             const boosterType = a.type === 'plane' ? b.type : a.type;
             const plane = a.type === 'plane' ? a : b;
 
+            const comboCarpet = (carpetGrid[a.row] && carpetGrid[a.row][a.col]) || (carpetGrid[b.row] && carpetGrid[b.row][b.col]);
             cells = computeActivationFootprint(plane); 
             
             activePlanesCount++;
@@ -889,13 +901,17 @@
                             footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
                         }
                         
+                        if (comboCarpet) {
+                            spreadCarpetAt(target.r, target.c);
+                        }
+
                         clearAndContinue(blastCells, [], null, () => {
                             activePlanesCount--;
                             if (activePlanesCount === 0) {
                                 busy = false;
                                 checkEndConditions();
                             }
-                        });
+                        }, false, comboCarpet, true);
                     });
                 } else {
                     activePlanesCount--;
@@ -904,7 +920,7 @@
                         checkEndConditions();
                     }
                 }
-            });
+            }, false, comboCarpet, true);
 
             pulseToast('📦 Доставка взрывчатки!');
             return new Set();
@@ -964,17 +980,17 @@
         if (tile.type === 'bomb') {
             animateBombEffect(tile.row, tile.col);
             cells = computeActivationFootprint(tile);
-            clearAndContinue(cells, []);
+            clearAndContinue(cells, [], null, null, false, false, true);
         } 
         else if (tile.type === 'rocketRow') {
             animateRocketEffect(tile.row, tile.col, true);
             cells = computeActivationFootprint(tile);
-            clearAndContinue(cells, []);
+            clearAndContinue(cells, [], null, null, false, false, true);
         } 
         else if (tile.type === 'rocketCol') {
             animateRocketEffect(tile.row, tile.col, false);
             cells = computeActivationFootprint(tile);
-            clearAndContinue(cells, []);
+            clearAndContinue(cells, [], null, null, false, false, true);
         } 
         else if (tile.type === 'plane') {
             activePlanesCount++;
@@ -986,21 +1002,28 @@
                 targetRow = target.r; targetCol = target.c;
             }
 
+            const planeTookOffFromCarpet = carpetGrid[tile.row] && carpetGrid[tile.row][tile.col];
+
             cells = computeActivationFootprint(tile);
             cells.delete(key(targetRow, targetCol)); 
 
             clearAndContinue(cells, [], null, () => {
                 animatePlaneEffect(tile.row, tile.col, targetRow, targetCol, () => {
                     const finalCell = new Set([key(targetRow, targetCol)]);
+                    
+                    if (planeTookOffFromCarpet) {
+                        spreadCarpetAt(targetRow, targetCol);
+                    }
+
                     clearAndContinue(finalCell, [], null, () => {
                         activePlanesCount--;
                         if (activePlanesCount === 0) {
                             busy = false;
                             checkEndConditions();
                         }
-                    });
+                    }, false, planeTookOffFromCarpet, true); 
                 });
-            });
+            }, false, false, true);
         } 
         else if(tile.type === 'rainbow'){
             const colors = presentColors();
@@ -1016,7 +1039,7 @@
 
             setTimeout(() => {
                 cells.add(key(tile.row, tile.col));
-                clearAndContinue(cells, []);
+                clearAndContinue(cells, [], null, null, false, false, true);
             }, 350);
         }
     }
@@ -1076,9 +1099,55 @@
                 }, CLEAR_MS);
             }
         });
+        return boxesToBreak;
     }
 
-    function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete){
+    function spreadCarpetAt(r, c) {
+        if (levelLayout[r] && levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
+            carpetGrid[r][c] = true;
+            const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
+            if (cellEl) {
+                cellEl.classList.add('carpet');
+            }
+        }
+    }
+
+    function countActiveDonuts() {
+        let count = 0;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'donut') count++;
+            }
+        }
+        return count;
+    }
+
+    function collectDoughnuts() {
+        let collectedThisTurn = 0;
+        for (let c = 0; c < SIZE; c++) {
+            const t = grid[SIZE - 1][c];
+            if (t && t.type === 'donut') {
+                t.el.classList.add('clearing');
+                grid[SIZE - 1][c] = null;
+                donutsCollected++;
+                collectedThisTurn++;
+                
+                setTimeout(((tileToKill) => {
+                    return () => {
+                        tileToKill.el.remove();
+                    };
+                })(t), CLEAR_MS);
+            }
+        }
+
+        if (collectedThisTurn > 0) {
+            updateMatch3HUD();
+            pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
+            applyGravityAndRefill();
+        }
+    }
+
+    function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
         let heartsGained=0;
@@ -1089,23 +1158,43 @@
             if(t.type==='heart') heartsGained++;
         });
 
+        // 1. Распространение ковров
+        let hasCarpetInMatch = forceCarpet || false;
+        if (!preventCarpet && !hasCarpetInMatch) {
+            clearSet.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                if (carpetGrid[r] && carpetGrid[r][c]) {
+                    hasCarpetInMatch = true;
+                }
+            });
+        }
+
         const finalClearSet = new Set();
 
-        // Логика раскалывания льда и уничтожения ящиков при прямом попадании
+        // 2. Раскол льда, снятие цепей, взлом ящиков
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
             if (t) {
                 if (t.frozen) {
-                    // Растопить лед, но сохранить саму фишку на поле
                     t.frozen = false;
                     iceGrid[r][c] = 0;
                     t.el.classList.remove('frozen');
                     if (targetType === "ice") {
                         iceMelted++;
                     }
+                } else if (t.chained) {
+                    // Разрушение цепи: 
+                    // Обычная плитка - при совпадении ИЛИ взрыве.
+                    // Пончик или Бонус - ТОЛЬКО при взрыве/активации бонуса (isExplosion = true)
+                    const isRegular = !isSpecial(t.type) && t.type !== 'donut';
+                    if (isRegular || isExplosion) {
+                        t.chained = false;
+                        chainGrid[r][c] = 0;
+                        t.el.classList.remove('chained');
+                        pulseToast("🔗 Цепь разбита!");
+                    }
                 } else if (t.type === 'box') {
-                    // Уничтожить ящик
                     levelLayout[r][c] = 1; 
                     t.el.classList.add('clearing');
                     if (targetType === "box") {
@@ -1123,8 +1212,8 @@
             }
         });
 
-        // Поломать соседние ящики
-        checkAndBreakBoxes(finalClearSet);
+        // 3. Соседние деревянные ящики
+        const brokenBoxes = checkAndBreakBoxes(finalClearSet);
 
         finalClearSet.forEach(k=>{
             const [r,c] = k.split(',').map(Number);
@@ -1135,28 +1224,19 @@
         if (targetType === "heart") {
             hearts += heartsGained;
         }
-        
-        let hasCarpetInMatch = false;
-        finalClearSet.forEach(k => {
-            const [r, c] = k.split(',').map(Number);
-            if (carpetGrid[r] && carpetGrid[r][c]) {
-                hasCarpetInMatch = true;
-            }
-        });
 
-        if (hasCarpetInMatch) {
-            finalClearSet.forEach(k => {
+        // 4. Покрытие коврами
+        if (!preventCarpet && hasCarpetInMatch) {
+            clearSet.forEach(k => {
                 const [r, c] = k.split(',').map(Number);
-                if (levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
-                    carpetGrid[r][c] = true;
-                    const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
-                    if (cellEl) {
-                        cellEl.classList.add('carpet');
-                    }
-                }
+                spreadCarpetAt(r, c);
+            });
+            brokenBoxes.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                spreadCarpetAt(r, c);
             });
         }
-
+        
         updateMatch3HUD();
         
         if(heartsGained > 0 && targetType === "heart") {
@@ -1188,7 +1268,6 @@
                 const result = analyzeMatches();
                 const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
                 
-                // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Вызываем коллбэк полета самолета ВСЕГДА, не блокируя его каскадами
                 if (onComplete) {
                     onComplete();
                 }
@@ -1205,137 +1284,65 @@
         }, CLEAR_MS);
     }
 
-    // УМНЫЙ АЛГОРИТМ ГРАВИТАЦИИ
+    // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ПОРТАЛАМИ И ПОНЧИКАМИ
     function applyGravityAndRefill(){
-        for(let c=0;c<SIZE;c++){
-            const movableTiles = [];
-            for(let r=0;r<SIZE;r++){
-                const t = grid[r][c];
-                if(t && t.type !== 'box' && levelLayout[r][c] !== 2){
-                    movableTiles.push(t);
-                    grid[r][c] = null; 
-                }
-            }
+        let moved = true;
+        let loops = 0;
+        const maxLoops = 20; 
 
-            let spawnOffset = 1;
-            for(let r=SIZE-1;r>=0;r--){
-                const cellType = levelLayout[r][c];
+        while (moved && loops < maxLoops) {
+            moved = false;
+            loops++;
 
-                if (cellType === 1) {
-                    if (movableTiles.length > 0) {
-                        const t = movableTiles.pop();
-                        grid[r][c] = t;
-                        moveTileTo(t, r, c);
-                    } else {
-                        grid[r][c] = createTile(r, c, randType(), -spawnOffset);
-                        spawnOffset++;
-                    }
-                } else if (cellType === 2) {
-                    // Коробка — стоит на месте
-                } else {
-                    grid[r][c] = null;
-                }
-            }
-        }
-    }
+            // Сверху вниз, снизу вверх просчитываем каждый физический шаг падения
+            for (let r = SIZE - 1; r >= 0; r--) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === 1 && grid[r][c] === null) {
+                        
+                        let sourceRow = r - 1;
+                        let sourceCol = c;
 
-    // ==================== АЛГОРИТМ ПРОВЕРКИ СВОБОДНЫХ ХОДОВ ====================
-    
-    function hasPossibleMoves() {
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                const t = grid[r][c];
-                if (t && isSpecial(t.type)) return true;
-            }
-        }
+                        // Перемещение через червоточину/портал
+                        const cellKey = key(r, c);
+                        if (portals[cellKey]) {
+                            const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
+                            sourceRow = ep_r;
+                            sourceCol = ep_c;
+                        }
 
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                const t = grid[r][c];
-                if (!t || t.type === 'box') continue;
-
-                const neighbors = [[r + 1, c], [r, c + 1]];
-                for (const [nr, nc] of neighbors) {
-                    if (nr < SIZE && nc < SIZE) {
-                        const nt = grid[nr][nc];
-                        if (nt && nt.type !== 'box') {
-                            
-                            grid[r][c] = nt;
-                            grid[nr][nc] = t;
-
-                            const runs = collectRuns();
-                            const hasMatch = runs.length > 0;
-
-                            grid[r][c] = t;
-                            grid[nr][nc] = nt;
-
-                            if (hasMatch) return true; 
+                        if (sourceRow >= 0 && sourceRow < SIZE && sourceCol >= 0 && sourceCol < SIZE) {
+                            const t = grid[sourceRow][sourceCol];
+                            // Заблокированные льдом/цепями или ящики падать не могут
+                            if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                grid[r][c] = t;
+                                grid[sourceRow][sourceCol] = null;
+                                moveTileTo(t, r, c);
+                                moved = true;
+                            }
                         }
                     }
                 }
             }
-        }
-        return false; 
-    }
 
-    // ==================== АЛГОРИТМ УМНОГО ПЕРЕМЕШИВАНИЯ ПОЛЯ ====================
-    
-    function shuffleBoard() {
-        busy = true;
-        pulseToast("🌀 Нет ходов! Перемешивание...");
-
-        const normalTiles = [];
-        for (let r = 0; r < SIZE; r++) {
+            // Наполнение из спавнеров (верхняя строка)
             for (let c = 0; c < SIZE; c++) {
-                const t = grid[r][c];
-                if (t && !isSpecial(t.type) && t.type !== 'box') {
-                    normalTiles.push(t);
+                if (levelLayout[0][c] === 1 && grid[0][c] === null) {
+                    let spawnType = randType();
+                    // Спавн пончиков при необходимости
+                    if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
+                        spawnType = "donut";
+                    }
+                    grid[0][c] = createTile(0, c, spawnType, -1);
+                    moved = true;
                 }
             }
         }
 
-        let shuffleSafetyGuard = 0;
-        do {
-            const types = normalTiles.map(t => t.type);
-            
-            for (let i = types.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const temp = types[i];
-                types[i] = types[j];
-                types[j] = temp;
-            }
-
-            normalTiles.forEach((t, index) => {
-                t.type = types[index];
-                t.inner.textContent = iconFor(t.type);
-                applySpecialClass(t);
-                
-                t.el.style.transform = 'scale(0.3) rotate(180deg)';
-                t.el.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-            });
-
-            shuffleSafetyGuard++;
-            if (shuffleSafetyGuard > 15) break; 
-        } while (!hasPossibleMoves()); 
-
-        setTimeout(() => {
-            normalTiles.forEach(t => {
-                t.el.style.transform = 'scale(1) rotate(0deg)';
-                setTimeout(() => {
-                    t.el.style.transition = '';
-                }, 300);
-            });
-            busy = false;
-
-            const result = analyzeMatches();
-            const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
-            if (hasMore) {
-                applyResolutionFull(result);
-            }
-        }, 450);
+        // Проверяем, достигли ли ингредиенты нижней черты
+        collectDoughnuts();
     }
 
-    // ==================== АЛГОРИТМ ПЕРЕКАТКИ И ПРОКРУТКИ КАМЕРЫ ====================
+    // ==================== СИСТЕМА УРОВНЕЙ И ЗАПУСКА ====================
 
     function transitionToNextPhase() {
         busy = true;
@@ -1351,18 +1358,24 @@
             hearts = 0; 
             boxesBroken = 0;
             iceMelted = 0;
+            donutsCollected = 0;
 
             targetType = phaseData.targetType || "heart";
             
             carpetGrid = [];
             iceGrid = [];
+            chainGrid = [];
+            portals = {};
             for (let r = 0; r < SIZE; r++) {
                 carpetGrid.push(new Array(SIZE).fill(false));
                 iceGrid.push(new Array(SIZE).fill(0));
+                chainGrid.push(new Array(SIZE).fill(0));
             }
 
             if (phaseData.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(phaseData.carpetLayout));
             if (phaseData.iceLayout) iceGrid = JSON.parse(JSON.stringify(phaseData.iceLayout));
+            if (phaseData.chainLayout) chainGrid = JSON.parse(JSON.stringify(phaseData.chainLayout));
+            if (phaseData.portals) portals = JSON.parse(JSON.stringify(phaseData.portals));
 
             boardEl.classList.remove('scroll-out');
             boardEl.classList.add('scroll-in');
@@ -1382,48 +1395,6 @@
         }, 250);
     }
 
-    function getRewards(diff) {
-        let starsGained = 1;
-        let baseCoins = 100;
-
-        if (diff === "medium") {
-            baseCoins = 150;
-        } else if (diff === "hard") {
-            baseCoins = 250;
-        } else if (diff === "extreme") {
-            baseCoins = 400;
-        } else if (diff === "challenge") {
-            starsGained = 3;
-            baseCoins = 300;
-        }
-
-        let bonusCoins = moves * 10; 
-        let totalCoins = baseCoins + bonusCoins;
-
-        return { stars: starsGained, coins: totalCoins, base: baseCoins, bonus: bonusCoins };
-    }
-
-    function updateMatch3HUD() {
-        if (m3MovesText) m3MovesText.textContent = moves;
-        if (!m3GoalText) return;
-
-        if (targetType === "carpet") {
-            let currentCarpetCount = 0;
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (carpetGrid[r][c]) currentCarpetCount++;
-                }
-            }
-            m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
-        } else if (targetType === "box") {
-            m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
-        } else if (targetType === "ice") {
-            m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
-        } else {
-            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
-        }
-    }
-
     function openPreLevelScreen(levelId) {
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) {
@@ -1437,9 +1408,12 @@
         
         carpetGrid = [];
         iceGrid = [];
+        chainGrid = [];
+        portals = {};
         for (let r = 0; r < SIZE; r++) {
             carpetGrid.push(new Array(SIZE).fill(false));
             iceGrid.push(new Array(SIZE).fill(0));
+            chainGrid.push(new Array(SIZE).fill(0));
         }
 
         if (levelData.carpetLayout && levelData.carpetLayout.length > 0) {
@@ -1447,6 +1421,12 @@
         }
         if (levelData.iceLayout && levelData.iceLayout.length > 0) {
             iceGrid = JSON.parse(JSON.stringify(levelData.iceLayout));
+        }
+        if (levelData.chainLayout && levelData.chainLayout.length > 0) {
+            chainGrid = JSON.parse(JSON.stringify(levelData.chainLayout));
+        }
+        if (levelData.portals) {
+            portals = JSON.parse(JSON.stringify(levelData.portals));
         }
 
         if (levelData.phases && levelData.phases.length > 0) {
@@ -1459,34 +1439,12 @@
             targetType = firstPhase.targetType || "heart";
             if (firstPhase.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(firstPhase.carpetLayout));
             if (firstPhase.iceLayout) iceGrid = JSON.parse(JSON.stringify(firstPhase.iceLayout));
+            if (firstPhase.chainLayout) chainGrid = JSON.parse(JSON.stringify(firstPhase.chainLayout));
+            if (firstPhase.portals) portals = JSON.parse(JSON.stringify(firstPhase.portals));
         } else {
             isMultiPhase = false;
             GOAL_HEARTS = levelData.heartsGoal;
             levelLayout = JSON.parse(JSON.stringify(levelData.layout));
-        }
-
-        // Динамический перерасчет целей в зависимости от типа
-        let initialBoxes = 0;
-        let initialIce = 0;
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                if (levelLayout[r][c] === 2) initialBoxes++;
-                if (iceGrid[r] && iceGrid[r][c] === 1) initialIce++;
-            }
-        }
-
-        if (targetType === "box") {
-            GOAL_HEARTS = initialBoxes;
-        } else if (targetType === "ice") {
-            GOAL_HEARTS = initialIce;
-        } else if (targetType === "carpet") {
-            let carpetCellsCount = 0;
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (levelLayout[r][c] !== 0) carpetCellsCount++;
-                }
-            }
-            GOAL_HEARTS = carpetCellsCount;
         }
 
         START_MOVES = levelData.moves;
@@ -1518,6 +1476,8 @@
                 goalVal.textContent = `${GOAL_HEARTS} 📦 Деревянных Ящиков`;
             } else if (targetType === "ice") {
                 goalVal.textContent = `${GOAL_HEARTS} 🧊 Клеток со Льдом`;
+            } else if (targetType === "donut") {
+                goalVal.textContent = `${GOAL_HEARTS} 🍩 Спелых Пончиков в самый низ`;
             } else {
                 goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
             }
@@ -1553,6 +1513,7 @@
             hearts = 0;
             boxesBroken = 0;
             iceMelted = 0;
+            donutsCollected = 0;
             activeBooster = null;
             boardEl.classList.remove('aiming');
             if (btnHammer) btnHammer.classList.remove('active');
@@ -1593,6 +1554,8 @@
             isVictory = boxesBroken >= GOAL_HEARTS;
         } else if (targetType === "ice") {
             isVictory = iceMelted >= GOAL_HEARTS;
+        } else if (targetType === "donut") {
+            isVictory = donutsCollected >= GOAL_HEARTS;
         } else {
             isVictory = hearts >= GOAL_HEARTS;
         }
@@ -1671,7 +1634,8 @@
             const isCompleted = hearts >= GOAL_HEARTS || 
                                 (targetType === "carpet" && document.querySelectorAll('.grid-cell.carpet').length >= GOAL_HEARTS) ||
                                 (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
-                                (targetType === "ice" && iceMelted >= GOAL_HEARTS);
+                                (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
+                                (targetType === "donut" && donutsCollected >= GOAL_HEARTS);
 
             if (isCompleted) {
                 if (window.GameState) {
