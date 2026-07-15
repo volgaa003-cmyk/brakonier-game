@@ -1411,7 +1411,7 @@
         footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
         return cells;
     }
-// Функция автоматической адаптации препятствий под цели уровня (Homescapes балансировщик)
+// Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бустеров
     function synchronizeObstaclesAndGoals() {
         let playableCells = [];
         let currentBoxes = 0;
@@ -1439,21 +1439,57 @@
             GOAL_HEARTS = currentBoxes; // Синхронизируем цель с количеством коробок на поле
         }
 
-        // Спавн Радужного шара на старте, если игрок выбрал этот пре-бустер
-        if (selectedPreBoosters.rainbow) {
-            const cell = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-            if (cell) levelLayout[cell.r][cell.c] = 7; 
-        }
-        
-        // Спавн Бомбы и Ракеты, если выбран соответствующий пре-бустер
-        if (selectedPreBoosters.combo) {
-            if (playableCells.length > 1) {
-                const cell1 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-                const cell2 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-                levelLayout[cell1.r][cell1.c] = 3; 
-                levelLayout[cell2.r][cell2.c] = 4; 
+        // ==========================================================================
+        // СИСТЕМА ЗАКРЕПЛЕНИЯ БЕСПЛАТНЫХ БУСТЕРОВ ЗА СЛОЖНЫМИ УРОВНЯМИ
+        // ==========================================================================
+        let boostersToSpawn = []; // Список бустеров для размещения на поле
+
+        if (levelDifficulty === "challenge") {
+            // Испытание: дарим 2 Самолетика (6) и 1 Бомбу (3)
+            boostersToSpawn = [6, 6, 3];
+            setTimeout(() => pulseToast("🎁 Сюжетное испытание! Дарим 2 Самолетика и Бомбу!"), 900);
+        } else if (levelDifficulty === "extreme") {
+            // Ультра-сложный: дарим 1 Радужный шар (7) и 1 Бомбу (3)
+            boostersToSpawn = [7, 3];
+            setTimeout(() => pulseToast("🎁 Ультра-сложная чистка! Дарим Радужный шар и Бомбу!"), 900);
+        } else if (levelDifficulty === "hard") {
+            // Сложный: дарим 1 Бомбу (3) и 1 Ракету (4/5)
+            boostersToSpawn = [3, Math.random() < 0.5 ? 4 : 5];
+            setTimeout(() => pulseToast("🎁 Опасный бой! Дарим Бомбу и Ракету!"), 900);
+        } else {
+            // Обычные уровни, но с обилием ящиков (динамический балансировщик)
+            if (currentBoxes >= 12) {
+                boostersToSpawn = [3, Math.random() < 0.5 ? 4 : 5]; // Бомба + Ракета
+                setTimeout(() => pulseToast("🎁 Много коробок! Дарим Бомбу и Ракету для прорыва!"), 900);
+            } else if (currentBoxes >= 6) {
+                boostersToSpawn = [3]; // 1 Бомба
+                setTimeout(() => pulseToast("🎁 Сложный завал ящиков! Дарим стартовую Бомбу!"), 900);
             }
         }
+
+        // Размещаем подарочные бустеры на свободных плитках поля
+        boostersToSpawn.forEach(type => {
+            if (playableCells.length > 0) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                levelLayout[cell.r][cell.c] = type; // Записываем бустер в карту старта уровня
+            }
+        });
+
+        // Спавн покупного Радужного шара на старте, если игрок выбрал этот пре-бустер на экране старта
+        if (selectedPreBoosters.rainbow && playableCells.length > 0) {
+            const cell = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
+            levelLayout[cell.r][cell.c] = 7; 
+        }
+        
+        // Спавн покупной Бомбы и Ракеты, если выбран этот пре-бустер на экране старта
+        if (selectedPreBoosters.combo && playableCells.length > 1) {
+            const cell1 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
+            const cell2 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
+            levelLayout[cell1.r][cell1.c] = 3; 
+            levelLayout[cell2.r][cell2.c] = Math.random() < 0.5 ? 4 : 5; 
+        }
+        
         doublePlanesActive = selectedPreBoosters.doublePlanes;
     }
     // ----------------------------------------------------------------------
