@@ -842,10 +842,10 @@ body {
 }
 
 /* ==========================================================================
-   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ (ПЛАВНЫЙ ТЕМП HOMESCAPES)
+   12. ДЕКОРАТИВНЫЕ СНАРЯДЫ И ЧИСТЫЕ ЭФФЕКТЫ (МЯГКИЙ И ПЛАВНЫЙ ВАРИАНТ)
    ========================================================================== */
 
-/* Медленный и мягкий полет Ракеты и Самолётика (0.65s) */
+/* Движущийся снаряд (ракета или самолетик) — Замедлен для веса */
 .m3-projectile {
   position: absolute;
   width: calc(100% / var(--size));
@@ -856,12 +856,12 @@ body {
   font-size: 24px;
   z-index: 99;
   pointer-events: none;
-  /* Замедлен полет до 0.65 секунды для приятного веса */
-  transition: left 0.65s cubic-bezier(0.25, 1, 0.5, 1), top 0.65s cubic-bezier(0.25, 1, 0.5, 1), transform 0.65s ease-out;
+  /* Мягкий и весомый полет (0.45s) вместо резкого (0.22s) */
+  transition: left 0.45s cubic-bezier(0.25, 1, 0.5, 1), top 0.45s cubic-bezier(0.25, 1, 0.5, 1), transform 0.45s ease-out;
   will-change: left, top, transform;
 }
 
-/* Тяжелая и мощная взрывная волна Бомбы (0.35s) */
+/* Ударная волна Бомбы 5х5 — Замедлена для тяжелого взрыва */
 .bomb-shockwave {
   position: absolute;
   width: calc(100% / var(--size));
@@ -873,13 +873,14 @@ body {
   z-index: 98;
   transform: scale(1);
   opacity: 1;
+  /* Замедлен взрыв до 0.35s для Homescapes-эффекта */
   transition: transform 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.35s ease-out;
   will-change: transform, opacity;
 }
 
 /* Препятствие: Коробка/Ящик в стиле Homescapes */
 .tile.box .tile-inner {
-  background: linear-gradient(135deg, #a0522d, #8b4513); 
+  background: linear-gradient(135deg, #a0522d, #8b4513); /* Деревянный коричневый цвет */
   border: 3px solid var(--ink);
   box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
   font-size: 28px;
@@ -919,4 +920,56 @@ body {
   /* Плавный вылет луча и растворение */
   transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out;
   will-change: width, opacity;
+}
+
+/* ==========================================================================
+   14. ПАНЕЛЬ ВНУТРИИГРОВЫХ БУСТЕРОВ (МОЛОТОК И МЕТЛА) (НОВЫЙ БЛОК)
+   ========================================================================== */
+.booster-panel {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.booster-btn {
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--border-weight) solid var(--ink);
+  border-radius: 12px;
+  box-shadow: var(--panel-shadow);
+  padding: 8px 16px;
+  font-family: 'Bangers', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.2s;
+}
+
+.booster-btn .cost {
+  color: #8a6a1a;
+  font-weight: 800;
+}
+
+/* Режим прицеливания (подсвечиваем кнопку золотым неоном) */
+.booster-btn.active {
+  background: var(--gold);
+  border-color: var(--paper);
+  box-shadow: 0 0 12px var(--gold);
+  transform: scale(1.05);
+}
+
+.booster-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+/* Подсветка всего поля при прицеливании */
+#board.aiming {
+  box-shadow: 0 0 20px var(--gold);
+  filter: brightness(1.1);
 }
