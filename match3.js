@@ -435,6 +435,62 @@
         }
         return null;
     }
+    // ==========================================================================
+    // СИСТЕМА ИСКУССТВЕННОГО ИНТЕЛЛЕКТА (АВТОМАТИЧЕСКИЕ ПОДСКАЗКИ ХОДОВ)
+    // ==========================================================================
+
+    // Сброс таймера ожидания подсказки при любом действии игрока
+    function resetHintTimer() {
+        clearTimeout(hintTimeout);
+        removeCurrentHints(); // Убираем старую подсветку
+        hintTimeout = setTimeout(highlightPossibleMove, 4500); // Запуск таймера на 4.5 секунды
+    }
+
+    // Удаление визуального класса покачивания со всех подсказанных ранее фишек
+    function removeCurrentHints() {
+        document.querySelectorAll('.match-hint').forEach(el => el.classList.remove('match-hint'));
+    }
+
+    // Подсветка и запуск анимации покачивания для фишек, составляющих возможный ход
+    function highlightPossibleMove() {
+        if (busy || activeBooster) return; // Не подсказываем во время анимаций или прицеливания бустером
+        const move = findValidSwapMove();
+        if (move) {
+            move.a.el.classList.add('match-hint');
+            move.b.el.classList.add('match-hint');
+        }
+    }
+
+    // Поиск одного любого математически возможного хода на поле
+    function findValidSwapMove() {
+        // 1. Проверяем горизонтальные обмены
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE - 1; c++) {
+                const a = grid[r][c];
+                const b = grid[r][c+1];
+                if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
+                    swapInGrid(a, b); // Виртуально меняем местами
+                    const hasMatch = collectRuns().length > 0; // Проверяем, соберется ли комбо
+                    swapInGrid(a, b); // Возвращаем обратно
+                    if (hasMatch) return { a, b };
+                }
+            }
+        }
+        // 2. Проверяем вертикальные обмены
+        for (let r = 0; r < SIZE - 1; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const a = grid[r][c];
+                const b = grid[r+1][c];
+                if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
+                    swapInGrid(a, b);
+                    const hasMatch = collectRuns().length > 0;
+                    swapInGrid(a, b);
+                    if (hasMatch) return { a, b };
+                }
+            }
+        }
+        return null; // Если возможных ходов вообще нет
+    }
     // Начало перетаскивания фишки пальцем (для мобильных) или мышкой (для ПК)
     function handleDragStart(e, tile) {
         if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
