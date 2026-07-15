@@ -1627,6 +1627,7 @@
         currentLevelId = levelId;
         levelDifficulty = levelData.difficulty;
         targetType = levelData.targetType || "heart";
+        GOAL_HEARTS = levelData.heartsGoal || 12; // Синхронизируем цель с базой уровней
         
         selectedPreBoosters = { rainbow: false, combo: false, doublePlanes: false };
         updatePreBoostersUI();
