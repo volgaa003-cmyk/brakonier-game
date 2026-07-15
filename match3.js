@@ -2250,6 +2250,7 @@ function pulseToast(msg) {
             clearTimeout(pulseToast._t);
             pulseToast._t = setTimeout(() => toastEl.classList.remove('show'), 1200);
         }
+    }
     function hasPossibleMoves() {
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
