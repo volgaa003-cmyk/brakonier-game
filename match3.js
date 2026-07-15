@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (ПОЛНАЯ СБОРКА: МНОГОСЛОЙНОСТЬ, ПРЕ-БУСТЕРЫ, 5 АКТИВНЫХ ИНСТРУМЕНТОВ)
+// match3.js (ПОЛНАЯ ИСПРАВЛЕННАЯ СБОРКА)
 // ================================================
 
 (function() {
@@ -42,7 +42,7 @@
     // Состояние бустеров
     let activeBooster = null; 
     let activePlanesCount = 0;
-    let doublePlanesActive = false; // Бустер "Двойные самолетики"
+    let doublePlanesActive = false; 
 
     // Выбранные перед боем бустеры
     let selectedPreBoosters = {
@@ -284,7 +284,6 @@
         el.className = 'tile';
         el.dataset.id = id;
         
-        // Рандомизация слоев прочности для усложнения
         const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 0;
         const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
         const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
@@ -413,13 +412,9 @@
         return boxesToBreak;
     }
 
-    // ==========================================================================
-    // ЛОГИКА ПОВРЕЖДЕНИЙ СЛОЖНЫХ МНОГОСЛОЙНЫХ ПРЕПЯТСТВИЙ (HP СИСТЕМА)
-    // ==========================================================================
     function damageObstacle(tile, r, c, isExplosion) {
-        const damage = isExplosion ? 2 : 1; // Взрыв наносит повышенный урон
+        const damage = isExplosion ? 2 : 1; 
         
-        // 1. Повреждение коробки
         if (tile.type === 'box') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -439,7 +434,6 @@
             }
         }
         
-        // 2. Повреждение льда
         if (tile.frozen) {
             tile.frozenLayers -= damage;
             if (tile.frozenLayers > 0) {
@@ -453,7 +447,6 @@
             }
         }
 
-        // 3. Повреждение цепей
         if (tile.chained) {
             tile.chainedLayers -= damage;
             if (tile.chainedLayers > 0) {
@@ -508,7 +501,6 @@
     function processThreatsAndJesters() {
         let spawnedFoam = false;
 
-        // Движение попугая
         for (let r = 1; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
@@ -520,7 +512,6 @@
             }
         }
 
-        // Пена и плющ
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
@@ -566,17 +557,16 @@
             GOAL_HEARTS = currentBoxes; 
         }
 
-        // АКТИВАЦИЯ ПРЕ-ГЕЙМ БУСТЕРОВ (ЕСЛИ ИГРОК ВЫБРАЛ ИХ НА СТАРТЕ)
         if (selectedPreBoosters.rainbow) {
             const cell = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-            if (cell) levelLayout[cell.r][cell.c] = 7; // Rainbow ball
+            if (cell) levelLayout[cell.r][cell.c] = 7; 
         }
         if (selectedPreBoosters.combo) {
             if (playableCells.length > 1) {
                 const cell1 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
                 const cell2 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-                levelLayout[cell1.r][cell1.c] = 3; // Bomb
-                levelLayout[cell2.r][cell2.c] = 4; // RocketRow
+                levelLayout[cell1.r][cell1.c] = 3; 
+                levelLayout[cell2.r][cell2.c] = 4; 
             }
         }
         doublePlanesActive = selectedPreBoosters.doublePlanes;
@@ -644,7 +634,7 @@
                             if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
                         }
                         if (sourceRow >= 0) {
-                            const t = grid[sourceRow][sourceCol = c];
+                            const t = grid[sourceRow][c];
                             if (t && t.type !== 'box' && !t.frozen && !t.chained) {
                                 grid[r][c] = t; grid[sourceRow][c] = null;
                                 moveTileTo(t, r, c); moved = true;
@@ -654,7 +644,6 @@
                     }
                 }
             }
-            // Спавн сверху
             for (let c = 0; c < SIZE; c++) {
                 for (let r = 0; r < SIZE; r++) {
                     const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
@@ -723,6 +712,109 @@
         }
     }
 
+    // ==========================================================================
+    // АНАЛИЗАТОР СОВПАДЕНИЙ (ВОССТАНОВЛЕННЫЕ АЛГОРИТМЫ СБОРА)
+    // ==========================================================================
+    const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata'].includes(type);
+
+    function collectRuns(){
+        const runs = [];
+        for(let r=0;r<SIZE;r++){
+            let runStart=0;
+            for(let c=1;c<=SIZE;c++){
+                const cur = c<SIZE ? getType(r,c) : null;
+                const prev = getType(r,c-1);
+                if(cur!==null && cur===prev && !isNotMatchable(cur)) continue;
+                const len = c - runStart;
+                if(len>=3 && prev !== null && !isNotMatchable(prev)){
+                    const cells=[]; 
+                    for(let k=runStart;k<c;k++) cells.push([r,k]);
+                    runs.push({cells, dir:'h', length:len, type:prev, used:false});
+                }
+                runStart = c;
+            }
+        }
+        for(let c=0;c<SIZE;c++){
+            let runStart=0;
+            for(let r=1;r<=SIZE;r++){
+                const cur = r<SIZE ? getType(r,c) : null;
+                const prev = getType(r-1,c);
+                if(cur!==null && cur===prev && !isNotMatchable(cur)) continue;
+                const len = r - runStart;
+                if(len>=3 && prev !== null && !isNotMatchable(prev)){
+                    const cells=[]; 
+                    for(let k=runStart;k<r;k++) cells.push([k,c]);
+                    runs.push({cells, dir:'v', length:len, type:prev, used:false});
+                }
+                runStart = r;
+            }
+        }
+        return runs;
+    }
+
+    function dedupeCells(cells){
+        const seen = new Set(); 
+        const out=[];
+        cells.forEach(c=>{ 
+            const k=key(c[0],c[1]); 
+            if(!seen.has(k)){ seen.add(k); out.push(c); } 
+        });
+        return out;
+    }
+
+    function analyzeMatches(){
+        const runs = collectRuns();
+        const matchedByLine = new Set();
+        runs.forEach(r=> r.cells.forEach(c=> matchedByLine.add(key(c[0],c[1]))));
+
+        const squares = [];
+        const usedSquareCells = new Set();
+        for(let r=0;r<SIZE-1;r++){
+            for(let c=0;c<SIZE-1;c++){
+                const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
+                if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
+                const t0 = getType(r,c);
+                if(!t0 || isNotMatchable(t0)) continue;
+                if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
+                    squares.push({type:'plane', at:[r,c], cells});
+                    cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
+                }
+            }
+        }
+
+        const hRuns = runs.filter(r=>r.dir==='h');
+        const vRuns = runs.filter(r=>r.dir==='v');
+        const bombs = [];
+        hRuns.forEach(h=>{
+            if(h.used) return;
+            for(const v of vRuns){
+                if(v.used || v.type!==h.type) continue;
+                const shared = h.cells.find(hc=> v.cells.some(vc=> vc[0]===hc[0] && vc[1]===hc[1]));
+                if(shared){
+                    h.used=true; v.used=true;
+                    bombs.push({type:'bomb', at:shared, cells: dedupeCells(h.cells.concat(v.cells))});
+                    break;
+                }
+            }
+        });
+
+        const rockets = [], rainbows = [];
+        const normalCells = new Set();
+        runs.forEach(run=>{
+            if(run.used) return;
+            if(run.length>=5){
+                rainbows.push({type:'rainbow', at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
+            } else if(run.length===4){
+                const spType = run.dir==='h' ? 'rocketCol' : 'rocketRow';
+                rockets.push({type: spType, at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
+            } else {
+                run.cells.forEach(c=> normalCells.add(key(c[0],c[1])));
+            }
+        });
+
+        return {bombs, rockets, rainbows, squares, normalCells};
+    }
+
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -740,7 +832,6 @@
             if (t) {
                 spawnMatchParticles(r, c, t.type);
 
-                // Если это прочное препятствие — наносим урон вместо мгновенного удаления
                 if (t.type === 'box' || t.frozen || t.chained) {
                     damageObstacle(t, r, c, isExplosion);
                 } else {
@@ -750,7 +841,6 @@
             }
         });
 
-        // Распространение взрыва на соседние коробки
         checkAndBreakBoxes(finalClearSet, isExplosion);
 
         finalClearSet.forEach(k=>{
@@ -799,7 +889,7 @@
         
         if (has('plane') && has('plane')) {
             cells = computeActivationFootprint(a);
-            activePlanesCount += doublePlanesActive ? 6 : 3; // Удвоение самолетиков
+            activePlanesCount += doublePlanesActive ? 6 : 3;
             clearAndContinue(cells, [], null, () => {
                 for (let i = 0; i < (doublePlanesActive ? 6 : 3); i++) {
                     const target = findBestTargetForPlane(a.row, a.col);
@@ -841,7 +931,6 @@
         if (busy) return;
         
         if (type === 'fan') {
-            // Вентилятор срабатывает мгновенно
             if (window.GameState && window.GameState.useOrBuyActiveBooster('fan', ACTIVE_BOOSTER_COSTS.fan)) {
                 shuffleBoard();
                 refreshActiveBoostersHUD();
@@ -874,7 +963,6 @@
         }
     }
 
-    // Обработка клика по фишке в режиме бустера
     function executeBoosterAction(tile) {
         const type = activeBooster;
         const cost = ACTIVE_BOOSTER_COSTS[type];
@@ -886,7 +974,6 @@
                 pulseToast("Теперь выберите соседнюю фишку для обмена!");
                 return;
             } else {
-                // Проверка соседства
                 const adjacent = Math.abs(gloveSelectedTile.row - tile.row) + Math.abs(gloveSelectedTile.col - tile.col) === 1;
                 gloveSelectedTile.el.classList.remove('selected');
                 
@@ -913,7 +1000,6 @@
             return;
         }
 
-        // Запуск списания бустера
         if (window.GameState && window.GameState.useOrBuyActiveBooster(type, cost)) {
             activeBooster = null;
             setBoosterUI(null);
@@ -940,7 +1026,6 @@
         }
     }
 
-    // Слушатели для активных бустеров
     if (btnHammer) btnHammer.addEventListener('click', () => toggleActiveBooster('hammer'));
     if (btnGlove) btnGlove.addEventListener('click', () => toggleActiveBooster('glove'));
     if (btnBroom) btnBroom.addEventListener('click', () => toggleActiveBooster('broom'));
@@ -1097,7 +1182,6 @@
         levelDifficulty = levelData.difficulty;
         targetType = levelData.targetType || "heart";
         
-        // Сброс выбора бустеров
         selectedPreBoosters = { rainbow: false, combo: false, doublePlanes: false };
         updatePreBoostersUI();
 
@@ -1136,7 +1220,6 @@
         if (overlayPreLevel) overlayPreLevel.classList.remove('hidden');
     }
 
-    // ЛОГИКА ВЫБОРА БУСТЕРОВ НА ЭКРАНЕ СТАРТА
     function updatePreBoostersUI() {
         if (!window.GameState) return;
         ['rainbow', 'combo', 'doublePlanes'].forEach(type => {
@@ -1150,17 +1233,14 @@
         });
     }
 
-    // Слушатели стартовых бустеров
     ['rainbow', 'combo', 'doublePlanes'].forEach(type => {
         const btn = document.getElementById(`preBtn${type.charAt(0).toUpperCase() + type.slice(1)}`);
         if (btn) {
             btn.addEventListener('click', () => {
                 const cost = 500;
-                // Переключаем выделение
                 if (selectedPreBoosters[type]) {
                     selectedPreBoosters[type] = false;
                 } else {
-                    // Проверяем наличие денег или бустера на складе
                     if (window.GameState.getPreBoosterCount(type) > 0 || window.GameState.getCash() >= cost) {
                         selectedPreBoosters[type] = true;
                     } else {
@@ -1174,7 +1254,6 @@
 
     if (btnStartMatch3) {
         btnStartMatch3.addEventListener('click', () => {
-            // Списываем купленные или выбранные пре-бустеры из GameState перед боем
             ['rainbow', 'combo', 'doublePlanes'].forEach(type => {
                 if (selectedPreBoosters[type]) {
                     window.GameState.useOrBuyPreBooster(type, 500);
@@ -1197,5 +1276,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Многослойная система повреждений и 5 инструментов полностью интегрированы!");
+    console.log("match3.js: Ошибки вызова аналитических функций устранены!");
 })();
