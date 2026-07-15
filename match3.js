@@ -893,7 +893,7 @@
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
-        const maxLoops = 25;
+        const maxLoops = 25; // Ограничение на случай зависания
 
         while (moved && loops < maxLoops) {
             moved = false; loops++;
