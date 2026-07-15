@@ -1218,6 +1218,7 @@
     }
 
     // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ПОРТАЛАМИ И ПОНЧИКАМИ
+    // УЛУЧШЕННЫЙ ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ОБХОДОМ ПУСТОТ
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
@@ -1231,7 +1232,7 @@
                 for (let c = 0; c < SIZE; c++) {
                     if (levelLayout[r][c] === 1 && grid[r][c] === null) {
                         
-                        let sourceRow = r - 1;
+                        let sourceRow = -1;
                         let sourceCol = c;
 
                         const cellKey = key(r, c);
@@ -1239,6 +1240,17 @@
                             const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
                             sourceRow = ep_r;
                             sourceCol = ep_c;
+                        } else {
+                            // Ищем ближайшую живую клетку выше по колонке, игнорируя пустые вырезы (0)
+                            for (let checkR = r - 1; checkR >= 0; checkR--) {
+                                if (levelLayout[checkR][c] === 2) {
+                                    break; // Путь перекрыт ящиком, падение невозможно
+                                }
+                                if (levelLayout[checkR][c] === 1) {
+                                    sourceRow = checkR;
+                                    break;
+                                }
+                            }
                         }
 
                         if (sourceRow >= 0 && sourceRow < SIZE && sourceCol >= 0 && sourceCol < SIZE) {
@@ -1254,22 +1266,30 @@
                 }
             }
 
+            // Динамический спавн фишек в наивысшей доступной точке каждой колонки
             for (let c = 0; c < SIZE; c++) {
-                if (levelLayout[0][c] === 1 && grid[0][c] === null) {
+                let topRow = -1;
+                for (let r = 0; r < SIZE; r++) {
+                    if (levelLayout[r][c] === 1) {
+                        topRow = r;
+                        break;
+                    }
+                }
+                
+                if (topRow !== -1 && grid[topRow][c] === null) {
                     let spawnType = randType();
                     if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
                         spawnType = "donut";
                     }
-                    grid[0][c] = createTile(0, c, spawnType, -1);
+                    grid[topRow][c] = createTile(topRow, c, spawnType, topRow - 1);
                     moved = true;
                 }
             }
         }
 
         collectDoughnuts();
-        resetHintTimer(); // Сброс таймера подсказок после каждого падения фишек
+        resetHintTimer(); 
     }
-
     // РАСЧЕТ НАГРАД ЗА УРОВЕНЬ
     function getRewards(diff) {
         let starsGained = 1;
