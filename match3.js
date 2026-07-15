@@ -607,14 +607,14 @@
         }
     }
 
-    function processThreatsAndJesters() {
+function processThreatsAndJesters() {
         let spawnedFoam = false;
 
-        // Поведение попугая (Parrot) - взлетает на 1 клетку вверх, если над ним пусто
+        // Поведение попугая (Parrot) - взлетает только на свободные игровые клетки
         for (let r = 1; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
-                if (t && t.type === 'parrot' && grid[r-1][c] === null) {
+                if (t && t.type === 'parrot' && levelLayout[r-1][c] === 1 && grid[r-1][c] === null) {
                     grid[r-1][c] = t;
                     grid[r][c] = null;
                     moveTileTo(t, r - 1, c);
@@ -622,7 +622,7 @@
             }
         }
 
-        // Логика растекания мыльной пены (Foam) и плюща (Ivy)
+        // Логика растекания мыльной пены (Foam) и плюща (Ivy) только на игровое поле
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
@@ -631,7 +631,7 @@
                         [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
                     ];
                     for (const [nr, nc] of neighbors) {
-                        if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
+                        if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && levelLayout[nr][nc] === 1 && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
                             const victim = grid[nr][nc];
                             victim.el.remove();
                             grid[nr][nc] = createTile(nr, nc, t.type, nr);
@@ -644,7 +644,7 @@
             }
         }
 
-        // Поведение Шута (Jester) - прыгает на случайную пустую клетку
+        // Поведение Шута (Jester)
         let jesterTile = null;
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
@@ -672,7 +672,6 @@
             }
         }
     }
-
     function buildInitialGrid(){
         boardEl.innerHTML = '';
         grid = [];
