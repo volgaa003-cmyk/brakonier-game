@@ -1595,6 +1595,42 @@
             }
         });
     }
+    function hasPossibleMoves() {
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && isSpecial(t.type)) return true;
+            }
+        }
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (!t || t.type === 'box' || t.type === 'donut') continue;
+
+                const neighbors = [[r + 1, c], [r, c + 1]];
+                for (const [nr, nc] of neighbors) {
+                    if (nr < SIZE && nc < SIZE) {
+                        const nt = grid[nr][nc];
+                        if (nt && nt.type !== 'box' && nt.type !== 'donut') {
+                            
+                            grid[r][c] = nt;
+                            grid[nr][nc] = t;
+
+                            const runs = collectRuns();
+                            const hasMatch = runs.length > 0;
+
+                            grid[r][c] = t;
+                            grid[nr][nc] = nt;
+
+                            if (hasMatch) return true; 
+                        }
+                    }
+                }
+            }
+        }
+        return false; 
+    }
 function updateMatch3HUD() {
         if (m3MovesText) m3MovesText.textContent = moves;
         if (!m3GoalText) return;
