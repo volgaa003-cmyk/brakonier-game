@@ -1196,7 +1196,7 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 9: ОЧИСТКА КЛЕТОК И СИНХРОННЫЙ СПАВН СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
-   // Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
+// Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -1216,7 +1216,7 @@
 
                 if (t.type === 'box' || t.frozen || t.chained) {
                     damageObstacle(t, r, c, isExplosion);
-        } else {
+                } else {
                     finalClearSet.add(k);
                     // Бронированная проверка совпадения типа фишки с целью уровня (срезает пробелы и регистр)
                     const isTargetMatch = String(targetType).trim().toLowerCase() === String(t.type).trim().toLowerCase();
@@ -1224,8 +1224,8 @@
                         hearts++;
                     }
                 }
+            } // <-- ИСПРАВЛЕНО: Добавлена эта закрывающая скобка для блока "if (t)"
         });
-
         checkAndBreakBoxes(finalClearSet, isExplosion);
 
         finalClearSet.forEach(k=>{
