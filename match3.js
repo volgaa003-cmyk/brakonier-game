@@ -708,6 +708,37 @@
             }
         }
     }
+    // Алгоритм авто-взлома соседних коробок при матчах или взрывах бонусов рядом с ними
+    function checkAndBreakBoxes(clearSet, isExplosion) {
+        const boxesToBreak = new Set();
+
+        // Проверяем все соседние ячейки (влево, вправо, вверх, вниз) от уничтожаемых фишек
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const neighbors = [
+                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+            ];
+
+            neighbors.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                    const tile = grid[nr][nc];
+                    if (tile && tile.type === 'box') {
+                        boxesToBreak.add(key(nr, nc)); // Помечаем коробку под урон
+                    }
+                }
+            });
+        });
+
+        // Наносим урон всем найденным соседним коробкам
+        boxesToBreak.forEach(k => {
+            const [br, bc] = k.split(',').map(Number);
+            const boxTile = grid[br][bc];
+            if (boxTile) {
+                damageObstacle(boxTile, br, bc, isExplosion);
+            }
+        });
+        return boxesToBreak;
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 6: ИНИЦИАЛИЗАЦИЯ И ПОСТРОЕНИЕ ПОЛЯ
     // ----------------------------------------------------------------------
