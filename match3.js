@@ -130,7 +130,53 @@
         let bonusCoins = currentMoves * 10;
         return { stars: starsGained, coins: baseCoins + bonusCoins, base: baseCoins, bonus: bonusCoins };
     };
+// Функция легкого или сильного встряхивания игрового поля (эффект отдачи при взрывах)
+    function triggerBoardShake(intensityClass = 'shake-mild') {
+        if (!boardEl) return;
+        boardEl.classList.remove('shake-mild', 'shake-intense');
+        void boardEl.offsetWidth; // Триггерим перерисовку (Reflow) в браузере для перезапуска анимации
+        boardEl.classList.add(intensityClass);
+        setTimeout(() => boardEl.classList.remove('shake-mild', 'shake-intense'), 350);
+    }
+    // Спавнер сочных искр-частиц Homescapes при уничтожении элементов
+    function spawnMatchParticles(r, c, type) {
+        if (!boardEl) return;
+        const count = 6; // Количество искр от одной фишки
+        const colorPalette = { 
+            heart: '#ff2e93',  // Розовые искры для сердец
+            bullet: '#2ecc71', // Зеленые для патронов
+            garlic: '#f1c40f', // Желтые для чеснока
+            stake: '#3498db',  // Синие для клинков
+            vial: '#9b59b6',   // Фиолетовые для колб
+            coin: '#f39c12'    // Золотые для монет
+        };
+        const pColor = colorPalette[type] || '#ffffff';
+        const cellWidth = boardEl.offsetWidth / SIZE;
+        
+        // Вычисляем центр ячейки для старта разлета частиц
+        const startX = (c + 0.5) * cellWidth;
+        const startY = (r + 0.5) * cellWidth;
 
+        for (let i = 0; i < count; i++) {
+            const spark = document.createElement('div');
+            spark.className = 'm3-spark';
+            spark.style.backgroundColor = pColor;
+            spark.style.left = startX + 'px';
+            spark.style.top = startY + 'px';
+            boardEl.appendChild(spark);
+
+            // Математически рассчитываем круговой вектор разлета для каждой искры
+            const angle = (Math.PI * 2 / count) * i + (Math.random() * 0.4 - 0.2);
+            const force = 30 + Math.random() * 30; // Случайная сила импульса
+            
+            setTimeout(() => {
+                spark.style.transform = `translate(${Math.cos(angle)*force}px, ${Math.sin(angle)*force}px) scale(0)`;
+                spark.style.opacity = '0';
+            }, 20);
+            
+            setTimeout(() => spark.remove(), 420); // Удаляем частицу после завершения анимации
+        }
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 4: ВНЕДРЕНИЕ СТИЛЕЙ КИНЕМАТОГРАФИЧЕСКИХ АНИМАЦИЙ
     // ----------------------------------------------------------------------
