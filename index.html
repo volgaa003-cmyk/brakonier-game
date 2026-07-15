@@ -101,7 +101,7 @@
   </main>
 
   <!-- ==================== ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ) ==================== -->
-  <main id="screenMatch3" class="game-screen hidden">
+<main id="screenMatch3" class="game-screen hidden">
     <div class="match3-header">
       <div class="goal-box">
         <span>Цель:</span>
@@ -113,6 +113,19 @@
       </div>
     </div>
 
+    <!-- Контейнер для поля -->
+    <div id="boardWrap">
+      <div id="board"></div>
+    </div>
+
+    <!-- Интерактивная панель бустеров -->
+    <div class="booster-panel">
+      <button class="booster-btn" id="btnHammer">🔨 Молоток <span class="cost">(150₽)</span></button>
+      <button class="booster-btn" id="btnBroom">🧹 Метла <span class="cost">(300₽)</span></button>
+    </div>
+
+    <div class="match3-footer">Свапни два бонуса — получи комбо!</div>
+  </main>
     <!-- Контейнер для поля -->
     <div id="boardWrap">
       <div id="board"></div>
