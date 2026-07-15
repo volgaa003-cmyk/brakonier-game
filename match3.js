@@ -193,12 +193,31 @@
             case 'rainbow': return '🌈';
             case 'box': return '📦';
             case 'donut': return '🍩';
+            // Блокирующие препятствия
+            case 'vase': return '🏺';       // Ваза (разрушается за 1 хит)
+            case 'brick': return '🧱';      // Кирпич (убирается только бонусами)
+            // Цели сбора
+            case 'apple': return '🍎';      // Яблоко (собирается матчами рядом)
+            case 'cherry': return '🍒';     // Вишня (собирается матчами рядом)
+            case 'nut': return '🥜';        // Орех (разбивается только бонусами)
+            case 'ring': return '💍';       // Кольцо (требует 2 хита рядом)
+            case 'cheese': return '🧀';     // Сыр (собирается матчами рядом)
+            case 'book': return '📖';       // Книга (собирается матчами рядом)
+            // Интерактивные элементы
+            case 'compass': return '🧭';    // Компас (убирается со стороны стрелки)
+            case 'pinata': return '🪅';     // Пиньята (уязвима только когда открыта)
+            case 'capsule': return '💊';    // Капсула (дает 2 бонуса при взрыве)
+            case 'jester': return '🃏';     // Шут (прыгает каждый ход)
+            // Угрозы
+            case 'foam': return '🧼';       // Пена (растекается)
+            case 'ivy': return '🌿';        // Плющ (прорастает)
+            case 'steam': return '💨';      // Пар (блокирует видимость плитки)
+            case 'parrot': return '🦜';     // Попугай (улетает вверх)
             default: return TYPES.find(t=>t.id===type).icon;
         }
     }
-
     function applySpecialClass(t){
-        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box', 'frozen', 'chained');
+        t.el.classList.remove('bomb','rocket-row','rocket-col','plane','rainbow', 'box', 'frozen', 'chained', 'webbed', 'steam-layer');
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
         else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
@@ -206,10 +225,16 @@
         else if(t.type==='rainbow') t.el.classList.add('rainbow');
         else if(t.type==='box') t.el.classList.add('box');
         
+        // Дополнительные CSS классы для Homescapes элементов
+        if(t.type==='brick') t.el.classList.add('brick-obstacle');
+        if(t.type==='foam') t.el.classList.add('foam-threat');
+        if(t.type==='ivy') t.el.classList.add('ivy-threat');
+        
         if(t.frozen) t.el.classList.add('frozen');
         if(t.chained) t.el.classList.add('chained');
+        if(t.webbed) t.el.classList.add('webbed'); // Паутина
+        if(t.steam) t.el.classList.add('steam-layer'); // Пар
     }
-
     function setTilePos(el, row, col){
         el.style.left = (col*100/SIZE)+'%';
         el.style.top = (row*100/SIZE)+'%';
