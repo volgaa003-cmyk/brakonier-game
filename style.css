@@ -973,3 +973,31 @@ body {
   box-shadow: 0 0 20px var(--gold);
   filter: brightness(1.1);
 }
+
+/* ==========================================================================
+   15. ОФОРМЛЕНИЕ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ (TOAST)
+   ========================================================================== */
+.toast-notification {
+  position: fixed;
+  bottom: 25%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  background: rgba(13, 11, 15, 0.95);
+  color: var(--gold);
+  border: 2px solid var(--gold);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-notification.show {
+  opacity: 1;
+  transform: translate(-50%, -10px);
+}
