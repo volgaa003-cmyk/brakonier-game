@@ -2348,10 +2348,10 @@ function pulseToast(msg) {
             const dialogueWin = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].win : null;
             if (window.NovelEngine && dialogueWin) {
                 window.NovelEngine.run(dialogueWin, () => {
-                    showOverlay('Успешный улов!', winText);
+                    showOverlay('Успешный улов!', winText, true);
                 });
             } else {
-                showOverlay('Успешный улов!', winText);
+                showOverlay('Успешный улов!', winText, true);
             }
             return;
         }
@@ -2367,10 +2367,10 @@ function pulseToast(msg) {
 
             if (window.NovelEngine && dialogueLose) {
                 window.NovelEngine.run(dialogueLose, () => {
-                    showOverlay('Слитый бой...', loseText);
+                    showOverlay('Слитый бой...', loseText, false);
                 });
             } else {
-                showOverlay('Слитый бой...', loseText);
+                showOverlay('Слитый бой...', loseText, false);
             }
             return;
         }
@@ -2498,6 +2498,90 @@ function pulseToast(msg) {
 
         // Бустеры не тратят ход игрока — только деньги
         clearAndContinue(cells, [], null, null, false, false, true);
+    }
+
+    // ==================== ВИЗУАЛЬНЫЕ ЭФФЕКТЫ БОНУСОВ (ранее отсутствовали) ====================
+    function animateBombEffect(row, col) {
+        triggerBoardShake('shake-mild');
+        spawnMatchParticles(row, col, 'coin');
+    }
+
+    function animateRocketEffect(row, col, isRowDirection) {
+        triggerBoardShake('shake-mild');
+        spawnMatchParticles(row, col, 'bullet');
+    }
+
+    function animatePlaneEffect(fromRow, fromCol, toRow, toCol, callback) {
+        spawnMatchParticles(fromRow, fromCol, 'coin');
+        setTimeout(() => {
+            spawnMatchParticles(toRow, toCol, 'coin');
+            if (callback) callback();
+        }, 260);
+    }
+
+    function animateRainbowTentacles(fromRow, fromCol, targets, color) {
+        triggerBoardShake('shake-mild');
+        (targets || []).forEach(({ r, c }) => spawnMatchParticles(r, c, color));
+    }
+
+    // ==================== ПЕРЕМЕШИВАНИЕ ПОЛЯ ПРИ ОТСУТСТВИИ ХОДОВ (ранее отсутствовало) ====================
+    function shuffleBoard() {
+        const positions = [];
+        const movableTiles = [];
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (levelLayout[r][c] === 1 && t && t.type !== 'box' && t.type !== 'donut' &&
+                    !t.frozen && !t.chained && !isSpecial(t.type)) {
+                    positions.push({ r, c });
+                    movableTiles.push(t);
+                }
+            }
+        }
+
+        if (movableTiles.length < 2) return;
+
+        let attempts = 0;
+        do {
+            const types = movableTiles.map(t => t.type);
+            for (let i = types.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [types[i], types[j]] = [types[j], types[i]];
+            }
+            movableTiles.forEach((tile, idx) => {
+                tile.type = types[idx];
+                tile.inner.textContent = iconFor(tile.type);
+                applySpecialClass(tile);
+            });
+            attempts++;
+        } while (!hasPossibleMoves() && attempts < 15);
+
+        triggerBoardShake('shake-mild');
+        pulseToast('🔄 Нет ходов — поле перемешано!');
+    }
+
+    // ==================== ЭКРАН РЕЗУЛЬТАТОВ УРОВНЯ (ранее отсутствовал) ====================
+    let pendingResultIsWin = null;
+
+    function showOverlay(title, text, isWin) {
+        pendingResultIsWin = !!isWin;
+        if (resultsTitle) resultsTitle.textContent = title;
+        if (resultsText) resultsText.textContent = text;
+        if (overlayResults) overlayResults.classList.remove('hidden');
+        busy = false;
+    }
+
+    const btnResultsClose = document.getElementById('btnResultsClose');
+    if (btnResultsClose) {
+        btnResultsClose.addEventListener('click', () => {
+            if (overlayResults) overlayResults.classList.add('hidden');
+            if (pendingResultIsWin && window.GameState) {
+                window.GameState.nextLevel();
+            }
+            pendingResultIsWin = null;
+            if (window.showScreen) window.showScreen('screenMap');
+        });
     }
 
     function openPreLevelScreen(levelId) {
