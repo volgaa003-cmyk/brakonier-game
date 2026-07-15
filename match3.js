@@ -1694,6 +1694,9 @@ function updateMatch3HUD() {
             m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
         } else if (targetType === "donut") {
             m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`;
+        } else if (["vase", "apple", "cherry", "nut", "ring", "cheese", "book", "pinata", "capsule"].includes(targetType)) {
+            // Для всех новых Homescapes целей сбора используем универсальный счетчик
+            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ${iconFor(targetType)}`;
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
