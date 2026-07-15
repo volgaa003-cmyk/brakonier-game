@@ -116,8 +116,8 @@
         });
     }
 
-    // Расчет наград за прохождение уровня на основе его сложности и оставшихся ходов
-    const getRewards = function(diff) {
+    // Расчет наград за прохождение уровня на основе его сложности и переданного числа ходов
+    const getRewards = function(diff, movesCount) {
         let starsGained = 1;
         let baseCoins = 100;
         if (diff === "medium") baseCoins = 150;
@@ -125,8 +125,9 @@
         else if (diff === "extreme") baseCoins = 400;
         else if (diff === "challenge") { starsGained = 3; baseCoins = 300; }
         
-        // Каждый неиспользованный ход дает игроку по 10 бонусных рублей
-        let bonusCoins = moves * 10;
+        // Если передан конкретный счетчик ходов, используем его, иначе берем текущие ходы
+        let currentMoves = (movesCount !== undefined) ? movesCount : moves;
+        let bonusCoins = currentMoves * 10;
         return { stars: starsGained, coins: baseCoins + bonusCoins, base: baseCoins, bonus: bonusCoins };
     };
 
@@ -609,6 +610,58 @@
         tile.row = row; tile.col = col;
         setTilePos(tile.el, row, col);
     }
+    // Функция послойного разрушения прочных препятствий (коробки, лед, цепи)
+    function damageObstacle(tile, r, c, isExplosion) {
+        const damage = isExplosion ? 2 : 1; // Взрывы бонусов наносят двойной урон (пробивают 2 слоя)
+        
+        // 1. Повреждение многослойной коробки (📦)
+        if (tile.type === 'box') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                // Если слои еще остались — просто обновляем иконку на треснувшую/доски
+                tile.inner.textContent = iconFor('box', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                // Если прочность упала до 0 — мгновенно очищаем сетку и запускаем анимацию удаления
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null; // Синхронное очищение ячейки в матрице (Исключает баг дыр!)
+                if (targetType === "box") boxesBroken++;
+                setTimeout(() => {
+                    tile.el.remove();
+                }, CLEAR_MS);
+            }
+        }
+        
+        // 2. Повреждение скованного льда (🧊)
+        if (tile.frozen) {
+            tile.frozenLayers -= damage;
+            if (tile.frozenLayers > 0) {
+                applySpecialClass(tile);
+            } else {
+                tile.frozen = false;
+                tile.frozenLayers = 0;
+                iceGrid[r][c] = 0;
+                applySpecialClass(tile);
+                if (targetType === "ice") iceMelted++;
+            }
+        }
+
+        // 3. Повреждение цепей на фишке (🔗)
+        if (tile.chained) {
+            tile.chainedLayers -= damage;
+            if (tile.chainedLayers > 0) {
+                applySpecialClass(tile);
+            } else {
+                tile.chained = false;
+                tile.chainedLayers = 0;
+                chainGrid[r][c] = 0;
+                applySpecialClass(tile);
+                pulseToast("🔗 Цепь полностью снята!");
+            }
+        }
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 6: ИНИЦИАЛИЗАЦИЯ И ПОСТРОЕНИЕ ПОЛЯ
     // ----------------------------------------------------------------------
@@ -663,7 +716,89 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 7: ГРАВИТАЦИЯ, ПОРТАЛЫ И ДИАГОНАЛЬНОЕ ОГИБАНИЕ ПРЕПЯТСТВИЙ
     // ----------------------------------------------------------------------
-// Сбор пончиков у самого низа игрового поля (аналог лимонадов из Homescapes)
+// Движок пошаговой гравитации: вертикальное падение фишек и диагональное огибание препятствий
+    function applyGravityAndRefill(){
+        let moved = true;
+        let loops = 0;
+        const maxLoops = 25;
+
+        while (moved && loops < maxLoops) {
+            moved = false; loops++;
+            for (let r = SIZE - 1; r >= 0; r--) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] !== 0 && grid[r][c] === null) {
+                        let sourceRow = -1;
+                        let sourceCol = c;
+                        const cellKey = key(r, c);
+
+                        // 1. Проверяем связь ячейки с телепортационным порталом
+                        if (portals[cellKey]) {
+                            const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
+                            sourceRow = ep_r;
+                            sourceCol = ep_c;
+                        } else {
+                            // 2. Ищем заполненную фишку по вертикали выше
+                            for (let checkR = r - 1; checkR >= 0; checkR--) {
+                                if (levelLayout[checkR][c] === 0) break;
+                                if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
+                            }
+                        }
+
+                        // Логика прямого вертикального падения фишки на пустое место
+                        if (sourceRow >= 0 && sourceCol >= 0 && sourceCol < SIZE) {
+                            const t = grid[sourceRow][sourceCol];
+                            if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                grid[r][c] = t; 
+                                grid[sourceRow][sourceCol] = null;
+                                moveTileTo(t, r, c); 
+                                moved = true;
+                                continue;
+                            }
+                        }
+
+                        // Логика сползания фишек по диагонали (плавное огибание коробок/льда)
+                        if (grid[r][c] === null && !portals[cellKey]) {
+                            const sideDirections = [-1, 1];
+                            if (Math.random() < 0.5) sideDirections.reverse();
+
+                            for (const dc of sideDirections) {
+                                const diagCol = c + dc;
+                                const diagRow = r - 1;
+
+                                if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
+                                    if (levelLayout[diagRow][diagCol] !== 0) {
+                                        const t = grid[diagRow][diagCol];
+                                        if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                            grid[r][c] = t;
+                                            grid[diagRow][diagCol] = null;
+                                            moveTileTo(t, r, c);
+                                            moved = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Наполнение пустых мест фишками сверху
+            for (let c = 0; c < SIZE; c++) {
+                for (let r = 0; r < SIZE; r++) {
+                    const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
+                    if (isSegmentTop && grid[r][c] === null) {
+                        grid[r][c] = createTile(r, c, randType(), r - 1);
+                        moved = true;
+                    }
+                }
+            }
+        }
+        collectDoughnuts();
+        processThreatsAndJesters();
+        resetHintTimer(); 
+    }
+    // Сбор пончиков у самого низа игрового поля (аналог лимонадов из Homescapes)
     function collectDoughnuts() {
         let collectedThisTurn = 0;
         for (let c = 0; c < SIZE; c++) {
@@ -761,7 +896,7 @@
 
         if(isVictory){
             clearTimeout(hintTimeout);
-            const rewards = getRewards(levelDifficulty);
+            const rewards = getRewards(levelDifficulty, moves);
             if (window.GameState) {
                 window.GameState.addStars(rewards.stars);
                 window.GameState.addCash(rewards.coins);
@@ -1358,7 +1493,7 @@
             else goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
         }
 
-        const rewards = getRewards(levelDifficulty);
+        const rewards = getRewards(levelDifficulty, START_MOVES);
         const preStars = document.getElementById('preRewardStars');
         if (preStars) preStars.textContent = `⭐ +${rewards.stars}`;
         const preCoins = document.getElementById('preRewardCoins');
