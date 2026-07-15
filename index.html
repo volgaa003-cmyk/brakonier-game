@@ -101,7 +101,7 @@
   </main>
 
   <!-- ==================== ЭКРАН 3: ТРИ В РЯД (ИГРОВОЕ ПОЛЕ) ==================== -->
-<main id="screenMatch3" class="game-screen hidden">
+  <main id="screenMatch3" class="game-screen hidden">
     <div class="match3-header">
       <div class="goal-box">
         <span>Цель:</span>
@@ -126,13 +126,6 @@
 
     <div class="match3-footer">Свапни два бонуса — получи комбо!</div>
   </main>
-    <!-- Контейнер для поля -->
-    <div id="boardWrap">
-      <div id="board"></div>
-    </div>
-
-    <div class="match3-footer">Свапни два бонуса — получи комбо!</div>
-  </main>
 
   <!-- ==================== ОВЕРЛЕЙ 1: ОКНО ДИАЛОГОВ (НОВЕЛЛА) ==================== -->
   <div id="overlayDialogue" class="ui-overlay hidden">
@@ -142,9 +135,8 @@
         <p class="dialogue-text" id="dialogueText">Текст реплики...</p>
       </div>
       
-      <!-- Кнопки выбора ответов (Клуб Романтики) -->
+      <!-- Кнопки выбора ответов -->
       <div class="choices-container hidden" id="dialogueChoices">
-        <!-- Будут создаваться через JS -->
         <button class="choice-btn">1. Отдать сердца (Требует 👑 10)</button>
         <button class="choice-btn">2. Атаковать стражу</button>
       </div>
@@ -190,8 +182,8 @@
       <div class="pre-level-rewards">
         <div class="reward-title">Награда:</div>
         <div class="reward-row">
-          <span class="reward-pill">⭐ +1</span>
-          <span class="reward-pill">💰 +100₽</span>
+          <span class="reward-pill" id="preRewardStars">⭐ +1</span>
+          <span class="reward-pill" id="preRewardCoins">💰 +100₽</span>
         </div>
       </div>
 
