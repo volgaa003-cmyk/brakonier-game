@@ -589,6 +589,10 @@
         doublePlanesActive = selectedPreBoosters.doublePlanes;
     }
 
+// ================================================
+// match3.js — ЧАСТЬ 2: ДВИЖОК ГРАВИТАЦИИ И МАТЧИНГА (ИСПРАВЛЕНО)
+// ================================================
+
     function buildInitialGrid(){
         if (!boardEl) return;
         boardEl.innerHTML = '';
@@ -872,6 +876,7 @@
         return {bombs, rockets, rainbows, squares, normalCells};
     }
 
+    // Очистка клеток и продолжение комбо
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -909,12 +914,24 @@
         updateMatch3HUD();
         
         setTimeout(()=>{
-            // Очистка фишек во встроенной памяти
+            // 1. Очистка уничтоженных фишек во встроенной памяти
             finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r][c]; 
-                if(t){ t.el.remove(); grid[r][c]=null; }
+                if(t){ t.el.remove(); grid[r][c] = null; }
             });
+
+            // 2. ВОССТАНОВЛЕННЫЙ БЛОК: Рождение бустеров на поле на месте совпадений!
+            specialSpawns.forEach(s => {
+                const [r, c] = s.at;
+                if (!grid[r]) return;
+                let t = grid[r][c];
+                if (t) {
+                    t.el.remove(); // Убираем фишку, которая там была
+                }
+                grid[r][c] = createTile(r, c, s.type, r); // Спавним новенький бустер
+            });
+
             applyGravityAndRefill();
             setTimeout(()=>{
                 const result = analyzeMatches();
