@@ -737,11 +737,11 @@
     }
 
     // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ПОРТАЛАМИ И ПОНЧИКАМИ
-    // УЛУЧШЕННЫЙ ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ОБХОДОМ ПУСТОТ
+   // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ДИАГОНАЛЬНЫМ ЗАТЕКАНИЕМ (HOMESCAPES STYLE)
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
-        const maxLoops = 20; 
+        const maxLoops = 25; // Увеличили лимит циклов для плавного затекания
 
         while (moved && loops < maxLoops) {
             moved = false;
@@ -754,16 +754,16 @@
                         let sourceRow = -1;
                         let sourceCol = c;
 
+                        // 1. Попытка вертикального падения (Приоритет)
                         const cellKey = key(r, c);
                         if (portals[cellKey]) {
                             const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
                             sourceRow = ep_r;
                             sourceCol = ep_c;
                         } else {
-                            // Ищем ближайшую живую клетку выше по колонке, игнорируя пустые вырезы (0)
                             for (let checkR = r - 1; checkR >= 0; checkR--) {
                                 if (levelLayout[checkR][c] === 2) {
-                                    break; // Путь перекрыт ящиком, падение невозможно
+                                    break; // Заблокировано ящиком сверху
                                 }
                                 if (levelLayout[checkR][c] === 1) {
                                     sourceRow = checkR;
@@ -779,12 +779,63 @@
                                 grid[sourceRow][sourceCol] = null;
                                 moveTileTo(t, r, c);
                                 moved = true;
+                                continue; // Успешно заполнили клетку вертикально
+                            }
+                        }
+
+                        // 2. Диагональный затек по бокам (если вертикальный путь заблокирован льдом/ящиком)
+                        if (grid[r][c] === null && !portals[cellKey]) {
+                            const sideDirections = [-1, 1]; // Влево-вверх и Вправо-вверх
+                            if (Math.random() < 0.5) sideDirections.reverse(); // Рандомизируем направления
+
+                            for (const dc of sideDirections) {
+                                const diagCol = c + dc;
+                                const diagRow = r - 1;
+
+                                if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
+                                    if (levelLayout[diagRow][diagCol] === 1) {
+                                        const t = grid[diagRow][diagCol];
+                                        // Переливаться могут только свободные фишки
+                                        if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                            grid[r][c] = t;
+                                            grid[diagRow][diagCol] = null;
+                                            moveTileTo(t, r, c);
+                                            moved = true;
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
+            // Наполнение колонок из спавнеров
+            for (let c = 0; c < SIZE; c++) {
+                let topRow = -1;
+                for (let r = 0; r < SIZE; r++) {
+                    if (levelLayout[r][c] === 1) {
+                        topRow = r;
+                        break;
+                    }
+                }
+                
+                if (topRow !== -1 && grid[topRow][c] === null) {
+                    let spawnType = randType();
+                    if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
+                        spawnType = "donut";
+                    }
+                    grid[topRow][c] = createTile(topRow, c, spawnType, topRow - 1);
+                    moved = true;
+                }
+            }
+        }
+
+        collectDoughnuts();
+        processThreatsAndJesters();
+        resetHintTimer(); 
+    }
             // Динамический спавн фишек в наивысшей доступной точке каждой колонки
             for (let c = 0; c < SIZE; c++) {
                 let topRow = -1;
