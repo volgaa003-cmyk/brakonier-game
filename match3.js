@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (ОЧИЩЕННАЯ И ОПТИМИЗИРОВАННАЯ СБОРКА)
+// match3.js (ОБНОВЛЕННАЯ СБОРКА С СИНХРОНИЗАЦИЕЙ ЦЕЛЕЙ И БУСТЕРАМИ)
 // Все механики Homescapes, эластичная гравитация и бустеры
 // ================================================
 
@@ -667,6 +667,82 @@
         }
     }
 
+    // ==========================================================================
+    // СИНХРОНИЗАЦИЯ СЛОЖНЫХ ПРЕПЯТСТВИЙ И ВЫДАЧА СТАРТОВЫХ БОНУСОВ
+    // ==========================================================================
+    function synchronizeObstaclesAndGoals() {
+        let playableCells = [];
+        let currentBoxes = 0;
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (levelLayout[r][c] === 1) {
+                    playableCells.push({r, c});
+                } else if (levelLayout[r][c] === 2) {
+                    currentBoxes++;
+                }
+            }
+        }
+
+        // Адаптация коробок под цели
+        if (targetType === "box") {
+            let targetBoxCount = Math.min(GOAL_HEARTS, 20); // Ограничиваем 20-ю клетками для баланса поля
+            while (currentBoxes < targetBoxCount && playableCells.length > 0) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                levelLayout[cell.r][cell.c] = 2; // Добавляем коробку в уровень
+                currentBoxes++;
+            }
+            GOAL_HEARTS = currentBoxes; // Синхронизируем цель с фактическим спавном
+        }
+        // Адаптация льда
+        else if (targetType === "ice") {
+            let iceCount = 0;
+            playableCells = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === 1) {
+                        playableCells.push({r, c});
+                        if (iceGrid[r][c] === 1) iceCount++;
+                    }
+                }
+            }
+            let targetIceCount = Math.min(GOAL_HEARTS, 24);
+            while (iceCount < targetIceCount && playableCells.length > 0) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                iceGrid[cell.r][cell.c] = 1;
+                iceCount++;
+            }
+            GOAL_HEARTS = iceCount;
+        }
+
+        // Выдача подарочных бустеров при большом количестве препятствий (>= 6 коробок)
+        if (currentBoxes >= 6) {
+            playableCells = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === 1) playableCells.push({r, c});
+                }
+            }
+            
+            const boosterTypes = [3, 4, 5, 6]; // Коды объектов: 3=bomb, 4=rocketRow, 5=rocketCol, 6=plane
+            let giftsCount = currentBoxes >= 12 ? 3 : 2;
+
+            for (let i = 0; i < giftsCount; i++) {
+                if (playableCells.length > 0) {
+                    const rndIdx = Math.floor(Math.random() * playableCells.length);
+                    const cell = playableCells.splice(rndIdx, 1)[0];
+                    const randomBoosterType = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
+                    levelLayout[cell.r][cell.c] = randomBoosterType; // Ставим бустер на поле
+                }
+            }
+            setTimeout(() => {
+                pulseToast("🎁 Опасная зона! Браконьер применил стартовые заготовки!");
+            }, 800);
+        }
+    }
+
     function buildInitialGrid(){
         if (!boardEl) return;
         boardEl.innerHTML = '';
@@ -730,6 +806,7 @@
         }
     }
 
+    // РЕФИЛЛ С ФИКСИРОВАННЫМИ ИГРОВЫМИ ЯЧЕЙКАМИ !== 0
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
@@ -741,7 +818,7 @@
 
             for (let r = SIZE - 1; r >= 0; r--) {
                 for (let c = 0; c < SIZE; c++) {
-                    if (levelLayout[r][c] === 1 && grid[r][c] === null) {
+                    if (levelLayout[r][c] !== 0 && grid[r][c] === null) {
                         
                         let sourceRow = -1;
                         let sourceCol = c;
@@ -753,10 +830,10 @@
                             sourceCol = ep_c;
                         } else {
                             for (let checkR = r - 1; checkR >= 0; checkR--) {
-                                if (levelLayout[checkR][c] === 0 || levelLayout[checkR][c] === 2) {
+                                if (levelLayout[checkR][c] === 0) {
                                     break; 
                                 }
-                                if (levelLayout[checkR][c] === 1) {
+                                if (levelLayout[checkR][c] !== 0) {
                                     sourceRow = checkR;
                                     break;
                                 }
@@ -783,7 +860,7 @@
                                 const diagRow = r - 1;
 
                                 if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
-                                    if (levelLayout[diagRow][diagCol] === 1) {
+                                    if (levelLayout[diagRow][diagCol] !== 0) {
                                         const t = grid[diagRow][diagCol];
                                         if (t && t.type !== 'box' && !t.frozen && !t.chained) {
                                             grid[r][c] = t;
@@ -802,7 +879,7 @@
 
             for (let c = 0; c < SIZE; c++) {
                 for (let r = 0; r < SIZE; r++) {
-                    const isSegmentTop = levelLayout[r][c] === 1 && (r === 0 || levelLayout[r - 1][c] !== 1);
+                    const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
                     if (isSegmentTop && grid[r][c] === null) {
                         let spawnType = randType();
                         if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
@@ -988,6 +1065,11 @@
             if (t) {
                 spawnMatchParticles(r, c, t.type);
 
+                // Безопасный перевод клетки в игровой статус после очистки
+                if (levelLayout[r][c] !== 0) {
+                    levelLayout[r][c] = 1;
+                }
+
                 if (t.webbed) {
                     t.webbed = false;
                     t.el.classList.remove('webbed');
@@ -1068,7 +1150,7 @@
                 if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
                     const t = grid[nr][nc];
                     if (t) {
-                        if (['apple', 'cherry', 'cheese', 'book'].includes(t.type)) {
+                        if (['apple', 'cheese', 'book'].includes(t.type)) {
                             t.el.classList.add('clearing');
                             if (targetType === t.type) hearts++;
                             setTimeout(() => {
@@ -1814,6 +1896,9 @@
             levelLayout = JSON.parse(JSON.stringify(levelData.layout));
         }
 
+        // Вызов адаптации препятствий и синхронизации с целями перед показом пре-экрана
+        synchronizeObstaclesAndGoals();
+
         START_MOVES = levelData.moves;
 
         const preCard = document.getElementById('preLevelCard');
@@ -1908,5 +1993,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Очистка кода и оптимизация завершены!");
+    console.log("match3.js: Синхронизация логики пре-генерации завершена!");
 })();
