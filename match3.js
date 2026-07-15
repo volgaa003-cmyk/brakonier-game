@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (HOMESCAPES PREMIUM EDITION)
+// match3.js (ИСПРАВЛЕННЫЙ — ОШИБКА GETREWARDS УСТРАНЕНА)
 // Премиальный движок три в ряд с частицами, отдачей и подсказками
 // ================================================
 
@@ -1268,6 +1268,28 @@
 
         collectDoughnuts();
         resetHintTimer(); // Сброс таймера подсказок после каждого падения фишек
+    }
+
+    // РАСЧЕТ НАГРАД ЗА УРОВЕНЬ
+    function getRewards(diff) {
+        let starsGained = 1;
+        let baseCoins = 100;
+
+        if (diff === "medium") {
+            baseCoins = 150;
+        } else if (diff === "hard") {
+            baseCoins = 250;
+        } else if (diff === "extreme") {
+            baseCoins = 400;
+        } else if (diff === "challenge") {
+            starsGained = 3;
+            baseCoins = 300;
+        }
+
+        let bonusCoins = moves * 10; 
+        let totalCoins = baseCoins + bonusCoins;
+
+        return { stars: starsGained, coins: totalCoins, base: baseCoins, bonus: bonusCoins };
     }
 
     // ==================== СИСТЕМА УРОВНЕЙ И ЗАПУСКА ====================
