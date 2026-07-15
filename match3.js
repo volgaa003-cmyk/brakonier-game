@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНАЯ СТАБИЛЬНАЯ ВЕРСИЯ — БЕЗ ОШИБОК)
-// Полный игровой движок со всеми элементами и исправленными связями
+// match3.js (ПОЛНАЯ ИСПРАВЛЕННАЯ СБОРКА — БЕЗ ОШИБОК)
+// Премиальный движок три в ряд со всеми Homescapes механиками
 // ================================================
 
 (function() {
@@ -194,25 +194,25 @@
             case 'box': return '📦';
             case 'donut': return '🍩';
             // Блокирующие препятствия
-            case 'vase': return '🏺';       // Ваза (разрушается за 1 хит)
-            case 'brick': return '🧱';      // Кирпич (убирается только бонусами)
+            case 'vase': return '🏺';       
+            case 'brick': return '🧱';      
             // Цели сбора
-            case 'apple': return '🍎';      // Яблоко (собирается матчами рядом)
-            case 'cherry': return '🍒';     // Вишня (собирается матчами рядом)
-            case 'nut': return '🥜';        // Орех (разбивается только бонусами)
-            case 'ring': return '💍';       // Кольцо (требует 2 хита рядом)
-            case 'cheese': return '🧀';     // Сыр (собирается матчами рядом)
-            case 'book': return '📖';       // Книга (собирается матчами рядом)
+            case 'apple': return '🍎';      
+            case 'cherry': return '🍒';     
+            case 'nut': return '🥜';        
+            case 'ring': return '💍';       
+            case 'cheese': return '🧀';     
+            case 'book': return '📖';       
             // Интерактивные элементы
-            case 'compass': return '🧭';    // Компас (убирается со стороны стрелки)
-            case 'pinata': return '🪅';     // Пиньята (уязвима только когда открыта)
-            case 'capsule': return '💊';    // Капсула (дает 2 бонуса при взрыве)
-            case 'jester': return '🃏';     // Шут (прыгает каждый ход)
+            case 'compass': return '🧭';    
+            case 'pinata': return '🪅';     
+            case 'capsule': return '💊';    
+            case 'jester': return '🃏';     
             // Угрозы
-            case 'foam': return '🧼';       // Пена (растекается)
-            case 'ivy': return '🌿';        // Плющ (прорастает)
-            case 'steam': return '💨';      // Пар (блокирует видимость плитки)
-            case 'parrot': return '🦜';     // Попугай (улетает вверх)
+            case 'foam': return '🧼';       
+            case 'ivy': return '🌿';        
+            case 'steam': return '💨';      
+            case 'parrot': return '🦜';     
             default: return TYPES.find(t=>t.id===type).icon;
         }
     }
@@ -226,15 +226,14 @@
         else if(t.type==='rainbow') t.el.classList.add('rainbow');
         else if(t.type==='box') t.el.classList.add('box');
         
-        // Дополнительные CSS классы для Homescapes элементов
         if(t.type==='brick') t.el.classList.add('brick-obstacle');
         if(t.type==='foam') t.el.classList.add('foam-threat');
         if(t.type==='ivy') t.el.classList.add('ivy-threat');
         
         if(t.frozen) t.el.classList.add('frozen');
         if(t.chained) t.el.classList.add('chained');
-        if(t.webbed) t.el.classList.add('webbed'); // Паутина
-        if(t.steam) t.el.classList.add('steam-layer'); // Пар
+        if(t.webbed) t.el.classList.add('webbed'); 
+        if(t.steam) t.el.classList.add('steam-layer'); 
     }
 
     function setTilePos(el, row, col){
@@ -242,17 +241,15 @@
         el.style.top = (row*100/SIZE)+'%';
     }
 
-    // ТРЯСКА ПОЛЯ (SCREEN SHAKE)
     function triggerBoardShake(intensityClass = 'shake-mild') {
         boardEl.classList.remove('shake-mild', 'shake-intense');
-        void boardEl.offsetWidth; // Триггер перерисовки
+        void boardEl.offsetWidth; 
         boardEl.classList.add(intensityClass);
         setTimeout(() => {
             boardEl.classList.remove('shake-mild', 'shake-intense');
         }, 350);
     }
 
-    // СПАВН ЧАСТИЦ (VFX SPARKS)
     function spawnMatchParticles(r, c, type) {
         const count = 6;
         const colorPalette = {
@@ -293,11 +290,10 @@
         }
     }
 
-    // ТАЙМЕРЫ ИСКУССТВЕННЫХ ПОДСКАЗОК
     function resetHintTimer() {
         clearTimeout(hintTimeout);
         removeCurrentHints();
-        hintTimeout = setTimeout(highlightPossibleMove, 4500); // 4.5 секунды бездействия
+        hintTimeout = setTimeout(highlightPossibleMove, 4500); 
     }
 
     function removeCurrentHints() {
@@ -314,7 +310,6 @@
     }
 
     function findValidSwapMove() {
-        // Проверяем все горизонтальные свапы
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE - 1; c++) {
                 const a = grid[r][c];
@@ -322,12 +317,11 @@
                 if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
                     swapInGrid(a, b);
                     const hasMatch = collectRuns().length > 0;
-                    swapInGrid(a, b); // возвращаем обратно
+                    swapInGrid(a, b); 
                     if (hasMatch) return { a, b };
                 }
             }
         }
-        // Проверяем все вертикальные свапы
         for (let r = 0; r < SIZE - 1; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const a = grid[r][c];
@@ -1002,26 +996,6 @@
             });
         }
         return footprint;
-    }
-
-    function applyResolutionFull(result){
-        const specialSpawns = [];
-        const scoreSet = new Set();
-        result.bombs.forEach(b=>{ b.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:b.at, type:'bomb'}); });
-        result.rockets.forEach(rk=>{ rk.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rk.at, type:rk.type}); });
-        result.rainbows.forEach(rb=>{ rb.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rb.at, type:'rainbow'}); });
-        result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
-        result.normalCells.forEach(k=>scoreSet.add(k));
-        
-        const atKeys = new Set(specialSpawns.map(s=>key(s.at[0], s.at[1])));
-        const clearSet = new Set();
-        scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
-        
-        if(specialSpawns.length) {
-            pulseToast(specialSpawns.length>1 ? 'Комбо бонусов!' : 'Новый бонус!');
-            triggerBoardShake('shake-mild');
-        }
-        clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
     function checkAndBreakBoxes(clearSet) {
@@ -1913,4 +1887,3 @@
     window.openPreLevelScreen = openPreLevelScreen;
     console.log("match3.js: Все асинхронные авиа-полеты, комбо-эффекты и бустеры синхронизированы!");
 })();
---- END OF FILE match3.js ---
