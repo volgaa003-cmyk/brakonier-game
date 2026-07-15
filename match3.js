@@ -836,7 +836,7 @@
         });
         return boxesToBreak;
     }
-    // ----------------------------------------------------------------------
+   // ----------------------------------------------------------------------
     // РАЗДЕЛ 6: ИНИЦИАЛИЗАЦИЯ И ПОСТРОЕНИЕ ПОЛЯ
     // ----------------------------------------------------------------------
     function buildInitialGrid(){
@@ -845,6 +845,7 @@
         grid = [];
         for(let r=0;r<SIZE;r++) grid.push(new Array(SIZE).fill(null));
 
+        // 1. Сначала строим визуальные ячейки-подложки на поле (сетка 8х8)
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 if (levelLayout[r][c] !== 0) {
@@ -857,6 +858,7 @@
             }
         }
         
+        // 2. Затем генерируем и выставляем на поле все стартовые фишки и коробки
         for(let r=0;r<SIZE;r++){
             for(let c=0;c<SIZE;c++){
                 const cellType = levelLayout[r][c];
@@ -885,7 +887,19 @@
                 }
             }
         }
-    }
+
+        // 3. ИСПРАВЛЕНО: Только ПОСЛЕ того как все фишки созданы, заменяем 1-2 верхние на Пончики
+        if (targetType === "donut") {
+            let spawned = 0;
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[0][c] && grid[0][c].type !== 'box' && spawned < 2 && Math.random() < 0.3) {
+                    grid[0][c].el.remove(); // Безопасно удаляем фишку (так как она уже гарантированно создана)
+                    grid[0][c] = createTile(0, c, "donut", 0); // Ставим на её место пончик
+                    spawned++;
+                }
+            }
+        }
+    } // Конец функции buildInitialGrid
 
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 7: ГРАВИТАЦИЯ, ПОРТАЛЫ И ДИАГОНАЛЬНОЕ ОГИБАНИЕ ПРЕПЯТСТВИЙ
@@ -957,12 +971,17 @@
                 }
             }
             
-            // Наполнение пустых мест фишками сверху
+// Заполнение пустых мест фишками сверху (ИСПРАВЛЕНО: Добавлен спавн Пончиков сверху)
             for (let c = 0; c < SIZE; c++) {
                 for (let r = 0; r < SIZE; r++) {
                     const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
                     if (isSegmentTop && grid[r][c] === null) {
-                        grid[r][c] = createTile(r, c, randType(), r - 1);
+                        let spawnType = randType();
+                        // Если цель уровня — пончики, и их на поле меньше 2, спавним новый пончик сверху
+                        if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.25) {
+                            spawnType = "donut";
+                        }
+                        grid[r][c] = createTile(r, c, spawnType, r - 1);
                         moved = true;
                     }
                 }
