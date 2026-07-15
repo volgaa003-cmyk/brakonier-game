@@ -382,7 +382,128 @@
 
         clearAndContinue(cells, [], null, null, false, false, true);
     }
+// ==========================================================================
+    // СИСТЕМА СОЗДАНИЯ ПЛИТОК И DRAG-AND-DROP ОБРАБОТЧИКОВ (Homescapes Physics)
+    // ==========================================================================
 
+    // Начало перетаскивания фишки пальцем (для мобильных) или мышкой (для ПК)
+    function handleDragStart(e, tile) {
+        if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
+        dragActiveTile = tile;
+        
+        // Считываем стартовую позицию нажатия в зависимости от типа устройства
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragStartX = clientX;
+        dragStartY = clientY;
+        
+        resetHintTimer(); // Сбрасываем таймер подсказки при активности игрока
+    }
+
+    // Движение пальца/мыши во время перетаскивания фишки
+    function handleDragMove(e) {
+        if (!dragActiveTile || busy) return;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const dx = clientX - dragStartX;
+        const dy = clientY - dragStartY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Если сдвиг больше 30 пикселей — фиксируем направление свайпа
+        if (dist > 30) { 
+            let targetRow = dragActiveTile.row;
+            let targetCol = dragActiveTile.col;
+
+            // Вычисляем, куда был совершен жест: по горизонтали или вертикали
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0) targetCol++; else targetCol--; // Вправо или влево
+            } else {
+                if (dy > 0) targetRow++; else targetRow--; // Вниз или вверх
+            }
+
+            // Если целевая клетка лежит внутри игрового поля
+            if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
+                const partner = grid[targetRow][targetCol];
+                // Разрешаем обмен, только если цель не является коробкой, льдом или цепью
+                if (partner && partner.type !== 'box' && !partner.frozen && !partner.chained) {
+                    dragActiveTile.el.classList.remove('selected');
+                    selected = null;
+                    performSwap(dragActiveTile, partner); // Запускаем анимацию обмена
+                }
+            }
+            dragActiveTile = null; // Обнуляем активность перетаскивания
+        }
+    }
+
+    // Завершение жеста перетаскивания
+    function handleDragEnd() {
+        dragActiveTile = null;
+    }
+
+    // Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
+    function createTile(row, col, type, spawnRow){
+        const id = 'tile'+(tileIdCounter++);
+        const el = document.createElement('div');
+        el.className = 'tile';
+        el.dataset.id = id;
+        
+        // Генерация слоев прочности для усложнения уровней (ящики от 1 до 3 слоев, лед/цепи до 2)
+        const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 0;
+        const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
+        const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
+
+        const inner = document.createElement('div');
+        inner.className = 'tile-inner';
+        inner.textContent = iconFor(type, initBoxLayers);
+        el.appendChild(inner);
+
+        // Объект фишки, хранящий все параметры прочности и физические координаты матрицы
+        const tile = {
+            id, 
+            type, 
+            row, 
+            col, 
+            el, 
+            inner, 
+            frozen: initFrozenLayers > 0, 
+            frozenLayers: initFrozenLayers,
+            chained: initChainedLayers > 0,
+            chainedLayers: initChainedLayers,
+            boxLayers: initBoxLayers
+        };
+
+        // Навешиваем слушатели событий мыши (ПК) и тач-интерфейса (смартфоны)
+        el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
+        el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
+        el.addEventListener('click', onTileClick);
+
+        // Если задана спавн-строка выше поля — фишка упадет плавно сверху
+        if(spawnRow !== undefined && spawnRow !== row){
+            el.style.transition = 'none';
+            setTilePos(el, spawnRow, col);
+        } else {
+            setTilePos(el, row, col);
+        }
+
+        if (boardEl) boardEl.appendChild(el);
+
+        if(spawnRow !== undefined && spawnRow !== row){
+            setTimeout(() => {
+                el.style.transition = '';
+                setTilePos(el, row, col);
+            }, 16); 
+        }
+        
+        applySpecialClass(tile); // Навешиваем классы спецэффектов
+        return tile;
+    }
+
+    // Сдвиг фишки на новую позицию в DOM-дереве
+    function moveTileTo(tile, row, col){
+        tile.row = row; tile.col = col;
+        setTilePos(tile.el, row, col);
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 6: ИНИЦИАЛИЗАЦИЯ И ПОСТРОЕНИЕ ПОЛЯ
     // ----------------------------------------------------------------------
