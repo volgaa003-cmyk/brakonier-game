@@ -1399,6 +1399,7 @@
         }
 
         collectDoughnuts();
+        processThreatsAndJesters(); // <-- Вставить эту строчку здесь!
         resetHintTimer(); 
     }
     // РАСЧЕТ НАГРАД ЗА УРОВЕНЬ
