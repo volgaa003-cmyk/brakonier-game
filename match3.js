@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ХРОНОЛОГИЧЕСКИ УПОРЯДОЧЕННАЯ СБОРКА)
-// Полная совместимость со всеми браузерами и WebApp Telegram
+// match3.js (ПОЛНАЯ БЕЗОШИБОЧНАЯ СБОРКА)
+// Все механики Homescapes, эластичная гравитация и бустеры
 // ================================================
 
 (function() {
@@ -607,10 +607,10 @@
         }
     }
 
-function processThreatsAndJesters() {
+    function processThreatsAndJesters() {
         let spawnedFoam = false;
 
-        // Поведение попугая (Parrot) - взлетает только на свободные игровые клетки
+        // Поведение попугая (Parrot) - взлетает на 1 клетку вверх, если над ним пусто
         for (let r = 1; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
@@ -622,7 +622,7 @@ function processThreatsAndJesters() {
             }
         }
 
-        // Логика растекания мыльной пены (Foam) и плюща (Ivy) только на игровое поле
+        // Логика растекания мыльной пены (Foam) и плюща (Ivy)
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
@@ -644,7 +644,7 @@ function processThreatsAndJesters() {
             }
         }
 
-        // Поведение Шута (Jester)
+        // Поведение Шута (Jester) - прыгает на случайную пустую клетку
         let jesterTile = null;
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
@@ -672,6 +672,7 @@ function processThreatsAndJesters() {
             }
         }
     }
+
     function buildInitialGrid(){
         boardEl.innerHTML = '';
         grid = [];
@@ -735,12 +736,11 @@ function processThreatsAndJesters() {
         }
     }
 
-    // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ПОРТАЛАМИ И ПОНЧИКАМИ
-   // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ДИАГОНАЛЬНЫМ ЗАТЕКАНИЕМ (HOMESCAPES STYLE)
+    // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ДИАГОНАЛЬНЫМ ЗАТЕКАНИЕМ (HOMESCAPES STYLE)
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
-        const maxLoops = 25; // Увеличили лимит циклов для плавного затекания
+        const maxLoops = 25; 
 
         while (moved && loops < maxLoops) {
             moved = false;
@@ -762,7 +762,7 @@ function processThreatsAndJesters() {
                         } else {
                             for (let checkR = r - 1; checkR >= 0; checkR--) {
                                 if (levelLayout[checkR][c] === 2) {
-                                    break; // Заблокировано ящиком сверху
+                                    break; 
                                 }
                                 if (levelLayout[checkR][c] === 1) {
                                     sourceRow = checkR;
@@ -778,14 +778,14 @@ function processThreatsAndJesters() {
                                 grid[sourceRow][sourceCol] = null;
                                 moveTileTo(t, r, c);
                                 moved = true;
-                                continue; // Успешно заполнили клетку вертикально
+                                continue; 
                             }
                         }
 
                         // 2. Диагональный затек по бокам (если вертикальный путь заблокирован льдом/ящиком)
                         if (grid[r][c] === null && !portals[cellKey]) {
-                            const sideDirections = [-1, 1]; // Влево-вверх и Вправо-вверх
-                            if (Math.random() < 0.5) sideDirections.reverse(); // Рандомизируем направления
+                            const sideDirections = [-1, 1]; 
+                            if (Math.random() < 0.5) sideDirections.reverse(); 
 
                             for (const dc of sideDirections) {
                                 const diagCol = c + dc;
@@ -794,7 +794,6 @@ function processThreatsAndJesters() {
                                 if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
                                     if (levelLayout[diagRow][diagCol] === 1) {
                                         const t = grid[diagRow][diagCol];
-                                        // Переливаться могут только свободные фишки
                                         if (t && t.type !== 'box' && !t.frozen && !t.chained) {
                                             grid[r][c] = t;
                                             grid[diagRow][diagCol] = null;
@@ -811,31 +810,6 @@ function processThreatsAndJesters() {
             }
 
             // Наполнение колонок из спавнеров
-            for (let c = 0; c < SIZE; c++) {
-                let topRow = -1;
-                for (let r = 0; r < SIZE; r++) {
-                    if (levelLayout[r][c] === 1) {
-                        topRow = r;
-                        break;
-                    }
-                }
-                
-                if (topRow !== -1 && grid[topRow][c] === null) {
-                    let spawnType = randType();
-                    if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
-                        spawnType = "donut";
-                    }
-                    grid[topRow][c] = createTile(topRow, c, spawnType, topRow - 1);
-                    moved = true;
-                }
-            }
-        }
-
-        collectDoughnuts();
-        processThreatsAndJesters();
-        resetHintTimer(); 
-    }
-            // Динамический спавн фишек в наивысшей доступной точке каждой колонки
             for (let c = 0; c < SIZE; c++) {
                 let topRow = -1;
                 for (let r = 0; r < SIZE; r++) {
@@ -1417,55 +1391,987 @@ function processThreatsAndJesters() {
         return cells;
     }
 
-    function transitionToNextPhase() {
+    function onTileClick(e){
+        if(busy) return;
+        const tile = findTileById(e.currentTarget.dataset.id);
+        if(!tile) return;
+
+        resetHintTimer();
+
+        // Если активирован бустер
+        if (activeBooster) {
+            executeBoosterAction(tile);
+            return;
+        }
+
+        if(tile.type === 'box' || tile.frozen || tile.chained) return;
+
+        if(selected === null){
+            if(isSpecial(tile.type)) { activateStandalone(tile); return; }
+            selected = tile;
+            tile.el.classList.add('selected');
+            return;
+        }
+        if(selected === tile){
+            selected = null;
+            tile.el.classList.remove('selected');
+            return;
+        }
+        const adjacent = Math.abs(selected.row-tile.row) + Math.abs(selected.col-tile.col) === 1;
+        selected.el.classList.remove('selected');
+        if(!adjacent){
+            if(isSpecial(tile.type)){ selected=null; activateStandalone(tile); return; }
+            selected = tile;
+            tile.el.classList.add('selected');
+            return;
+        }
+        const a = selected, b = tile;
+        selected = null;
+        performSwap(a,b);
+    }
+
+    function swapInGrid(a,b){
+        const ar=a.row, ac=a.col, br=b.row, bc=b.col;
+        grid[ar][ac]=b; grid[br][bc]=a;
+        a.row=br; a.col=bc;
+        b.row=ar; b.col=ac;
+    }
+
+    function performSwap(a,b){
         busy = true;
-        currentPhaseIndex++;
-        pulseToast(`➔ Фаза ${currentPhaseIndex + 1}!`);
+        swapInGrid(a,b);
+        moveTileTo(a, a.row, a.col);
+        moveTileTo(b, b.row, b.col);
+        
+        setTimeout(()=>{
+            const aSpecial = isSpecial(a.type), bSpecial = isSpecial(b.type);
+            if(aSpecial && bSpecial){
+                moves--; updateMatch3HUD();
+                const cells = comboFootprint(a,b);
+                clearAndContinue(cells, []);
+                return;
+            }
+            if(aSpecial || bSpecial){
+                const special = aSpecial ? a : b;
+                const partner = aSpecial ? b : a;
+                moves--; updateMatch3HUD();
+                let cells;
+                if(special.type === 'rainbow'){
+                    cells = cellsOfColor(partner.type);
+                    cells.add(key(special.row, special.col));
+                } else {
+                    cells = computeActivationFootprint(special);
+                }
+                clearAndContinue(cells, [], null, null, false, false, true);
+                return;
+            }
+            const result = analyzeMatches();
+            const hasMatch = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+            if(!hasMatch){
+                swapInGrid(a,b);
+                moveTileTo(a, a.row, a.col);
+                moveTileTo(b, b.row, b.col);
+                a.el.classList.add('shake');
+                b.el.classList.add('shake');
+                setTimeout(()=>{
+                    a.el.classList.remove('shake');
+                    b.el.classList.remove('shake');
+                    busy = false;
+                }, 220);
+                pulseToast('Нет совпадения');
+                return;
+            }
+            moves--; updateMatch3HUD();
+            applyResolutionFull(result);
+        }, SWAP_MS);
+    }
 
-        boardEl.classList.add('scroll-out');
+    // Исключаем все препятствия и специальные объекты из алгоритма сбора горизонтальных/вертикальных линий
+    const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata'].includes(type);
 
-        setTimeout(() => {
-            const phaseData = window.LEVELS[currentLevelId - 1].phases[currentPhaseIndex];
-            GOAL_HEARTS = phaseData.heartsGoal;
-            levelLayout = JSON.parse(JSON.stringify(phaseData.layout));
-            hearts = 0; 
-            boxesBroken = 0;
-            iceMelted = 0;
-            donutsCollected = 0;
+    function collectRuns(){
+        const runs = [];
+        for(let r=0;r<SIZE;r++){
+            let runStart=0;
+            for(let c=1;c<=SIZE;c++){
+                const cur = c<SIZE ? getType(r,c) : null;
+                const prev = getType(r,c-1);
+                if(cur!==null && cur===prev && !isNotMatchable(cur)) continue;
+                const len = c - runStart;
+                if(len>=3 && prev !== null && !isNotMatchable(prev)){
+                    const cells=[]; 
+                    for(let k=runStart;k<c;k++) cells.push([r,k]);
+                    runs.push({cells, dir:'h', length:len, type:prev, used:false});
+                }
+                runStart = c;
+            }
+        }
+        for(let c=0;c<SIZE;c++){
+            let runStart=0;
+            for(let r=1;r<=SIZE;r++){
+                const cur = r<SIZE ? getType(r,c) : null;
+                const prev = getType(r-1,c);
+                if(cur!==null && cur===prev && !isNotMatchable(cur)) continue;
+                const len = r - runStart;
+                if(len>=3 && prev !== null && !isNotMatchable(prev)){
+                    const cells=[]; 
+                    for(let k=runStart;k<r;k++) cells.push([k,c]);
+                    runs.push({cells, dir:'v', length:len, type:prev, used:false});
+                }
+                runStart = r;
+            }
+        }
+        return runs;
+    }
 
-            targetType = phaseData.targetType || "heart";
+    function dedupeCells(cells){
+        const seen = new Set(); 
+        const out=[];
+        cells.forEach(c=>{ 
+            const k=key(c[0],c[1]); 
+            if(!seen.has(k)){ seen.add(k); out.push(c); } 
+        });
+        return out;
+    }
+
+    function analyzeMatches(){
+        const runs = collectRuns();
+        const matchedByLine = new Set();
+        runs.forEach(r=> r.cells.forEach(c=> matchedByLine.add(key(c[0],c[1]))));
+
+        const squares = [];
+        const usedSquareCells = new Set();
+        for(let r=0;r<SIZE-1;r++){
+            for(let c=0;c<SIZE-1;c++){
+                const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
+                if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
+                const t0 = getType(r,c);
+                if(!t0 || isNotMatchable(t0)) continue;
+                if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
+                    squares.push({type:'plane', at:[r,c], cells});
+                    cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
+                }
+            }
+        }
+
+        const hRuns = runs.filter(r=>r.dir==='h');
+        const vRuns = runs.filter(r=>r.dir==='v');
+        const bombs = [];
+        hRuns.forEach(h=>{
+            if(h.used) return;
+            for(const v of vRuns){
+                if(v.used || v.type!==h.type) continue;
+                const shared = h.cells.find(hc=> v.cells.some(vc=> vc[0]===hc[0] && vc[1]===hc[1]));
+                if(shared){
+                    h.used=true; v.used=true;
+                    bombs.push({type:'bomb', at:shared, cells: dedupeCells(h.cells.concat(v.cells))});
+                    break;
+                }
+            }
+        });
+
+        const rockets = [], rainbows = [];
+        const normalCells = new Set();
+        runs.forEach(run=>{
+            if(run.used) return;
+            if(run.length>=5){
+                rainbows.push({type:'rainbow', at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
+            } else if(run.length===4){
+                const spType = run.dir==='h' ? 'rocketCol' : 'rocketRow';
+                rockets.push({type: spType, at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
+            } else {
+                run.cells.forEach(c=> normalCells.add(key(c[0],c[1])));
+            }
+        });
+
+        return {bombs, rockets, rainbows, squares, normalCells};
+    }
+
+    function footprintFor(tile){
+        const cells = [];
+        if(tile.type==='bomb'){
+            for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
+                const rr=tile.row+dr, cc=tile.col+dc;
+                if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.push([rr,cc]);
+            }
+        } else if(tile.type==='rocketRow'){
+            for(let c=0;c<SIZE;c++) cells.push([tile.row,c]);
+        } else if(tile.type==='rocketCol'){
+            for(let r=0;r<SIZE;r++) cells.push([r,tile.col]);
+        } else if(tile.type==='plane'){
+            cells.push([tile.row,tile.col]);
+            [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{
+                const rr=tile.row+dr, cc=tile.col+dc;
+                if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.push([rr,cc]);
+            });
+            const candidates = [];
+            for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+                if(grid[r][c] && !(r===tile.row && c===tile.col) && grid[r][c].type !== 'box') candidates.push([r,c]);
+            }
+            if(candidates.length) cells.push(candidates[Math.floor(Math.random()*candidates.length)]);
+        } else if(tile.type==='rainbow'){
+            cells.push([tile.row,tile.col]);
+        }
+        return cells;
+    }
+
+    function computeActivationFootprint(startTile){
+        const visited = new Set([startTile.id]);
+        const footprint = new Set();
+        const queue = [startTile];
+        while(queue.length){
+            const t = queue.shift();
+            footprintFor(t).forEach(([r,c]) => {
+                footprint.add(key(r, c));
+                const other = grid[r] && grid[r][c];
+                if(other && isSpecial(other.type) && !visited.has(other.id)){
+                    visited.add(other.id);
+                    queue.push(other);
+                }
+            });
+        }
+        return footprint;
+    }
+
+    function checkAndBreakBoxes(clearSet) {
+        const boxesToBreak = new Set();
+
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const neighbors = [
+                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+            ];
+
+            neighbors.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                    const tile = grid[nr][nc];
+                    if (tile && tile.type === 'box') {
+                        boxesToBreak.add(key(nr, nc));
+                    }
+                }
+            });
+        });
+
+        boxesToBreak.forEach(k => {
+            const [br, bc] = k.split(',').map(Number);
+            const boxTile = grid[br][bc];
+            if (boxTile) {
+                levelLayout[br][bc] = 1;
+                boxTile.el.classList.add('clearing');
+                
+                if (targetType === "box") {
+                    boxesBroken++;
+                }
+
+                setTimeout(() => {
+                    if (grid[br][bc] === boxTile) {
+                        boxTile.el.remove();
+                        grid[br][bc] = null;
+                    }
+                }, CLEAR_MS);
+            }
+        });
+        return boxesToBreak;
+    }
+
+    function spreadCarpetAt(r, c) {
+        if (levelLayout[r] && levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
+            carpetGrid[r][c] = true;
+            const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
+            if (cellEl) {
+                cellEl.classList.add('carpet');
+            }
+        }
+    }
+
+    function countActiveDonuts() {
+        let count = 0;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'donut') count++;
+            }
+        }
+        return count;
+    }
+
+    function collectDoughnuts() {
+        let collectedThisTurn = 0;
+        for (let c = 0; c < SIZE; c++) {
+            const t = grid[SIZE - 1][c];
+            if (t && t.type === 'donut') {
+                t.el.classList.add('clearing');
+                grid[SIZE - 1][c] = null;
+                donutsCollected++;
+                collectedThisTurn++;
+                
+                setTimeout(((tileToKill) => {
+                    return () => {
+                        tileToKill.el.remove();
+                    };
+                })(t), CLEAR_MS);
+            }
+        }
+
+        if (collectedThisTurn > 0) {
+            updateMatch3HUD();
+            pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
+            applyGravityAndRefill();
+        }
+    }
+
+    function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
+        specialSpawns = specialSpawns || [];
+        const scoring = scoreSet || clearSet;
+        let heartsGained=0;
+        scoring.forEach(k=>{
+            const [r,c] = k.split(',').map(Number);
+            const t = grid[r] && grid[r][c];
+            if(!t) return;
+            if(t.type==='heart') heartsGained++;
+        });
+
+        // 1. Проверяем наличие ковра в текущей зоне очистки
+        let hasCarpetInMatch = forceCarpet || false;
+        if (!preventCarpet && !hasCarpetInMatch) {
+            clearSet.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                if (carpetGrid[r] && carpetGrid[r][c]) {
+                    hasCarpetInMatch = true;
+                }
+            });
+        }
+
+        const finalClearSet = new Set();
+        const brokenBoxes = new Set();
+
+        // 2. Раскол льда, снятие цепей, взлом ящиков, спавн искр-частиц и сложных механизмов
+        clearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const t = grid[r] && grid[r][c];
+            if (t) {
+                // Вызываем сочные искры при уничтожении
+                spawnMatchParticles(r, c, t.type);
+
+                // Паутина (Web) - рвется при любом матче/взрыве
+                if (t.webbed) {
+                    t.webbed = false;
+                    t.el.classList.remove('webbed');
+                    return;
+                }
+
+                // Пар (Steam) - убирается при воздействии
+                if (t.steam) {
+                    t.steam = false;
+                    t.el.classList.remove('steam-layer');
+                }
+
+                if (t.frozen) {
+                    t.frozen = false;
+                    iceGrid[r][c] = 0;
+                    t.el.classList.remove('frozen');
+                    if (targetType === "ice") {
+                        iceMelted++;
+                    }
+                } else if (t.chained) {
+                    const isRegular = !isSpecial(t.type) && t.type !== 'donut';
+                    if (isRegular || isExplosion) {
+                        t.chained = false;
+                        chainGrid[r][c] = 0;
+                        t.el.classList.remove('chained');
+                        pulseToast("🔗 Цепь разбита!");
+                    }
+                } else if (t.type === 'box' || t.type === 'vase') {
+                    levelLayout[r][c] = 1; 
+                    t.el.classList.add('clearing');
+                    if (targetType === t.type) hearts++;
+                    setTimeout(() => {
+                        if (grid[r][c] === t) {
+                            t.el.remove();
+                            grid[r][c] = null;
+                        }
+                    }, CLEAR_MS);
+                } else if (t.type === 'brick') {
+                    // Кирпич: убирается ТОЛЬКО при взрывах (isExplosion)
+                    if (isExplosion) {
+                        levelLayout[r][c] = 1;
+                        t.el.classList.add('clearing');
+                        setTimeout(() => {
+                            if (grid[r][c] === t) { t.el.remove(); grid[r][c] = null; }
+                        }, CLEAR_MS);
+                    }
+                } else if (t.type === 'capsule') {
+                    // Капсула: при разрушении спавнит 2 случайных бонуса
+                    levelLayout[r][c] = 1;
+                    t.el.classList.add('clearing');
+                    setTimeout(() => {
+                        if (grid[r][c] === t) {
+                            t.el.remove();
+                            grid[r][c] = null;
+                            spawnBonusAt(r, c, 'bomb');
+                            spawnBonusAt(Math.max(0, r - 1), c, 'plane');
+                        }
+                    }, CLEAR_MS);
+                } else {
+                    finalClearSet.add(k);
+                    if (targetType === t.type) {
+                        hearts++;
+                    }
+                }
+            }
+        });
+
+        // Вспомогательная функция спавна бонуса на поле при взрыве капсулы
+        function spawnBonusAt(row, col, bonusType) {
+            if (grid[row] && grid[row][col] === null) {
+                grid[row][col] = createTile(row, col, bonusType, row);
+            }
+        }
+
+        // 3. Обработка соседних Homescapes-элементов (собираются матчами рядом)
+        finalClearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            const neighbors = [
+                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+            ];
+
+            neighbors.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                    const t = grid[nr][nc];
+                    if (t) {
+                        // Собираемые рядом фрукты/предметы: Яблоки, Вишни, Сыр, Книги
+                        if (['apple', 'cherry', 'cheese', 'book'].includes(t.type)) {
+                            t.el.classList.add('clearing');
+                            if (targetType === t.type) hearts++;
+                            setTimeout(() => {
+                                if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
+                            }, CLEAR_MS);
+                        }
+                        // Орехи - собираются ТОЛЬКО бонусами
+                        else if (t.type === 'nut' && isExplosion) {
+                            t.el.classList.add('clearing');
+                            if (targetType === 'nut') hearts++;
+                            setTimeout(() => {
+                                if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
+                            }, CLEAR_MS);
+                        }
+                        // Кольцо в футляре (Ring) - требует 2 хита
+                        else if (t.type === 'ring') {
+                            if (!t.damagedOnce) {
+                                t.damagedOnce = true;
+                                t.inner.textContent = '💍✨'; // Открываем футляр
+                            } else {
+                                t.el.classList.add('clearing');
+                                if (targetType === 'ring') hearts++;
+                                setTimeout(() => {
+                                    if (grid[nr][nc] === t) { t.el.remove(); grid[nr][nc] = null; }
+                                }, CLEAR_MS);
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        const activeBrokenBoxes = checkAndBreakBoxes(finalClearSet);
+
+        finalClearSet.forEach(k=>{
+            const [r,c] = k.split(',').map(Number);
+            const t = grid[r] && grid[r][c];
+            if(t) t.el.classList.add('clearing');
+        });
+
+        if (targetType === "heart") {
+            hearts += heartsGained;
+        }
+
+        // 4. Покрытие коврами
+        if (!preventCarpet && hasCarpetInMatch) {
+            clearSet.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                spreadCarpetAt(r, c);
+            });
+            activeBrokenBoxes.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                spreadCarpetAt(r, c);
+            });
+        }
+        
+        updateMatch3HUD();
+        
+        if(heartsGained > 0 && targetType === "heart") {
+            pulseToast('+' + heartsGained + ' ❤️');
+        }
+        
+        setTimeout(()=>{
+            finalClearSet.forEach(k=>{
+                const [r,c] = k.split(',').map(Number);
+                const t = grid[r] && grid[r][c];
+                if(t){ t.el.remove(); grid[r][c]=null; }
+            });
+            specialSpawns.forEach(s=>{
+                const [r,c] = s.at;
+                if(!grid[r]) return;
+                let t = grid[r][c];
+                if(!t){
+                    t = createTile(r,c,s.type,r);
+                    grid[r][c] = t;
+                } else {
+                    t.type = s.type;
+                    t.inner.textContent = iconFor(s.type);
+                    applySpecialClass(t);
+                }
+            });
+            applyGravityAndRefill();
             
-            carpetGrid = [];
-            iceGrid = [];
-            chainGrid = [];
-            portals = {};
-            for (let r = 0; r < SIZE; r++) {
-                carpetGrid.push(new Array(SIZE).fill(false));
-                iceGrid.push(new Array(SIZE).fill(0));
-                chainGrid.push(new Array(SIZE).fill(0));
+            setTimeout(()=>{
+                const result = analyzeMatches();
+                const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+                
+                if (onComplete) {
+                    onComplete();
+                }
+
+                if(!hasMore){
+                    if (activePlanesCount === 0) {
+                        busy = false;
+                        checkEndConditions();
+                    }
+                } else {
+                    applyResolutionFull(result);
+                }
+            }, FALL_MS + 20); 
+        }, CLEAR_MS);
+    }
+
+    function applyResolutionFull(result){
+        const specialSpawns = [];
+        const scoreSet = new Set();
+        result.bombs.forEach(b=>{ b.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:b.at, type:'bomb'}); });
+        result.rockets.forEach(rk=>{ rk.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rk.at, type:rk.type}); });
+        result.rainbows.forEach(rb=>{ rb.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rb.at, type:'rainbow'}); });
+        result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
+        result.normalCells.forEach(k=>scoreSet.add(k));
+        
+        const atKeys = new Set(specialSpawns.map(s=>key(s.at[0], s.at[1])));
+        const clearSet = new Set();
+        scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
+        
+        if(specialSpawns.length) {
+            pulseToast(specialSpawns.length>1 ? 'Комбо бонусов!' : 'Новый бонус!');
+            triggerBoardShake('shake-mild');
+        }
+        clearAndContinue(clearSet, specialSpawns, scoreSet);
+    }
+
+    function comboFootprint(a, b){
+        let cells = new Set();
+        const kinds = [a.type, b.type];
+        const has = t => kinds.includes(t);
+        const isRocket = t => t === 'rocketRow' || t === 'rocketCol';
+        
+        if (has('rainbow') && (has('bomb') || has('rocketRow') || has('rocketCol') || has('plane'))) {
+            const boosterType = a.type === 'rainbow' ? b.type : a.type;
+            const colors = presentColors();
+            const color = colors.length ? colors[Math.floor(Math.random() * colors.length)] : null;
+            
+            if (color) {
+                const targets = [];
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (grid[r][c] && grid[r][c].type === color) {
+                            targets.push({ r, c });
+                        }
+                    }
+                }
+
+                animateRainbowTentacles(a.row, a.col, targets, color);
+
+                setTimeout(() => {
+                    targets.forEach(({r, c}) => {
+                        const tile = grid[r][c];
+                        if (tile) {
+                            tile.type = boosterType;
+                            tile.inner.textContent = iconFor(boosterType);
+                            applySpecialClass(tile);
+
+                            setTimeout(() => {
+                                activateStandalone(tile);
+                            }, Math.random() * 200 + 50);
+                        }
+                    });
+                }, 350);
             }
 
-            if (phaseData.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(phaseData.carpetLayout));
-            if (phaseData.iceLayout) iceGrid = JSON.parse(JSON.stringify(phaseData.iceLayout));
-            if (phaseData.chainLayout) chainGrid = JSON.parse(JSON.stringify(phaseData.chainLayout));
-            if (phaseData.portals) portals = JSON.parse(JSON.stringify(phaseData.portals));
+            cells.add(key(a.row, a.col));
+            cells.add(key(b.row, b.col));
+            pulseToast('🌈 СУПЕР-КОМБО: Парад бонусов!');
+            return cells;
+        }
 
-            boardEl.classList.remove('scroll-out');
-            boardEl.classList.add('scroll-in');
+        if (has('plane') && has('plane')) {
+            cells = computeActivationFootprint(a); 
+            
+            const comboCarpet = (carpetGrid[a.row] && carpetGrid[a.row][a.col]) || (carpetGrid[b.row] && carpetGrid[b.row][b.col]);
+            activePlanesCount += 3;
 
-            buildInitialGrid();
-            updateMatch3HUD();
-
-            setTimeout(() => {
-                boardEl.classList.remove('scroll-in');
-                
-                if (!hasPossibleMoves()) {
-                    shuffleBoard();
-                } else {
-                    busy = false;
+            clearAndContinue(cells, [], null, () => {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const target = findBestTargetForPlane(a.row, a.col);
+                        if (target) {
+                            animatePlaneEffect(a.row, a.col, target.r, target.c, () => {
+                                const targetCell = new Set([key(target.r, target.c)]);
+                                if (comboCarpet) {
+                                    spreadCarpetAt(target.r, target.c);
+                                }
+                                clearAndContinue(targetCell, [], null, () => {
+                                    activePlanesCount--;
+                                    if (activePlanesCount === 0) {
+                                        busy = false;
+                                        checkEndConditions();
+                                    }
+                                }, false, comboCarpet, true);
+                            });
+                        } else {
+                            activePlanesCount--;
+                            if (activePlanesCount === 0) {
+                                busy = false;
+                                checkEndConditions();
+                            }
+                        }
+                    }, i * 120);
                 }
-            }, 50);
-        }, 250);
+            }, false, comboCarpet, true);
+
+            pulseToast('✈️ Эскадрилья самолётиков!');
+            return new Set(); 
+        }
+
+        if (has('plane') && (has('bomb') || has('rocketRow') || has('rocketCol'))) {
+            const boosterType = a.type === 'plane' ? b.type : a.type;
+            const plane = a.type === 'plane' ? a : b;
+
+            const comboCarpet = (carpetGrid[a.row] && carpetGrid[a.row][a.col]) || (carpetGrid[b.row] && carpetGrid[b.row][b.col]);
+            cells = computeActivationFootprint(plane); 
+            
+            activePlanesCount++;
+
+            clearAndContinue(cells, [], null, () => {
+                const target = findBestTargetForPlane(plane.row, plane.col);
+                if (target) {
+                    animatePlaneEffect(plane.row, plane.col, target.r, target.c, () => {
+                        const dummyTile = { type: boosterType, row: target.r, col: target.c, id: 'dummy' };
+                        let blastCells = new Set();
+
+                        if (boosterType === 'bomb') {
+                            animateBombEffect(target.r, target.c);
+                            footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        } else if (boosterType === 'rocketRow') {
+                            animateRocketEffect(target.r, target.c, true);
+                            footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        } else {
+                            animateRocketEffect(target.r, target.c, false);
+                            footprintFor(dummyTile).forEach(([r,c]) => blastCells.add(key(r,c)));
+                        }
+                        
+                        if (comboCarpet) {
+                            spreadCarpetAt(target.r, target.c);
+                        }
+
+                        clearAndContinue(blastCells, [], null, () => {
+                            activePlanesCount--;
+                            if (activePlanesCount === 0) {
+                                busy = false;
+                                checkEndConditions();
+                            }
+                        }, false, comboCarpet, true);
+                    });
+                } else {
+                    activePlanesCount--;
+                    if (activePlanesCount === 0) {
+                        busy = false;
+                        checkEndConditions();
+                    }
+                }
+            }, false, comboCarpet, true);
+
+            pulseToast('📦 Доставка взрывчатки!');
+            return new Set();
+        }
+
+        if(has('bomb') && has('bomb')){
+            const center = a;
+            animateBombEffect(center.row, center.col);
+            for(let dr=-3;dr<=3;dr++) for(let dc=-3;dc<=3;dc++){
+                const rr=center.row+dr, cc=center.col+dc;
+                if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.add(key(rr,cc));
+            }
+            pulseToast('💥 Ультра-бомба 7×7!');
+            return cells;
+        }
+        if(has('bomb') && (has('rocketRow')||has('rocketCol'))){
+            const rocket = isRocket(a.type) ? a : b;
+            animateRocketEffect(rocket.row, rocket.col, true);
+            animateRocketEffect(rocket.row, rocket.col, false);
+            for(let dr=-1;dr<=1;dr++){ 
+                const rr=rocket.row+dr; 
+                if(rr>=0&&rr<SIZE) for(let c=0;c<SIZE;c++) cells.add(key(rr,c)); 
+            }
+            for(let dc=-1;dc<=1;dc++){ 
+                const cc=rocket.col+dc; 
+                if(cc>=0&&cc<SIZE) for(let r=0;r<SIZE;r++) cells.add(key(r,cc)); 
+            }
+            pulseToast('🧨 Тройные полосы!');
+            return cells;
+        }
+        if(has('rocketRow') || has('rocketCol')){
+            animateRocketEffect(a.row, a.col, true);
+            animateRocketEffect(a.row, a.col, false);
+            for(let i=0; i<SIZE; i++){
+                cells.add(key(a.row, i));
+                cells.add(key(i, a.col));
+            }
+            pulseToast('🚀 Крестообразный удар!');
+            return cells;
+        }
+        if(has('rainbow') && has('rainbow')){
+            for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(grid[r][c]) cells.add(key(r,c));
+            pulseToast('🌈 Полная зачистка!');
+            return cells;
+        }
+
+        footprintFor(a).forEach(([r,c])=>cells.add(key(r,c)));
+        footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
+        return cells;
+    }
+
+    // ПОШАГОВЫЙ СИМУЛЯТОР ГРАВИТАЦИИ С ДИАГОНАЛЬНЫМ ЗАТЕКАНИЕМ (HOMESCAPES STYLE)
+    function applyGravityAndRefill(){
+        let moved = true;
+        let loops = 0;
+        const maxLoops = 25; 
+
+        while (moved && loops < maxLoops) {
+            moved = false;
+            loops++;
+
+            for (let r = SIZE - 1; r >= 0; r--) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === 1 && grid[r][c] === null) {
+                        
+                        let sourceRow = -1;
+                        let sourceCol = c;
+
+                        // 1. Попытка вертикального падения (Приоритет)
+                        const cellKey = key(r, c);
+                        if (portals[cellKey]) {
+                            const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
+                            sourceRow = ep_r;
+                            sourceCol = ep_c;
+                        } else {
+                            for (let checkR = r - 1; checkR >= 0; checkR--) {
+                                if (levelLayout[checkR][c] === 2) {
+                                    break; 
+                                }
+                                if (levelLayout[checkR][c] === 1) {
+                                    sourceRow = checkR;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (sourceRow >= 0 && sourceRow < SIZE && sourceCol >= 0 && sourceCol < SIZE) {
+                            const t = grid[sourceRow][sourceCol];
+                            if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                grid[r][c] = t;
+                                grid[sourceRow][sourceCol] = null;
+                                moveTileTo(t, r, c);
+                                moved = true;
+                                continue; 
+                            }
+                        }
+
+                        // 2. Диагональный затек по бокам (если вертикальный путь заблокирован льдом/ящиком)
+                        if (grid[r][c] === null && !portals[cellKey]) {
+                            const sideDirections = [-1, 1]; 
+                            if (Math.random() < 0.5) sideDirections.reverse(); 
+
+                            for (const dc of sideDirections) {
+                                const diagCol = c + dc;
+                                const diagRow = r - 1;
+
+                                if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
+                                    if (levelLayout[diagRow][diagCol] === 1) {
+                                        const t = grid[diagRow][diagCol];
+                                        if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                            grid[r][c] = t;
+                                            grid[diagRow][diagCol] = null;
+                                            moveTileTo(t, r, c);
+                                            moved = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Наполнение колонок из спавнеров
+            for (let c = 0; c < SIZE; c++) {
+                let topRow = -1;
+                for (let r = 0; r < SIZE; r++) {
+                    if (levelLayout[r][c] === 1) {
+                        topRow = r;
+                        break;
+                    }
+                }
+                
+                if (topRow !== -1 && grid[topRow][c] === null) {
+                    let spawnType = randType();
+                    if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
+                        spawnType = "donut";
+                    }
+                    grid[topRow][c] = createTile(topRow, c, spawnType, topRow - 1);
+                    moved = true;
+                }
+            }
+        }
+
+        collectDoughnuts();
+        processThreatsAndJesters();
+        resetHintTimer(); 
+    }
+
+    function hasPossibleMoves() {
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && isSpecial(t.type)) return true;
+            }
+        }
+
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (!t || t.type === 'box' || t.type === 'donut') continue;
+
+                const neighbors = [[r + 1, c], [r, c + 1]];
+                for (const [nr, nc] of neighbors) {
+                    if (nr < SIZE && nc < SIZE) {
+                        const nt = grid[nr][nc];
+                        if (nt && nt.type !== 'box' && nt.type !== 'donut') {
+                            
+                            grid[r][c] = nt;
+                            grid[nr][nc] = t;
+
+                            const runs = collectRuns();
+                            const hasMatch = runs.length > 0;
+
+                            grid[r][c] = t;
+                            grid[nr][nc] = nt;
+
+                            if (hasMatch) return true; 
+                        }
+                    }
+                }
+            }
+        }
+        return false; 
+    }
+
+    function updateMatch3HUD() {
+        if (m3MovesText) m3MovesText.textContent = moves;
+        if (!m3GoalText) return;
+
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+        } else if (targetType === "box") {
+            m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
+        } else if (targetType === "ice") {
+            m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
+        } else if (targetType === "donut") {
+            m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`;
+        } else if (["vase", "apple", "cherry", "nut", "ring", "cheese", "book", "pinata", "capsule"].includes(targetType)) {
+            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ${iconFor(targetType)}`;
+        } else {
+            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        }
+    }
+
+    function checkEndConditions(){
+        let isVictory = false;
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            isVictory = currentCarpetCount >= GOAL_HEARTS;
+        } else if (targetType === "box") {
+            isVictory = boxesBroken >= GOAL_HEARTS;
+        } else if (targetType === "ice") {
+            isVictory = iceMelted >= GOAL_HEARTS;
+        } else if (targetType === "donut") {
+            isVictory = donutsCollected >= GOAL_HEARTS;
+        } else if (["vase", "apple", "cherry", "nut", "ring", "cheese", "book", "pinata", "capsule"].includes(targetType)) {
+            isVictory = hearts >= GOAL_HEARTS;
+        } else {
+            isVictory = hearts >= GOAL_HEARTS;
+        }
+
+        if(isVictory){
+            clearTimeout(hintTimeout); // Отключаем подсказки при победе
+            const rewards = getRewards(levelDifficulty);
+            
+            if (window.GameState) {
+                window.GameState.addStars(rewards.stars);
+                window.GameState.addCash(rewards.coins);
+            }
+
+            const winText = `Заказ выполнен!\n\nВы получили: ⭐ +${rewards.stars}\nБазовая награда: 💰 +${rewards.base}₽\nБонус за ходы (${moves} шт.): 💰 +${rewards.bonus}₽\nИтого: +${rewards.coins}₽`;
+
+            const dialogueWin = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].win : null;
+            if (window.NovelEngine && dialogueWin) {
+                window.NovelEngine.run(dialogueWin, () => {
+                    showOverlay('Успешный улов!', winText);
+                });
+            } else {
+                showOverlay('Успешный улов!', winText);
+            }
+            return;
+        }
+
+        if(moves <= 0){
+            clearTimeout(hintTimeout); // Отключаем подсказки при проигрыше
+            if (window.GameState) {
+                window.GameState.loseLife(); 
+            }
+
+            const dialogueLose = window.gameDialogs && window.gameDialogs[currentLevelId] ? window.gameDialogs[currentLevelId].lose : null;
+            const loseText = `Тебе не хватило ходов.\n\nЖизнь: -1 ❤️`;
+
+            if (window.NovelEngine && dialogueLose) {
+                window.NovelEngine.run(dialogueLose, () => {
+                    showOverlay('Слитый бой...', loseText);
+                });
+            } else {
+                showOverlay('Слитый бой...', loseText);
+            }
+            return;
+        }
+
+        if (!hasPossibleMoves()) {
+            shuffleBoard();
+        }
     }
 
     function openPreLevelScreen(levelId) {
