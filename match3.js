@@ -379,7 +379,53 @@
             }, 300);
         });
     }
+// Вычисление математической зоны поражения (сетки ячеек) для одного конкретного бустера
+    function footprintFor(tile){
+        const cells = [];
+        if(tile.type==='bomb'){
+            // Бомба: радиус взрыва 5х5 ячеек вокруг эпицентра
+            for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
+                const rr=tile.row+dr, cc=tile.col+dc;
+                if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.push([rr,cc]);
+            }
+        } else if(tile.type==='rocketRow'){
+            // Ракета по строке: поражает весь горизонтальный ряд
+            for(let c=0;c<SIZE;c++) cells.push([tile.row,c]);
+        } else if(tile.type==='rocketCol'){
+            // Ракета по столбцу: поражает весь вертикальный ряд
+            for(let r=0;r<SIZE;r++) cells.push([r,tile.col]);
+        } else if(tile.type==='plane'){
+            // Самолетик: поражает крестом свою ячейку и 4 соседних перед взлетом
+            cells.push([tile.row,tile.col]);
+            [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{
+                const rr=tile.row+dr, cc=tile.col+dc;
+                if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE) cells.push([rr,cc]);
+            });
+        } else if(tile.type==='rainbow'){
+            cells.push([tile.row,tile.col]);
+        }
+        return cells;
+    }
 
+    // Рекурсивное вычисление полной зоны детонации (для цепной активации бустеров от взрывов друг друга)
+    function computeActivationFootprint(startTile){
+        const visited = new Set([startTile.id]);
+        const footprint = new Set();
+        const queue = [startTile];
+        while(queue.length){
+            const t = queue.shift();
+            footprintFor(t).forEach(([r,c]) => {
+                footprint.add(key(r, c));
+                const other = grid[r] && grid[r][c];
+                // Если в зоне поражения оказался другой бустер — вовлекаем его в цепную реакцию!
+                if(other && isSpecial(other.type) && !visited.has(other.id)){
+                    visited.add(other.id);
+                    queue.push(other);
+                }
+            });
+        }
+        return footprint;
+    }
     // Активация одиночного бустера простым тапом по нему
     function activateStandalone(tile) {
         if (busy) return;
