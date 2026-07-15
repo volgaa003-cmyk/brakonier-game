@@ -607,88 +607,119 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 7: ГРАВИТАЦИЯ, ПОРТАЛЫ И ДИАГОНАЛЬНОЕ ОГИБАНИЕ ПРЕПЯТСТВИЙ
     // ----------------------------------------------------------------------
-    function applyGravityAndRefill(){
-        let moved = true;
-        let loops = 0;
-        const maxLoops = 25; // Защита от бесконечного цикла зависания
+// Сбор пончиков у самого низа игрового поля (аналог лимонадов из Homescapes)
+    function collectDoughnuts() {
+        let collectedThisTurn = 0;
+        for (let c = 0; c < SIZE; c++) {
+            const t = grid[SIZE - 1][c]; // Проверяем самую нижнюю строку
+            if (t && t.type === 'donut') {
+                t.el.classList.add('clearing');
+                grid[SIZE - 1][c] = null;
+                donutsCollected++;
+                collectedThisTurn++;
+                // Удаляем визуальный DOM-элемент пончика
+                setTimeout(((tileToKill) => () => tileToKill.el.remove())(t), CLEAR_MS);
+            }
+        }
+        if (collectedThisTurn > 0) {
+            updateMatch3HUD();
+            pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
+            applyGravityAndRefill(); // Снова запускаем гравитацию на освободившиеся места
+        }
+    }
 
-        while (moved && loops < maxLoops) {
-            moved = false; loops++;
-            for (let r = SIZE - 1; r >= 0; r--) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (levelLayout[r][c] !== 0 && grid[r][c] === null) {
-                        let sourceRow = -1;
-                        let sourceCol = c;
-                        const cellKey = key(r, c);
+    // Обработка движения угроз: перемещение попугаев, рост плюща и мыльной пены
+    function processThreatsAndJesters() {
+        let spawnedFoam = false;
 
-                        // Проверяем, связана ли данная ячейка с порталом
-                        if (portals[cellKey]) {
-                            const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
-                            sourceRow = ep_r;
-                            sourceCol = ep_c;
-                        } else {
-                            // Ищем ближайшую заполненную ячейку по вертикали выше
-                            for (let checkR = r - 1; checkR >= 0; checkR--) {
-                                if (levelLayout[checkR][c] === 0) break;
-                                if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
-                            }
-                        }
-
-                        // 1. Прямое вертикальное падение фишки
-                        if (sourceRow >= 0 && sourceCol >= 0 && sourceCol < SIZE) {
-                            const t = grid[sourceRow][sourceCol];
-                            if (t && t.type !== 'box' && !t.frozen && !t.chained) {
-                                grid[r][c] = t; 
-                                grid[sourceRow][sourceCol] = null;
-                                moveTileTo(t, r, c); 
-                                moved = true;
-                                continue;
-                            }
-                        }
-
-                        // 2. Диагональное огибание (если прямой вертикальный путь заблокирован)
-                        if (grid[r][c] === null && !portals[cellKey]) {
-                            const sideDirections = [-1, 1];
-                            if (Math.random() < 0.5) sideDirections.reverse();
-
-                            for (const dc of sideDirections) {
-                                const diagCol = c + dc;
-                                const diagRow = r - 1;
-
-                                if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
-                                    if (levelLayout[diagRow][diagCol] !== 0) {
-                                        const t = grid[diagRow][diagCol];
-                                        if (t && t.type !== 'box' && !t.frozen && !t.chained) {
-                                            grid[r][c] = t;
-                                            grid[diagRow][diagCol] = null;
-                                            moveTileTo(t, r, c);
-                                            moved = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+        // Физика попугая: взлетает вверх, если над ним пусто
+        for (let r = 1; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && t.type === 'parrot' && levelLayout[r-1][c] === 1 && grid[r-1][c] === null) {
+                    grid[r-1][c] = t;
+                    grid[r][c] = null;
+                    moveTileTo(t, r - 1, c);
                 }
             }
-            
-            // Заполнение пустых мест в самых верхних ячейках каждого отдельного сегмента
+        }
+
+        // Логика мыла и плюща: захватывают соседние плитки, превращая их в пену/плющ
+        for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
-                for (let r = 0; r < SIZE; r++) {
-                    const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
-                    if (isSegmentTop && grid[r][c] === null) {
-                        grid[r][c] = createTile(r, c, randType(), r - 1);
-                        moved = true;
+                const t = grid[r][c];
+                if (t && (t.type === 'foam' || t.type === 'ivy') && !spawnedFoam) {
+                    const neighbors = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+                    for (const [nr, nc] of neighbors) {
+                        if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && levelLayout[nr][nc] === 1 && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
+                            const victim = grid[nr][nc];
+                            victim.el.remove();
+                            grid[nr][nc] = createTile(nr, nc, t.type, nr);
+                            spawnedFoam = true;
+                            pulseToast(t.type === 'foam' ? "🧼 Мыло затекает!" : "🌿 Плющ наступает!");
+                            break;
+                        }
                     }
                 }
             }
         }
-        collectDoughnuts();
-        processThreatsAndJesters();
-        resetHintTimer(); 
     }
 
+    // Показ всплывающих текстовых подсказок по центру поля
+    function pulseToast(msg) {
+        if (toastEl) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(pulseToast._t);
+            pulseToast._t = setTimeout(() => toastEl.classList.remove('show'), 1200);
+        }
+    }
+
+    // Обновление показателей интерфейса HUD во время уровня три в ряд
+    function updateMatch3HUD() {
+        if (m3MovesText) m3MovesText.textContent = moves;
+        if (!m3GoalText) return;
+
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+        } else if (targetType === "box") {
+            m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
+        } else if (targetType === "ice") {
+            m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
+        } else {
+            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        }
+    }
+
+    // Проверка условий победы или поражения (завершение раунда)
+    function checkEndConditions(){
+        let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
+                        (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
+                        (targetType === "heart" && hearts >= GOAL_HEARTS);
+
+        if(isVictory){
+            clearTimeout(hintTimeout);
+            const rewards = getRewards(levelDifficulty);
+            if (window.GameState) {
+                window.GameState.addStars(rewards.stars);
+                window.GameState.addCash(rewards.coins);
+            }
+            showOverlay('Успешная вылазка!', `Заказ закрыт!\nБаза: +${rewards.base}₽\nБонус за ходы: +${rewards.bonus}₽`, true);
+            return;
+        }
+
+        if(moves <= 0){
+            clearTimeout(hintTimeout);
+            if (window.GameState) window.GameState.loseLife();
+            showOverlay('Вурдалаки победили!', `Тебе не хватило ходов. Жизнь -1.`, false);
+        }
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 8: АНАЛИЗАТОР МАТЧЕЙ И ГЕНЕРАЦИЯ СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
