@@ -1595,7 +1595,28 @@
             }
         });
     }
+function updateMatch3HUD() {
+        if (m3MovesText) m3MovesText.textContent = moves;
+        if (!m3GoalText) return;
 
+        if (targetType === "carpet") {
+            let currentCarpetCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (carpetGrid[r][c]) currentCarpetCount++;
+                }
+            }
+            m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
+        } else if (targetType === "box") {
+            m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
+        } else if (targetType === "ice") {
+            m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
+        } else if (targetType === "donut") {
+            m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`;
+        } else {
+            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
+        }
+    }
     window.openPreLevelScreen = openPreLevelScreen;
     console.log("match3.js: Все асинхронные авиа-полеты, комбо-эффекты и бустеры синхронизированы!");
 })();
