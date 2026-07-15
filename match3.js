@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ — СИНХРОНИЗАЦИЯ ПОЛЕТОВ, ЛЬДА И БУСТЕРОВ)
-// Движок "Три в ряд" с поддержкой мягкого таяния льда, авиа-контроля и бустеров
+// match3.js (ИСПРАВЛЕННЫЙ — БЕЗ ЗАВИСАНИЙ)
+// Движок "Три в ряд" с гарантированным вызовом анимаций полета
 // ================================================
 
 (function() {
@@ -1097,7 +1097,7 @@
             const t = grid[r] && grid[r][c];
             if (t) {
                 if (t.frozen) {
-                    // Растопить лед, но сохранить фишку
+                    // Растопить лед, но сохранить саму фишку на поле
                     t.frozen = false;
                     iceGrid[r][c] = 0;
                     t.el.classList.remove('frozen');
@@ -1183,12 +1183,17 @@
                 }
             });
             applyGravityAndRefill();
+            
             setTimeout(()=>{
                 const result = analyzeMatches();
                 const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
+                
+                // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Вызываем коллбэк полета самолета ВСЕГДА, не блокируя его каскадами
+                if (onComplete) {
+                    onComplete();
+                }
+
                 if(!hasMore){
-                    if (onComplete) onComplete();
-                    
                     if (activePlanesCount === 0) {
                         busy = false;
                         checkEndConditions();
