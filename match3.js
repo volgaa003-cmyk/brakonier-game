@@ -626,6 +626,7 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 9: ОЧИСТКА КЛЕТОК И СИНХРОННЫЙ СПАВН СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
+   // Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -663,22 +664,22 @@
         updateMatch3HUD();
         
         setTimeout(()=>{
-            // Очистка фишек во встроенной памяти
+            // Очистка уничтоженных фишек во встроенной памяти (ИСПРАВЛЕНО: null заменен на c)
             finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r][c]; 
                 if(t){ t.el.remove(); grid[r][c]=null; }
             });
 
-            // МГНОВЕННЫЙ СИНХРОННЫЙ СПАВН БУСТЕРОВ (Исключает пропадание бонусов)
+            // Синхронный спавн бустеров на месте совпадений
             specialSpawns.forEach(s => {
                 const [r, c] = s.at;
                 if (!grid[r]) return;
                 let t = grid[r][c];
                 if (t) {
-                    t.el.remove(); // Стираем старый элемент
+                    t.el.remove(); 
                 }
-                grid[r][c] = createTile(r, c, s.type, r); // Создаем новый бонус на плитке
+                grid[r][c] = createTile(r, c, s.type, r); 
             });
 
             applyGravityAndRefill();
@@ -690,7 +691,7 @@
             }, FALL_MS + 20);
         }, CLEAR_MS);
     }
-
+    
     function applyResolutionFull(result){
         const specialSpawns = [];
         const scoreSet = new Set();
@@ -733,7 +734,51 @@
         footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
         return cells;
     }
+// Функция автоматической адаптации препятствий под цели уровня (Homescapes балансировщик)
+    function synchronizeObstaclesAndGoals() {
+        let playableCells = [];
+        let currentBoxes = 0;
 
+        // Сканируем поле, чтобы понять, сколько у нас коробок и свободных мест
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (levelLayout[r][c] === 1) {
+                    playableCells.push({r, c});
+                } else if (levelLayout[r][c] === 2) {
+                    currentBoxes++;
+                }
+            }
+        }
+
+        // Если цель раунда — коробки, гарантируем их достаточное количество
+        if (targetType === "box") {
+            let targetBoxCount = Math.min(GOAL_HEARTS, 18); // Максимум 18, чтобы не заблокировать всё поле
+            while (currentBoxes < targetBoxCount && playableCells.length > 0) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                levelLayout[cell.r][cell.c] = 2; // Превращаем свободную клетку в коробку
+                currentBoxes++;
+            }
+            GOAL_HEARTS = currentBoxes; // Синхронизируем цель с количеством коробок на поле
+        }
+
+        // Спавн Радужного шара на старте, если игрок выбрал этот пре-бустер
+        if (selectedPreBoosters.rainbow) {
+            const cell = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
+            if (cell) levelLayout[cell.r][cell.c] = 7; 
+        }
+        
+        // Спавн Бомбы и Ракеты, если выбран соответствующий пре-бустер
+        if (selectedPreBoosters.combo) {
+            if (playableCells.length > 1) {
+                const cell1 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
+                const cell2 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
+                levelLayout[cell1.r][cell1.c] = 3; 
+                levelLayout[cell2.r][cell2.c] = 4; 
+            }
+        }
+        doublePlanesActive = selectedPreBoosters.doublePlanes;
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 10: ЛОГИКА 5 АКТИВНЫХ ИНСТРУМЕНТОВ БРАКОНЬЕРА
     // ----------------------------------------------------------------------
