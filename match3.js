@@ -1216,11 +1216,14 @@
 
                 if (t.type === 'box' || t.frozen || t.chained) {
                     damageObstacle(t, r, c, isExplosion);
-                } else {
+        } else {
                     finalClearSet.add(k);
-                    if (targetType === t.type) hearts++;
+                    // Бронированная проверка совпадения типа фишки с целью уровня (срезает пробелы и регистр)
+                    const isTargetMatch = String(targetType).trim().toLowerCase() === String(t.type).trim().toLowerCase();
+                    if (isTargetMatch) {
+                        hearts++;
+                    }
                 }
-            }
         });
 
         checkAndBreakBoxes(finalClearSet, isExplosion);
