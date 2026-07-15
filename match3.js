@@ -1,6 +1,6 @@
 // ================================================
-// match3.js (ФИНАЛЬНЫЙ — С ПОДДЕРЖКОЙ ВСЕХ МЕХАНИК)
-// Движок "Три в ряд" с цепями, порталами и пончиками
+// match3.js (HOMESCAPES PREMIUM EDITION)
+// Премиальный движок три в ряд с частицами, отдачей и подсказками
 // ================================================
 
 (function() {
@@ -46,8 +46,11 @@
     let tileIdCounter = 0;
 
     // Режим бустера
-    let activeBooster = null; // 'hammer' или 'broom'
+    let activeBooster = null; 
     let activePlanesCount = 0;
+
+    // Таймер подсказок (Idle Hint)
+    let hintTimeout = null;
 
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
@@ -65,10 +68,57 @@
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
 
-    // ДИНАМИЧЕСКИЙ СТИЛИЗАТОР НОВЫХ МЕХАНИК
-    (function injectStyles() {
+    // ИНЖЕКТОР ПРЕМИАЛЬНЫХ ВИЗУАЛЬНЫХ ЭФФЕКТОВ HOMESCAPES
+    (function injectPremiumStyles() {
         const style = document.createElement('style');
         style.textContent = `
+            /* Эластичная гравитация - пружинящий эффект при приземлении */
+            .tile {
+              position: absolute;
+              width: calc(100% / var(--size));
+              height: calc(100% / var(--size));
+              transition: left .24s cubic-bezier(.25,1,.5,1), top .28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+              cursor: pointer;
+              z-index: 1;
+              will-change: left, top;
+            }
+            /* Частицы VFX-взрыва */
+            .m3-spark {
+              position: absolute;
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              pointer-events: none;
+              z-index: 99;
+              transform: scale(1);
+              transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-out;
+              will-change: transform, opacity;
+            }
+            /* Отдача поля при сильном взрыве */
+            @keyframes boardShakeMild {
+              0%, 100% { transform: translate(0, 0); }
+              20%, 60% { transform: translate(-3px, 2px); }
+              40%, 80% { transform: translate(3px, -2px); }
+            }
+            @keyframes boardShakeIntense {
+              0%, 100% { transform: translate(0, 0); }
+              10%, 90% { transform: translate(-6px, 4px) rotate(-0.5deg); }
+              30%, 70% { transform: translate(6px, -4px) rotate(0.5deg); }
+              50% { transform: translate(-2px, 5px) rotate(-1deg); }
+            }
+            .shake-mild { animation: boardShakeMild 0.3s ease-out; }
+            .shake-intense { animation: boardShakeIntense 0.35s ease-out; }
+
+            /* Подсказка - мягкое покачивание фишек */
+            @keyframes hintPulse {
+              0%, 100% { transform: scale(1); }
+              50% { transform: scale(1.1) rotate(3deg); box-shadow: 0 0 8px var(--gold); }
+            }
+            .match-hint .tile-inner {
+              animation: hintPulse 0.8s infinite ease-in-out;
+              z-index: 8;
+            }
+
             .tile.chained .tile-inner::after {
               content: "🔗";
               position: absolute;
@@ -93,12 +143,6 @@
             .grid-cell.portal-exit {
               border: 2px dashed #d500f9 !important;
               box-shadow: inset 0 0 8px rgba(213, 0, 249, 0.4);
-            }
-            .match3-footer::after {
-              content: " ⬇️ Ингредиенты🍩 выводите в самый низ поля!";
-              display: block;
-              margin-top: 4px;
-              color: var(--gold);
             }
         `;
         document.head.appendChild(style);
@@ -137,6 +181,7 @@
             if (btnBroom) btnBroom.classList.toggle('active', type === 'broom');
             pulseToast(type === 'hammer' ? "Молоток: выберите любую клетку" : "Метла: выберите центр перекрестка");
         }
+        resetHintTimer();
     }
 
     function iconFor(type){
@@ -170,6 +215,107 @@
         el.style.top = (row*100/SIZE)+'%';
     }
 
+    // ТРЯСКА ПОЛЯ (SCREEN SHAKE)
+    function triggerBoardShake(intensityClass = 'shake-mild') {
+        boardEl.classList.remove('shake-mild', 'shake-intense');
+        void boardEl.offsetWidth; // Триггер перерисовки
+        boardEl.classList.add(intensityClass);
+        setTimeout(() => {
+            boardEl.classList.remove('shake-mild', 'shake-intense');
+        }, 350);
+    }
+
+    // СПАВН ЧАСТИЦ (VFX SPARKS)
+    function spawnMatchParticles(r, c, type) {
+        const count = 6;
+        const colorPalette = {
+            heart: '#ff2e93',
+            bullet: '#2ecc71',
+            garlic: '#f1c40f',
+            stake: '#3498db',
+            vial: '#9b59b6',
+            coin: '#f39c12',
+            donut: '#ff85a2'
+        };
+        const pColor = colorPalette[type] || '#ffffff';
+        const cellWidth = boardEl.offsetWidth / SIZE;
+        
+        const startX = (c + 0.5) * cellWidth;
+        const startY = (r + 0.5) * cellWidth;
+
+        for (let i = 0; i < count; i++) {
+            const spark = document.createElement('div');
+            spark.className = 'm3-spark';
+            spark.style.backgroundColor = pColor;
+            spark.style.left = startX + 'px';
+            spark.style.top = startY + 'px';
+
+            boardEl.appendChild(spark);
+
+            const angle = (Math.PI * 2 / count) * i + (Math.random() * 0.4 - 0.2);
+            const force = 30 + Math.random() * 35;
+            const targetX = Math.cos(angle) * force;
+            const targetY = Math.sin(angle) * force;
+
+            setTimeout(() => {
+                spark.style.transform = `translate(${targetX}px, ${targetY}px) scale(0)`;
+                spark.style.opacity = '0';
+            }, 20);
+
+            setTimeout(() => spark.remove(), 420);
+        }
+    }
+
+    // ТАЙМЕРЫ ИСКУССТВЕННЫХ ПОДСКАЗОК
+    function resetHintTimer() {
+        clearTimeout(hintTimeout);
+        removeCurrentHints();
+        hintTimeout = setTimeout(highlightPossibleMove, 4500); // 4.5 секунды бездействия
+    }
+
+    function removeCurrentHints() {
+        document.querySelectorAll('.match-hint').forEach(el => el.classList.remove('match-hint'));
+    }
+
+    function highlightPossibleMove() {
+        if (busy || activeBooster) return;
+        const move = findValidSwapMove();
+        if (move) {
+            move.a.el.classList.add('match-hint');
+            move.b.el.classList.add('match-hint');
+        }
+    }
+
+    function findValidSwapMove() {
+        // Проверяем все горизонтальные свапы
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE - 1; c++) {
+                const a = grid[r][c];
+                const b = grid[r][c+1];
+                if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
+                    swapInGrid(a, b);
+                    const hasMatch = collectRuns().length > 0;
+                    swapInGrid(a, b); // возвращаем обратно
+                    if (hasMatch) return { a, b };
+                }
+            }
+        }
+        // Проверяем все вертикальные свапы
+        for (let r = 0; r < SIZE - 1; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const a = grid[r][c];
+                const b = grid[r+1][c];
+                if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
+                    swapInGrid(a, b);
+                    const hasMatch = collectRuns().length > 0;
+                    swapInGrid(a, b);
+                    if (hasMatch) return { a, b };
+                }
+            }
+        }
+        return null;
+    }
+
     function handleDragStart(e, tile) {
         if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
         dragActiveTile = tile;
@@ -177,6 +323,7 @@
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         dragStartX = clientX;
         dragStartY = clientY;
+        resetHintTimer();
     }
 
     function handleDragMove(e) {
@@ -320,72 +467,51 @@
         }
     }
 
-    function executeBoosterAction(tile) {
-        busy = true;
-        const r = tile.row;
-        const c = tile.col;
-        const booster = activeBooster;
-        const cost = booster === 'hammer' ? 150 : 300;
-
-        if (window.GameState) {
-            window.GameState.spendCash(cost);
+    function findTileById(id){
+        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+            const t = grid[r][c];
+            if(t && t.id===id) return t;
         }
-
-        activeBooster = null;
-        boardEl.classList.remove('aiming');
-        if (btnHammer) btnHammer.classList.remove('active');
-        if (btnBroom) btnBroom.classList.remove('active');
-
-        if (booster === 'hammer') {
-            pulseToast("🔨 Молоток задействован!");
-            if (tile.type === 'box') {
-                levelLayout[r][c] = 1;
-                tile.el.classList.add('clearing');
-                if (targetType === "box") boxesBroken++;
-                setTimeout(() => {
-                    tile.el.remove();
-                    grid[r][c] = null;
-                    applyGravityAndRefill();
-                    setTimeout(checkEndAfterAction, FALL_MS + 40);
-                }, CLEAR_MS);
-            } else if (tile.frozen || tile.chained) {
-                // Прямой удар бустером размораживает или снимает цепь
-                tile.frozen = false;
-                tile.chained = false;
-                iceGrid[r][c] = 0;
-                chainGrid[r][c] = 0;
-                tile.el.classList.remove('frozen', 'chained');
-                busy = false;
-                updateMatch3HUD();
-                checkEndConditions();
-            } else {
-                const clearSet = new Set([key(r, c)]);
-                clearAndContinue(clearSet, [], null, null, true, false, true); 
-            }
-        } 
-        else if (booster === 'broom') {
-            pulseToast("🧹 Метла задействована!");
-            animateRocketEffect(r, c, true);
-            animateRocketEffect(r, c, false);
-
-            const clearSet = new Set();
-            for (let i = 0; i < SIZE; i++) {
-                clearSet.add(key(r, i));
-                clearSet.add(key(i, c));
-            }
-            clearAndContinue(clearSet, [], null, null, false, false, true);
-        }
+        return null;
     }
 
-    function checkEndAfterAction() {
-        const result = analyzeMatches();
-        const hasMore = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
-        if (hasMore) {
-            applyResolutionFull(result);
-        } else {
-            busy = false;
-            checkEndConditions();
+    function onTileClick(e){
+        if(busy) return;
+        const tile = findTileById(e.currentTarget.dataset.id);
+        if(!tile) return;
+
+        resetHintTimer();
+
+        // Если активирован бустер
+        if (activeBooster) {
+            executeBoosterAction(tile);
+            return;
         }
+
+        if(tile.type === 'box' || tile.frozen || tile.chained) return;
+
+        if(selected === null){
+            if(isSpecial(tile.type)) { activateStandalone(tile); return; }
+            selected = tile;
+            tile.el.classList.add('selected');
+            return;
+        }
+        if(selected === tile){
+            selected = null;
+            tile.el.classList.remove('selected');
+            return;
+        }
+        const adjacent = Math.abs(selected.row-tile.row) + Math.abs(selected.col-tile.col) === 1;
+        selected.el.classList.remove('selected');
+        if(!adjacent){
+            if(isSpecial(tile.type)){ selected=null; activateStandalone(tile); return; }
+            selected = tile;
+            tile.el.classList.add('selected');
+            return;
+        }
+        const a = selected, b = tile;
+        selected = null;
+        performSwap(a,b);
     }
 
     function swapInGrid(a,b){
@@ -568,224 +694,6 @@
             cells.push([tile.row,tile.col]);
         }
         return cells;
-    }
-
-    function computeActivationFootprint(startTile){
-        const visited = new Set([startTile.id]);
-        const footprint = new Set();
-        const queue = [startTile];
-        while(queue.length){
-            const t = queue.shift();
-            footprintFor(t).forEach(([r,c]) => {
-                footprint.add(key(r, c));
-                const other = grid[r] && grid[r][c];
-                if(other && isSpecial(other.type) && !visited.has(other.id)){
-                    visited.add(other.id);
-                    queue.push(other);
-                }
-            });
-        }
-        return footprint;
-    }
-
-    function cellsOfColor(type){
-        const s = new Set();
-        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-            if(grid[r][c] && grid[r][c].type===type) s.add(key(r,c));
-        }
-        return s;
-    }
-
-    function presentColors(){
-        const set = new Set();
-        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-            if(grid[r][c] && !isSpecial(grid[r][c].type) && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut') set.add(grid[r][c].type);
-        }
-        return Array.from(set);
-    }
-
-    // ==================== ДИНАМИЧЕСКИЕ АНИМАЦИИ БОНУСОВ ====================
-
-    function animateRocketEffect(row, col, isRow) {
-        const proj1 = document.createElement('div');
-        const proj2 = document.createElement('div');
-        proj1.className = 'm3-projectile';
-        proj2.className = 'm3-projectile';
-        proj1.textContent = '🚀';
-        proj2.textContent = '🚀';
-
-        proj1.style.left = (col * 100 / SIZE) + '%';
-        proj1.style.top = (row * 100 / SIZE) + '%';
-        proj2.style.left = (col * 100 / SIZE) + '%';
-        proj2.style.top = (row * 100 / SIZE) + '%';
-
-        if (isRow) {
-            proj1.style.transform = 'rotate(-90deg)';
-            proj2.style.transform = 'rotate(90deg)';
-        }
-
-        boardEl.appendChild(proj1);
-        boardEl.appendChild(proj2);
-
-        setTimeout(() => {
-            if (isRow) {
-                proj1.style.left = '-120%';
-                proj2.style.left = '120%';
-            } else {
-                proj1.style.top = '-120%';
-                proj1.style.transform = 'rotate(0deg)';
-                proj2.style.top = '120%';
-                proj2.style.transform = 'rotate(180deg)';
-            }
-        }, 16);
-
-        setTimeout(() => {
-            proj1.remove();
-            proj2.remove();
-        }, 650);
-    }
-
-    function animateBombEffect(row, col) {
-        const wave = document.createElement('div');
-        wave.className = 'bomb-shockwave';
-        wave.style.left = (col * 100 / SIZE) + '%';
-        wave.style.top = (row * 100 / SIZE) + '%';
-
-        boardEl.appendChild(wave);
-
-        setTimeout(() => {
-            wave.style.transform = 'scale(5.5)'; 
-            wave.style.opacity = '0';
-        }, 16);
-
-        setTimeout(() => {
-            wave.remove();
-        }, 350);
-    }
-
-    function animatePlaneEffect(startRow, startCol, targetRow, targetCol, onArrive) {
-        const plane = document.createElement('div');
-        plane.className = 'm3-projectile';
-        plane.textContent = '✈️';
-        plane.style.left = (startCol * 100 / SIZE) + '%';
-        plane.style.top = (startRow * 100 / SIZE) + '%';
-
-        boardEl.appendChild(plane);
-
-        const dx = targetCol - startCol;
-        const dy = targetRow - startRow;
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI + 45; 
-
-        setTimeout(() => {
-            plane.style.transform = `scale(1.4) rotate(${angle - 180}deg)`;
-        }, 60);
-
-        setTimeout(() => {
-            plane.style.left = (targetCol * 100 / SIZE) + '%';
-            plane.style.top = (targetRow * 100 / SIZE) + '%';
-            plane.style.transform = `scale(1.1) rotate(${angle}deg)`;
-        }, 180);
-
-        setTimeout(() => {
-            plane.remove();
-            if (onArrive) onArrive();
-        }, 850);
-    }
-
-    function animateRainbowTentacles(startRow, startCol, targets, colorId) {
-        let laserBg = "linear-gradient(90deg, #ffffff, #fff)";
-        let glowColor = "rgba(255,255,255,0.8)";
-        
-        if (colorId === 'heart') { laserBg = "linear-gradient(90deg, #ffb3b3, var(--blood))"; glowColor = "var(--blood)"; }
-        else if (colorId === 'bullet') { laserBg = "linear-gradient(90deg, #b3ffb3, #2ecc71)"; glowColor = "#2ecc71"; }
-        else if (colorId === 'garlic') { laserBg = "linear-gradient(90deg, #ffffff, #bdc3c7)"; glowColor = "#bdc3c7"; }
-        else if (colorId === 'stake') { laserBg = "linear-gradient(90deg, #b3e6ff, var(--sky))"; glowColor = "var(--sky)"; }
-        else if (colorId === 'vial') { laserBg = "linear-gradient(90deg, #f9b3ff, #9b59b6)"; glowColor = "#9b59b6"; }
-        else if (colorId === 'coin') { laserBg = "linear-gradient(90deg, #fff4b3, var(--gold))"; glowColor = "var(--gold)"; }
-
-        const boardWidth = boardEl.offsetWidth;
-        const cellSize = boardWidth / SIZE;
-
-        const x1 = (startCol + 0.5) * cellSize;
-        const y1 = (startRow + 0.5) * cellSize;
-
-        targets.forEach(({r, c}) => {
-            const laser = document.createElement('div');
-            laser.className = 'rainbow-laser';
-            laser.style.background = laserBg;
-            laser.style.boxShadow = `0 0 10px ${glowColor}, inset 0 0 4px #fff`;
-            
-            laser.style.left = x1 + 'px';
-            laser.style.top = y1 + 'px';
-            laser.style.width = '0px';
-
-            const x2 = (c + 0.5) * cellSize;
-            const y2 = (r + 0.5) * cellSize;
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-            laser.style.transform = `rotate(${angle}deg)`;
-
-            boardEl.appendChild(laser);
-
-            setTimeout(() => {
-                laser.style.width = dist + 'px';
-            }, 16);
-
-            setTimeout(() => {
-                laser.style.opacity = '0';
-                setTimeout(() => laser.remove(), 200);
-            }, 350);
-        });
-    }
-
-    function findBestTargetForPlane(excludeRow, excludeCol) {
-        let targetRow = excludeRow, targetCol = excludeCol;
-        let foundTarget = false;
-
-        for (let r=0; r<SIZE; r++) {
-            for (let c=0; c<SIZE; c++) {
-                if (grid[r][c] && grid[r][c].type === 'box') {
-                    targetRow = r; targetCol = c;
-                    foundTarget = true;
-                    break;
-                }
-            }
-            if (foundTarget) break;
-        }
-
-        if (!foundTarget) {
-            for (let r=0; r<SIZE; r++) {
-                for (let c=0; c<SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type === 'heart') {
-                        targetRow = r; targetCol = c;
-                        foundTarget = true;
-                        break;
-                    }
-                }
-                if (foundTarget) break;
-            }
-        }
-
-        if (!foundTarget) {
-            const candidates = [];
-            for (let r=0; r<SIZE; r++) {
-                for (let c=0; c<SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
-                        candidates.push([r, c]);
-                    }
-                }
-            }
-            if (candidates.length) {
-                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
-                targetRow = rnd[0]; targetCol = rnd[1];
-                foundTarget = true;
-            }
-        }
-
-        return foundTarget ? { r: targetRow, c: targetCol } : null;
     }
 
     // ==================== СУПЕР-КОМБИНАЦИИ БУСТЕРОВ ====================
@@ -979,16 +887,19 @@
 
         if (tile.type === 'bomb') {
             animateBombEffect(tile.row, tile.col);
+            triggerBoardShake('shake-mild');
             cells = computeActivationFootprint(tile);
             clearAndContinue(cells, [], null, null, false, false, true);
         } 
         else if (tile.type === 'rocketRow') {
             animateRocketEffect(tile.row, tile.col, true);
+            triggerBoardShake('shake-mild');
             cells = computeActivationFootprint(tile);
             clearAndContinue(cells, [], null, null, false, false, true);
         } 
         else if (tile.type === 'rocketCol') {
             animateRocketEffect(tile.row, tile.col, false);
+            triggerBoardShake('shake-mild');
             cells = computeActivationFootprint(tile);
             clearAndContinue(cells, [], null, null, false, false, true);
         } 
@@ -1036,12 +947,31 @@
                 targetsArray.push({r, c});
             });
             animateRainbowTentacles(tile.row, tile.col, targetsArray, color);
+            triggerBoardShake('shake-intense');
 
             setTimeout(() => {
                 cells.add(key(tile.row, tile.col));
                 clearAndContinue(cells, [], null, null, false, false, true);
             }, 350);
         }
+    }
+
+    function computeActivationFootprint(startTile){
+        const visited = new Set([startTile.id]);
+        const footprint = new Set();
+        const queue = [startTile];
+        while(queue.length){
+            const t = queue.shift();
+            footprintFor(t).forEach(([r,c]) => {
+                footprint.add(key(r, c));
+                const other = grid[r] && grid[r][c];
+                if(other && isSpecial(other.type) && !visited.has(other.id)){
+                    visited.add(other.id);
+                    queue.push(other);
+                }
+            });
+        }
+        return footprint;
     }
 
     function applyResolutionFull(result){
@@ -1057,7 +987,10 @@
         const clearSet = new Set();
         scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
         
-        if(specialSpawns.length) pulseToast(specialSpawns.length>1 ? 'Комбо бонусов!' : 'Новый бонус!');
+        if(specialSpawns.length) {
+            pulseToast(specialSpawns.length>1 ? 'Комбо бонусов!' : 'Новый бонус!');
+            triggerBoardShake('shake-mild');
+        }
         clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
@@ -1158,7 +1091,7 @@
             if(t.type==='heart') heartsGained++;
         });
 
-        // 1. Распространение ковров
+        // 1. Проверяем наличие ковра в текущей зоне очистки
         let hasCarpetInMatch = forceCarpet || false;
         if (!preventCarpet && !hasCarpetInMatch) {
             clearSet.forEach(k => {
@@ -1171,11 +1104,14 @@
 
         const finalClearSet = new Set();
 
-        // 2. Раскол льда, снятие цепей, взлом ящиков
+        // 2. Раскол льда, снятие цепей, взлом ящиков, спавн искр-частиц
         clearSet.forEach(k => {
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
             if (t) {
+                // Вызываем сочные искры при уничтожении
+                spawnMatchParticles(r, c, t.type);
+
                 if (t.frozen) {
                     t.frozen = false;
                     iceGrid[r][c] = 0;
@@ -1184,9 +1120,6 @@
                         iceMelted++;
                     }
                 } else if (t.chained) {
-                    // Разрушение цепи: 
-                    // Обычная плитка - при совпадении ИЛИ взрыве.
-                    // Пончик или Бонус - ТОЛЬКО при взрыве/активации бонуса (isExplosion = true)
                     const isRegular = !isSpecial(t.type) && t.type !== 'donut';
                     if (isRegular || isExplosion) {
                         t.chained = false;
@@ -1294,7 +1227,6 @@
             moved = false;
             loops++;
 
-            // Сверху вниз, снизу вверх просчитываем каждый физический шаг падения
             for (let r = SIZE - 1; r >= 0; r--) {
                 for (let c = 0; c < SIZE; c++) {
                     if (levelLayout[r][c] === 1 && grid[r][c] === null) {
@@ -1302,7 +1234,6 @@
                         let sourceRow = r - 1;
                         let sourceCol = c;
 
-                        // Перемещение через червоточину/портал
                         const cellKey = key(r, c);
                         if (portals[cellKey]) {
                             const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
@@ -1312,7 +1243,6 @@
 
                         if (sourceRow >= 0 && sourceRow < SIZE && sourceCol >= 0 && sourceCol < SIZE) {
                             const t = grid[sourceRow][sourceCol];
-                            // Заблокированные льдом/цепями или ящики падать не могут
                             if (t && t.type !== 'box' && !t.frozen && !t.chained) {
                                 grid[r][c] = t;
                                 grid[sourceRow][sourceCol] = null;
@@ -1324,11 +1254,9 @@
                 }
             }
 
-            // Наполнение из спавнеров (верхняя строка)
             for (let c = 0; c < SIZE; c++) {
                 if (levelLayout[0][c] === 1 && grid[0][c] === null) {
                     let spawnType = randType();
-                    // Спавн пончиков при необходимости
                     if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.20) {
                         spawnType = "donut";
                     }
@@ -1338,8 +1266,8 @@
             }
         }
 
-        // Проверяем, достигли ли ингредиенты нижней черты
         collectDoughnuts();
+        resetHintTimer(); // Сброс таймера подсказок после каждого падения фишек
     }
 
     // ==================== СИСТЕМА УРОВНЕЙ И ЗАПУСКА ====================
@@ -1477,7 +1405,7 @@
             } else if (targetType === "ice") {
                 goalVal.textContent = `${GOAL_HEARTS} 🧊 Клеток со Льдом`;
             } else if (targetType === "donut") {
-                goalVal.textContent = `${GOAL_HEARTS} 🍩 Спелых Пончиков в самый низ`;
+                goalVal.textContent = `${GOAL_HEARTS} 🍩 Пончиков в самый низ`;
             } else {
                 goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
             }
@@ -1561,11 +1489,7 @@
         }
 
         if(isVictory){
-            if (isMultiPhase && currentPhaseIndex < window.LEVELS[currentLevelId - 1].phases.length - 1) {
-                transitionToNextPhase();
-                return;
-            }
-
+            clearTimeout(hintTimeout); // Отключаем подсказки при победе
             const rewards = getRewards(levelDifficulty);
             
             if (window.GameState) {
@@ -1587,6 +1511,7 @@
         }
 
         if(moves <= 0){
+            clearTimeout(hintTimeout); // Отключаем подсказки при проигрыше
             if (window.GameState) {
                 window.GameState.loseLife(); 
             }
