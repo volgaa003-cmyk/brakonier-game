@@ -1467,24 +1467,7 @@
             }
         });
     }
-
-        // Спавн покупного Радужного шара на старте, если игрок выбрал этот пре-бустер на экране старта
-        if (selectedPreBoosters.rainbow && playableCells.length > 0) {
-            const cell = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
-            levelLayout[cell.r][cell.c] = 7; 
-        }
-        
-        // Спавн покупной Бомбы и Ракеты, если выбран этот пре-бустер на экране старта
-        if (selectedPreBoosters.combo && playableCells.length > 1) {
-            const cell1 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
-            const cell2 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
-            levelLayout[cell1.r][cell1.c] = 3; 
-            levelLayout[cell2.r][cell2.c] = Math.random() < 0.5 ? 4 : 5; 
-        }
-        
-        doublePlanesActive = selectedPreBoosters.doublePlanes;
-    }
- // Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
+    // Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
     function applySelectedPreBoosters() {
         let playableCells = [];
         
