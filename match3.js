@@ -708,6 +708,56 @@
             }
         }
     }
+    // Алгоритм поиска наилучшей цели для Бумажного самолетика (Homescapes AI)
+    function findBestTargetForPlane(excludeRow, excludeCol) {
+        let targetRow = excludeRow, targetCol = excludeCol;
+        let foundTarget = false;
+
+        // Приоритет 1: Ищем коробки на поле (первоочередная преграда)
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'box') {
+                    targetRow = r; targetCol = c;
+                    foundTarget = true;
+                    break;
+                }
+            }
+            if (foundTarget) break;
+        }
+
+        // Приоритет 2: Ищем целевые сердца (основная цель сбора уровня)
+        if (!foundTarget) {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type === 'heart') {
+                        targetRow = r; targetCol = c;
+                        foundTarget = true;
+                        break;
+                    }
+                }
+                if (foundTarget) break;
+            }
+        }
+
+        // Приоритет 3: Если коробок и сердец нет, выбираем любую случайную фишку на поле
+        if (!foundTarget) {
+            const candidates = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
+                        candidates.push([r, c]);
+                    }
+                }
+            }
+            if (candidates.length) {
+                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
+                targetRow = rnd[0]; targetCol = rnd[1];
+                foundTarget = true;
+            }
+        }
+
+        return foundTarget ? { r: targetRow, c: targetCol } : null;
+    }
     // Алгоритм авто-взлома соседних коробок при матчах или взрывах бонусов рядом с ними
     function checkAndBreakBoxes(clearSet, isExplosion) {
         const boxesToBreak = new Set();
