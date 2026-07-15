@@ -385,7 +385,56 @@
 // ==========================================================================
     // СИСТЕМА СОЗДАНИЯ ПЛИТОК И DRAG-AND-DROP ОБРАБОТЧИКОВ (Homescapes Physics)
     // ==========================================================================
+// Сопоставление типов фишек и препятствий с их графическими иконками с учётом слоёв прочности
+    function iconFor(type, extraState){
+        if (type === 'box') {
+            const layers = extraState || 1;
+            if (layers === 3) return '📦🔒'; // Тяжелый ящик
+            if (layers === 2) return '📦💥'; // Треснувший ящик
+            return '🪵';                      // Доски (1 удар до уничтожения)
+        }
+        switch(type){
+            case 'bomb': return '💣';
+            case 'rocketRow': return '🚀';
+            case 'rocketCol': return '🚀';
+            case 'plane': return '✈️';
+            case 'rainbow': return '🌈';
+            case 'donut': return '🍩';
+            default: return (TYPES.find(t=>t.id===type) || {icon: '❓'}).icon;
+        }
+    }
 
+    // Применение CSS-классов спецэффектов к бустерам, льду и цепям на основе их текущего здоровья
+    function applySpecialClass(t){
+        t.el.className = 'tile';
+        if(t.type==='bomb') t.el.classList.add('bomb');
+        else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
+        else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
+        else if(t.type==='plane') t.el.classList.add('plane');
+        else if(t.type==='rainbow') t.el.classList.add('rainbow');
+        else if(t.type==='box') {
+            t.el.classList.add('box', `layer-${t.boxLayers}`);
+        }
+        
+        // Навешивание графики льда и цепей с учетом оставшихся HP-слоев
+        if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
+        if(t.chained) t.el.classList.add('chained', `chain-${t.chainedLayers}`);
+    }
+
+    // Отрисовка физических координат фишки на экране смартфона (перевод в проценты для адаптивности)
+    function setTilePos(el, row, col){
+        el.style.left = (col*100/SIZE)+'%';
+        el.style.top = (row*100/SIZE)+'%';
+    }
+
+    // Поиск объекта фишки в двумерной матрице grid по её строковому ID
+    function findTileById(id){
+        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+            const t = grid[r][c];
+            if(t && t.id===id) return t;
+        }
+        return null;
+    }
     // Начало перетаскивания фишки пальцем (для мобильных) или мышкой (для ПК)
     function handleDragStart(e, tile) {
         if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
@@ -1174,6 +1223,7 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 12: КАРТОЧКА ПРЕ-ЛЕВЕЛА И СТАРТ УРОВНЯ
     // ----------------------------------------------------------------------
+// Функция подготовки параметров уровня перед показом пре-карточки
     function openPreLevelScreen(levelId) {
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) return;
@@ -1185,6 +1235,7 @@
         selectedPreBoosters = { rainbow: false, combo: false, doublePlanes: false };
         updatePreBoostersUI();
 
+        // Инициализируем чистые базовые двумерные сетки 8х8
         carpetGrid = []; iceGrid = []; chainGrid = [];
         for (let r = 0; r < SIZE; r++) {
             carpetGrid.push(new Array(SIZE).fill(false));
@@ -1192,11 +1243,20 @@
             chainGrid.push(new Array(SIZE).fill(0));
         }
 
-        if (levelData.carpetLayout) carpetGrid = JSON.parse(JSON.stringify(levelData.carpetLayout));
-        if (levelData.iceLayout) iceGrid = JSON.parse(JSON.stringify(levelData.iceLayout));
-        if (levelData.chainLayout) chainGrid = JSON.parse(JSON.stringify(levelData.chainLayout));
+        // Копируем данные из шаблона уровня ТОЛЬКО если они реально там заполнены (исключает перезапись на пустые [])
+        if (levelData.carpetLayout && levelData.carpetLayout.length > 0) {
+            carpetGrid = JSON.parse(JSON.stringify(levelData.carpetLayout));
+        }
+        if (levelData.iceLayout && levelData.iceLayout.length > 0) {
+            iceGrid = JSON.parse(JSON.stringify(levelData.iceLayout));
+        }
+        if (levelData.chainLayout && levelData.chainLayout.length > 0) {
+            chainGrid = JSON.parse(JSON.stringify(levelData.chainLayout));
+        }
+        
         levelLayout = JSON.parse(JSON.stringify(levelData.layout));
 
+        // Безопасно адаптируем препятствия и цели
         synchronizeObstaclesAndGoals();
 
         START_MOVES = levelData.moves;
