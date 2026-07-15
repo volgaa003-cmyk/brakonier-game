@@ -1726,6 +1726,71 @@
             }
         });
     }
+function processThreatsAndJesters() {
+        let spawnedFoam = false;
+
+        // Поведение попугая (Parrot) - взлетает на 1 клетку вверх, если над ним пусто
+        for (let r = 1; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && t.type === 'parrot' && grid[r-1][c] === null) {
+                    grid[r-1][c] = t;
+                    grid[r][c] = null;
+                    moveTileTo(t, r - 1, c);
+                }
+            }
+        }
+
+        // Логика растекания мыльной пены (Foam) и плюща (Ivy)
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                if (t && (t.type === 'foam' || t.type === 'ivy') && !spawnedFoam) {
+                    const neighbors = [
+                        [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+                    ];
+                    for (const [nr, nc] of neighbors) {
+                        if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
+                            const victim = grid[nr][nc];
+                            victim.el.remove();
+                            grid[nr][nc] = createTile(nr, nc, t.type, nr);
+                            spawnedFoam = true;
+                            pulseToast(t.type === 'foam' ? "🧼 Мыльная пена растекается!" : "🌿 Плющ прорастает!");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Поведение Шута (Jester) - прыгает на случайную пустую клетку
+        let jesterTile = null;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (grid[r][c] && grid[r][c].type === 'jester') {
+                    jesterTile = grid[r][c];
+                    break;
+                }
+            }
+        }
+        if (jesterTile) {
+            const emptyCells = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === 1 && grid[r][c] === null) {
+                        emptyCells.push({r, c});
+                    }
+                }
+            }
+            if (emptyCells.length > 0) {
+                const target = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                grid[jesterTile.row][jesterTile.col] = null;
+                grid[target.r][target.c] = jesterTile;
+                moveTileTo(jesterTile, target.r, target.c);
+                pulseToast("🃏 Шут переместился!");
+            }
+        }
+    }
     function hasPossibleMoves() {
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
