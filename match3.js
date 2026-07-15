@@ -1,64 +1,80 @@
-// ================================================
-// match3.js (ПОЛНАЯ, АБСОЛЮТНО РАБОЧАЯ СБОРКА)
-// ================================================
+// ==========================================================================
+// match3.js — ПОЛНЫЙ КИНЕМАТОГРАФИЧЕСКИЙ ДВИЖОК ИГРЫ "БРАКОНЬЕР"
+// Подробная архитектура с пошаговым комментированием всех процессов
+// ==========================================================================
 
 (function() {
-    const SIZE = 8;
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 1: КОНСТАНТЫ И НАСТРОЙКИ СЕТКИ
+    // ----------------------------------------------------------------------
+    const SIZE = 8; // Размерность игрового поля (сетка 8х8 ячеек)
+    
+    // Базовая база типов обычных игровых элементов (фишек) и их визуальные иконки
     const TYPES = [
-        {id:'heart', icon:'🫀'},
-        {id:'bullet', icon:'🔫'},
-        {id:'garlic', icon:'🧄'},
-        {id:'stake', icon:'🗡️'},
-        {id:'vial', icon:'🧪'},
-        {id:'coin', icon:'💰'}
+        {id:'heart', icon:'🫀'},  // Вампирское Сердце (основная цель сбора)
+        {id:'bullet', icon:'🔫'}, // Патрон / Пистолет
+        {id:'garlic', icon:'🧄'}, // Чеснок
+        {id:'stake', icon:'🗡️'},  // Серебряный клинок / Орудие
+        {id:'vial', icon:'🧪'},   // Колба со святой водой
+        {id:'coin', icon:'💰'}    // Монета браконьера
     ];
-    const SPECIALS = ['rocketRow','rocketCol','bomb','plane','rainbow'];
 
-    const SWAP_MS = 240;  
-    const CLEAR_MS = 260; 
-    const FALL_MS = 300;  
+    // Список уникальных идентификаторов специальных бустеров-суперэлементов
+    const SPECIALS = ['rocketRow', 'rocketCol', 'bomb', 'plane', 'rainbow'];
 
-    let currentLevelId = 1;
-    let GOAL_HEARTS = 12;
-    let START_MOVES = 20;
-    let levelDifficulty = "normal";
-    let levelLayout = []; 
+    // Временные задержки (в миллисекундах) для плавной синхронизации анимаций
+    const SWAP_MS = 240;  // Продолжительность анимации обмена фишек местами
+    const CLEAR_MS = 260; // Время анимации схлопывания/уничтожения элементов
+    const FALL_MS = 300;  // Продолжительность падения фишек под действием гравитации
 
-    let targetType = "heart"; 
-    let carpetGrid = [];      
-    let iceGrid = [];         
-    let chainGrid = [];
-    let portals = {};
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 2: ДИНАМИЧЕСКИЕ ПЕРЕМЕННЫЕ СОСТОЯНИЯ ТЕКУЩЕЙ ИГРЫ
+    // ----------------------------------------------------------------------
+    let currentLevelId = 1;      // Номер текущего запущенного уровня
+    let GOAL_HEARTS = 12;         // Цель сбора (количество нужных элементов для победы)
+    let START_MOVES = 20;         // Стартовое количество ходов, выданное на уровень
+    let levelDifficulty = "normal"; // Сложность уровня (normal, medium, hard, extreme)
+    let levelLayout = [];         // Двумерная карта проходимости поля (0 - дыра, 1 - плитка, 2 - ящик)
 
-    let grid = [];
-    let selected = null;
-    let hearts = 0, moves = 20;
-    let boxesBroken = 0;
-    let iceMelted = 0;
-    let donutsCollected = 0;
-    let busy = false;
-    let tileIdCounter = 0;
+    let targetType = "heart";     // Тип цели текущего уровня (heart, box, ice и т.д.)
+    let carpetGrid = [];          // Двумерная карта уложенных зеленых ковров (true/false)
+    let iceGrid = [];             // Двумерная карта ледяных ячеек (0 - нет, 1 - лед)
+    let chainGrid = [];           // Двумерная карта скованных ячеек (0 - нет, 1 - цепи)
+    let portals = {};             // Словарь связей порталов на поле (ключ: "вход", значение: "выход")
 
-    let activeBooster = null; 
-    let activePlanesCount = 0;
-    let doublePlanesActive = false; 
+    let grid = [];                // Двумерный массив объектов плиток (основная матрица состояния)
+    let selected = null;          // Ссылка на первую выбранную фишку для совершения обмена
+    let hearts = 0;               // Текущее собранное количество целевых элементов игроком
+    let moves = 20;               // Текущее оставшееся количество ходов у игрока
+    let boxesBroken = 0;          // Сколько деревянных коробок уничтожено за уровень
+    let iceMelted = 0;            // Сколько блоков льда растоплено за уровень
+    let donutsCollected = 0;      // Сколько пончиков доведено до самого низа поля
+    let busy = false;             // Флаг блокировки интерфейса во время анимаций взрывов/падений
+    let tileIdCounter = 0;        // Генератор уникальных ID для DOM-элементов плиток
 
+    // Бустеры и комбо
+    let activeBooster = null;     // Имя выбранного активного инструмента (glove, hammer и т.д.)
+    let activePlanesCount = 0;    // Счетчик летящих в данный момент самолетиков
+    let doublePlanesActive = false; // Флаг удвоения самолетиков (активируется пре-бустером)
+
+    // Выбранные бустеры перед началом раунда (на пре-экране)
     let selectedPreBoosters = {
-        rainbow: false,
-        combo: false,
-        doublePlanes: false
+        rainbow: false,       // Старт с радужным шаром
+        combo: false,         // Старт с бомбой и ракетой
+        doublePlanes: false   // Удвоение всех самолетиков во время игры
     };
 
-    let hintTimeout = null;
-    let dragStartX = 0, dragStartY = 0;
-    let dragActiveTile = null;
+    let hintTimeout = null;       // Таймер ожидания для показа автоматической подсказки
+    let dragStartX = 0, dragStartY = 0; // Координаты начала свайпа пальцем/мышкой
+    let dragActiveTile = null;    // Ссылка на фишку, которую игрок начал тянуть пальцем
 
-    // Ссылки на HTML-элементы
+    // Ссылки на DOM-элементы интерфейса
     const boardEl = document.getElementById('board');
     const m3GoalText = document.getElementById('m3GoalText');
     const m3MovesText = document.getElementById('m3MovesText');
     const toastEl = document.getElementById('toast');
 
+    // Кнопки панели активных внутриигровых инструментов
     const btnHammer = document.getElementById('btnHammer');
     const btnGlove = document.getElementById('btnGlove');
     const btnBroom = document.getElementById('btnBroom');
@@ -70,11 +86,12 @@
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
 
-    // ==========================================================================
-    // СИСТЕМНЫЕ ФУНКЦИИ И ХЕЛПЕРЫ (Безопасное объявление)
-    // ==========================================================================
-    let pendingResultIsWin = null;
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 3: ЭКРАН РЕЗУЛЬТАТОВ (ВЫИГРЫШ / ПРОИГРЫШ)
+    // ----------------------------------------------------------------------
+    let pendingResultIsWin = null; // Флаг, хранящий статус завершения раунда
 
+    // Отображение оверлея победы/поражения
     const showOverlay = function(title, text, isWin) {
         pendingResultIsWin = !!isWin;
         if (resultsTitle) resultsTitle.textContent = title;
@@ -83,17 +100,19 @@
         busy = false;
     };
 
+    // Закрытие экрана результатов и переход на глобальную карту
     if (btnResultsClose) {
         btnResultsClose.addEventListener('click', () => {
             if (overlayResults) overlayResults.classList.add('hidden');
             if (pendingResultIsWin && window.GameState) {
-                window.GameState.nextLevel();
+                window.GameState.nextLevel(); // Открываем следующий уровень в прогрессе
             }
             pendingResultIsWin = null;
-            if (window.showScreen) window.showScreen('screenMap');
+            if (window.showScreen) window.showScreen('screenMap'); // Показываем экран карты
         });
     }
 
+    // Расчет наград за прохождение уровня на основе его сложности и оставшихся ходов
     const getRewards = function(diff) {
         let starsGained = 1;
         let baseCoins = 100;
@@ -101,23 +120,32 @@
         else if (diff === "hard") baseCoins = 250;
         else if (diff === "extreme") baseCoins = 400;
         else if (diff === "challenge") { starsGained = 3; baseCoins = 300; }
-        return { stars: starsGained, coins: baseCoins + moves * 10, base: baseCoins, bonus: moves * 10 };
+        
+        // Каждый неиспользованный ход дает игроку по 10 бонусных рублей
+        let bonusCoins = moves * 10;
+        return { stars: starsGained, coins: baseCoins + bonusCoins, base: baseCoins, bonus: bonusCoins };
     };
 
-    // Внедрение Homescapes-стилей
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 4: ВНЕДРЕНИЕ СТИЛЕЙ КИНЕМАТОГРАФИЧЕСКИХ АНИМАЦИЙ
+    // ----------------------------------------------------------------------
     (function injectStyles() {
         const style = document.createElement('style');
         style.textContent = `
+            /* Стили для визуального изменения ящиков по слоям прочности */
             .tile.layer-3 .tile-inner { background: linear-gradient(135deg, #4d2b12, #2b1404); border-color: #ffd700; box-shadow: inset 0 0 12px #000; }
             .tile.layer-2 .tile-inner { background: linear-gradient(135deg, #82431a, #59290a); border-color: #c0c0c0; }
             .tile.layer-1 .tile-inner { background: linear-gradient(135deg, #b06530, #80441b); }
             
+            /* Стили для льда: 2 слоя (толстый) и 1 слой (тонкий треснувший) */
             .tile.frozen-2 .tile-inner::after { border-color: #00b0ff; background: rgba(0, 176, 255, 0.45); box-shadow: inset 0 0 10px #fff; }
             .tile.frozen-1 .tile-inner::after { border-color: #80deea; background: rgba(128, 222, 234, 0.25); }
 
+            /* Стили для цепей: двойные и одинарные */
             .tile.chain-2 .tile-inner::after { content: "⛓️" !important; font-size: 30px !important; }
             .tile.chain-1 .tile-inner::after { content: "🔗" !important; font-size: 24px !important; }
 
+            /* Контейнеры пре-гейм бустеров на экране подготовки */
             .pre-boosters-selection { margin: 15px 0; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 12px; border: 2px solid var(--ink); }
             .pre-booster-title { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; color: var(--ink); }
             .pre-boosters-row { display: flex; justify-content: center; gap: 14px; }
@@ -132,467 +160,228 @@
         document.head.appendChild(style);
     })();
 
-    // Хелперы вычислений
-    const isSpecial = t => SPECIALS.includes(t);
-    const randType = () => TYPES[Math.floor(Math.random()*TYPES.length)].id;
-    const key = (r,c) => r+','+c;
-    const getType = (r,c) => grid[r] && grid[r][c] ? grid[r][c].type : null;
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 5: КИНЕМАТОГРАФИЧЕСКИЕ АНИМАЦИИ И ЭФФЕКТЫ ВЗРЫВОВ
+    // ----------------------------------------------------------------------
 
-    function triggerBoardShake(intensityClass = 'shake-mild') {
+    // Полет Самолетика по вектору движения с автоматическим разворотом и шлейфом
+    function animatePlaneEffect(fromRow, fromCol, toRow, toCol, callback) {
         if (!boardEl) return;
-        boardEl.classList.remove('shake-mild', 'shake-intense');
-        void boardEl.offsetWidth; 
-        boardEl.classList.add(intensityClass);
-        setTimeout(() => boardEl.classList.remove('shake-mild', 'shake-intense'), 350);
-    }
-
-    function spawnMatchParticles(r, c, type) {
-        if (!boardEl) return;
-        const count = 6;
-        const colorPalette = { heart: '#ff2e93', bullet: '#2ecc71', garlic: '#f1c40f', stake: '#3498db', vial: '#9b59b6', coin: '#f39c12' };
-        const pColor = colorPalette[type] || '#ffffff';
         const cellWidth = boardEl.offsetWidth / SIZE;
-        const startX = (c + 0.5) * cellWidth;
-        const startY = (r + 0.5) * cellWidth;
+        const startX = (fromCol + 0.5) * cellWidth;
+        const startY = (fromRow + 0.5) * cellWidth;
+        const endX = (toCol + 0.5) * cellWidth;
+        const endY = (toRow + 0.5) * cellWidth;
 
-        for (let i = 0; i < count; i++) {
-            const spark = document.createElement('div');
-            spark.className = 'm3-spark';
-            spark.style.backgroundColor = pColor;
-            spark.style.left = startX + 'px';
-            spark.style.top = startY + 'px';
-            boardEl.appendChild(spark);
+        // Создаем DOM-элемент самолетика
+        const projectile = document.createElement('div');
+        projectile.className = 'm3-projectile';
+        projectile.textContent = '✈️';
+        projectile.style.left = startX + 'px';
+        projectile.style.top = startY + 'px';
+        boardEl.appendChild(projectile);
 
-            const angle = (Math.PI * 2 / count) * i;
-            const force = 30 + Math.random() * 30;
+        // Математическое вычисление угла наклона полета
+        const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+        projectile.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+
+        // Запуск плавного полета через CSS-переход
+        setTimeout(() => {
+            projectile.style.left = endX + 'px';
+            projectile.style.top = endY + 'px';
+            
+            // Генерируем красивый шлейф искр прямо за самолетиком во время движения
+            let trailInterval = setInterval(() => {
+                const curX = parseFloat(projectile.style.left);
+                const curY = parseFloat(projectile.style.top);
+                spawnMatchParticles(
+                    Math.floor(curY / cellWidth),
+                    Math.floor(curX / cellWidth),
+                    'coin'
+                );
+            }, 35);
+
+            // Удаление самолетика по прилету в цель и вызов детонации
             setTimeout(() => {
-                spark.style.transform = `translate(${Math.cos(angle)*force}px, ${Math.sin(angle)*force}px) scale(0)`;
-                spark.style.opacity = '0';
-            }, 20);
-            setTimeout(() => spark.remove(), 420);
+                clearInterval(trailInterval);
+                projectile.remove();
+                spawnMatchParticles(toRow, toCol, 'coin');
+                if (callback) callback();
+            }, 420);
+        }, 20);
+    }
+
+    // Взрыв Бомбы (динамическая ударная волна 5х5 с встряхиванием экрана)
+    function animateBombEffect(row, col) {
+        if (!boardEl) return;
+        triggerBoardShake('shake-intense'); // Сильно трясем игровое поле
+        const cellWidth = boardEl.offsetWidth / SIZE;
+        const x = (col + 0.5) * cellWidth;
+        const y = (row + 0.5) * cellWidth;
+
+        // Создаем элемент расширяющейся ударной волны
+        const shockwave = document.createElement('div');
+        shockwave.className = 'bomb-shockwave';
+        shockwave.style.left = x + 'px';
+        shockwave.style.top = y + 'px';
+        boardEl.appendChild(shockwave);
+
+        // Запуск расширения волны
+        setTimeout(() => {
+            shockwave.style.transform = 'translate(-50%, -50%) scale(4.5)';
+            shockwave.style.opacity = '0';
+        }, 20);
+
+        setTimeout(() => shockwave.remove(), 350);
+
+        // Круговой спавн большого количества искр вокруг бомбы
+        for (let i = 0; i < 12; i++) {
+            spawnMatchParticles(row, col, 'coin');
         }
     }
 
-    function iconFor(type, extraState){
-        if (type === 'box') {
-            const layers = extraState || 1;
-            if (layers === 3) return '📦🔒';
-            if (layers === 2) return '📦💥';
-            return '🪵';
-        }
-        switch(type){
-            case 'bomb': return '💣';
-            case 'rocketRow': return '🚀';
-            case 'rocketCol': return '🚀';
-            case 'plane': return '✈️';
-            case 'rainbow': return '🌈';
-            case 'donut': return '🍩';
-            default: return (TYPES.find(t=>t.id===type) || {icon: '❓'}).icon;
-        }
-    }
+    // Запуск двух Ракет в разные стороны экрана (по горизонтали или вертикали)
+    function animateRocketEffect(row, col, isRowDirection) {
+        if (!boardEl) return;
+        triggerBoardShake('shake-mild');
+        const cellWidth = boardEl.offsetWidth / SIZE;
+        const startX = (col + 0.5) * cellWidth;
+        const startY = (row + 0.5) * cellWidth;
 
-    function applySpecialClass(t){
-        t.el.className = 'tile';
-        if(t.type==='bomb') t.el.classList.add('bomb');
-        else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
-        else if(t.type==='rocketCol') t.el.classList.add('rocket-col');
-        else if(t.type==='plane') t.el.classList.add('plane');
-        else if(t.type==='rainbow') t.el.classList.add('rainbow');
-        else if(t.type==='box') {
-            t.el.classList.add('box', `layer-${t.boxLayers}`);
-        }
-        if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
-        if(t.chained) t.el.classList.add('chained', `chain-${t.chainedLayers}`);
-    }
-
-    function setTilePos(el, row, col){
-        el.style.left = (col*100/SIZE)+'%';
-        el.style.top = (row*100/SIZE)+'%';
-    }
-
-    function findTileById(id){
-        for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-            const t = grid[r][c];
-            if(t && t.id===id) return t;
-        }
-        return null;
-    }
-
-    function resetHintTimer() {
-        clearTimeout(hintTimeout);
-        removeCurrentHints();
-        hintTimeout = setTimeout(highlightPossibleMove, 4500); 
-    }
-
-    function removeCurrentHints() {
-        document.querySelectorAll('.match-hint').forEach(el => el.classList.remove('match-hint'));
-    }
-
-    function highlightPossibleMove() {
-        if (busy || activeBooster) return;
-        const move = findValidSwapMove();
-        if (move) {
-            move.a.el.classList.add('match-hint');
-            move.b.el.classList.add('match-hint');
-        }
-    }
-
-    function findValidSwapMove() {
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE - 1; c++) {
-                const a = grid[r][c];
-                const b = grid[r][c+1];
-                if (a && b && a.type !== 'box' && b.type !== 'box' && !a.frozen && !b.frozen && !a.chained && !b.chained) {
-                    swapInGrid(a, b);
-                    const hasMatch = collectRuns().length > 0;
-                    swapInGrid(a, b); 
-                    if (hasMatch) return { a, b };
-                }
-            }
-        }
-        return null;
-    }
-
-    function handleDragStart(e, tile) {
-        if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
-        dragActiveTile = tile;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        dragStartX = clientX;
-        dragStartY = clientY;
-        resetHintTimer();
-    }
-
-    function handleDragMove(e) {
-        if (!dragActiveTile || busy) return;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const dx = clientX - dragStartX;
-        const dy = clientY - dragStartY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > 30) { 
-            let targetRow = dragActiveTile.row;
-            let targetCol = dragActiveTile.col;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 0) targetCol++; else targetCol--;
-            } else {
-                if (dy > 0) targetRow++; else targetRow--;
-            }
-
-            if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
-                const partner = grid[targetRow][targetCol];
-                if (partner && partner.type !== 'box' && !partner.frozen && !partner.chained) {
-                    dragActiveTile.el.classList.remove('selected');
-                    selected = null;
-                    performSwap(dragActiveTile, partner);
-                }
-            }
-            dragActiveTile = null; 
-        }
-    }
-
-    function handleDragEnd() { dragActiveTile = null; }
-
-    function createTile(row, col, type, spawnRow){
-        const id = 'tile'+(tileIdCounter++);
-        const el = document.createElement('div');
-        el.className = 'tile';
-        el.dataset.id = id;
+        // Вычисляем углы полета: 0 и 180 (влево-вправо) или -90 и 90 (вверх-вниз)
+        const angles = isRowDirection ? [0, 180] : [-90, 90];
         
-        const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 0;
-        const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
-        const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
+        angles.forEach(angle => {
+            const proj = document.createElement('div');
+            proj.className = 'm3-projectile';
+            proj.textContent = '🚀';
+            proj.style.left = startX + 'px';
+            proj.style.top = startY + 'px';
+            proj.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+            boardEl.appendChild(proj);
 
-        const inner = document.createElement('div');
-        inner.className = 'tile-inner';
-        inner.textContent = iconFor(type, initBoxLayers);
-        el.appendChild(inner);
+            const rad = angle * Math.PI / 180;
+            const dist = boardEl.offsetWidth; // Дистанция полета за пределы видимости
+            const endX = startX + Math.cos(rad) * dist;
+            const endY = startY + Math.sin(rad) * dist;
 
-        const tile = {
-            id, 
-            type, 
-            row, 
-            col, 
-            el, 
-            inner, 
-            frozen: initFrozenLayers > 0, 
-            frozenLayers: initFrozenLayers,
-            chained: initChainedLayers > 0,
-            chainedLayers: initChainedLayers,
-            boxLayers: initBoxLayers
-        };
-
-        el.addEventListener('mousedown', (e) => handleDragStart(e, tile));
-        el.addEventListener('touchstart', (e) => handleDragStart(e, tile), {passive: true});
-        el.addEventListener('click', onTileClick);
-
-        if(spawnRow !== undefined && spawnRow !== row){
-            el.style.transition = 'none';
-            setTilePos(el, spawnRow, col);
-        } else {
-            setTilePos(el, row, col);
-        }
-
-        if (boardEl) boardEl.appendChild(el);
-
-        if(spawnRow !== undefined && spawnRow !== row){
             setTimeout(() => {
-                el.style.transition = '';
-                setTilePos(el, row, col);
-            }, 16); 
-        }
-        
-        applySpecialClass(tile);
-        return tile;
-    }
-
-    function moveTileTo(tile, row, col){
-        tile.row = row; tile.col = col;
-        setTilePos(tile.el, row, col);
-    }
-
-    function findBestTargetForPlane(excludeRow, excludeCol) {
-        let targetRow = excludeRow, targetCol = excludeCol;
-        let foundTarget = false;
-
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                if (grid[r][c] && grid[r][c].type === 'box') {
-                    targetRow = r; targetCol = c;
-                    foundTarget = true;
-                    break;
-                }
-            }
-            if (foundTarget) break;
-        }
-
-        if (!foundTarget) {
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type === 'heart') {
-                        targetRow = r; targetCol = c;
-                        foundTarget = true;
-                        break;
+                proj.style.left = endX + 'px';
+                proj.style.top = endY + 'px';
+                
+                // Шлейф патронов-искр вслед за ракетой
+                let trail = setInterval(() => {
+                    const trRow = Math.floor(parseFloat(proj.style.top) / cellWidth);
+                    const trCol = Math.floor(parseFloat(proj.style.left) / cellWidth);
+                    if (trRow >= 0 && trRow < SIZE && trCol >= 0 && trCol < SIZE) {
+                        spawnMatchParticles(trRow, trCol, 'bullet');
                     }
-                }
-                if (foundTarget) break;
-            }
-        }
+                }, 30);
 
-        if (!foundTarget) {
-            const candidates = [];
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].type !== 'box' && grid[r][c].type !== 'donut' && !(r === excludeRow && c === excludeCol)) {
-                        candidates.push([r, c]);
-                    }
-                }
-            }
-            if (candidates.length) {
-                const rnd = candidates[Math.floor(Math.random() * candidates.length)];
-                targetRow = rnd[0]; targetCol = rnd[1];
-                foundTarget = true;
-            }
-        }
-
-        return foundTarget ? { r: targetRow, c: targetCol } : null;
-    }
-
-    function checkAndBreakBoxes(clearSet, isExplosion) {
-        const boxesToBreak = new Set();
-
-        clearSet.forEach(k => {
-            const [r, c] = k.split(',').map(Number);
-            const neighbors = [
-                [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
-            ];
-
-            neighbors.forEach(([nr, nc]) => {
-                if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
-                    const tile = grid[nr][nc];
-                    if (tile && tile.type === 'box') {
-                        boxesToBreak.add(key(nr, nc));
-                    }
-                }
-            });
-        });
-
-        boxesToBreak.forEach(k => {
-            const [br, bc] = k.split(',').map(Number);
-            const boxTile = grid[br][bc];
-            if (boxTile) {
-                damageObstacle(boxTile, br, bc, isExplosion);
-            }
-        });
-        return boxesToBreak;
-    }
-
-    function damageObstacle(tile, r, c, isExplosion) {
-        const damage = isExplosion ? 2 : 1; 
-        
-        if (tile.type === 'box') {
-            tile.boxLayers -= damage;
-            if (tile.boxLayers > 0) {
-                tile.inner.textContent = iconFor('box', tile.boxLayers);
-                applySpecialClass(tile);
-                spawnMatchParticles(r, c, 'coin');
-            } else {
-                levelLayout[r][c] = 1;
-                tile.el.classList.add('clearing');
-                if (targetType === "box") boxesBroken++;
                 setTimeout(() => {
-                    if (grid[r][c] === tile) {
-                        tile.el.remove();
-                        grid[r][c] = null;
-                    }
-                }, CLEAR_MS);
-            }
-        }
-        
-        if (tile.frozen) {
-            tile.frozenLayers -= damage;
-            if (tile.frozenLayers > 0) {
-                applySpecialClass(tile);
-            } else {
-                tile.frozen = false;
-                tile.frozenLayers = 0;
-                iceGrid[r][c] = 0;
-                applySpecialClass(tile);
-                if (targetType === "ice") iceMelted++;
-            }
-        }
-
-        if (tile.chained) {
-            tile.chainedLayers -= damage;
-            if (tile.chainedLayers > 0) {
-                applySpecialClass(tile);
-            } else {
-                tile.chained = false;
-                tile.chainedLayers = 0;
-                chainGrid[r][c] = 0;
-                applySpecialClass(tile);
-                pulseToast("🔗 Цепь полностью снята!");
-            }
-        }
+                    clearInterval(trail);
+                    proj.remove();
+                }, 400);
+            }, 20);
+        });
     }
 
-    function spreadCarpetAt(r, c) {
-        if (levelLayout[r] && levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
-            carpetGrid[r][c] = true;
-            const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
-            if (cellEl) cellEl.classList.add('carpet');
-        }
+    // Радужные светящиеся щупальца, летящие от Радужного шара к фишкам выбранного цвета
+    function animateRainbowTentacles(fromRow, fromCol, targets, color) {
+        if (!boardEl) return;
+        triggerBoardShake('shake-mild');
+        const cellWidth = boardEl.offsetWidth / SIZE;
+        const startX = (fromCol + 0.5) * cellWidth;
+        const startY = (fromRow + 0.5) * cellWidth;
+
+        targets.forEach(({r, c}) => {
+            const endX = (c + 0.5) * cellWidth;
+            const endY = (r + 0.5) * cellWidth;
+
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const dist = Math.sqrt(dx*dx + dy*dy); // Теорема Пифагора для расчета длины луча
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            // Создаем элемент неонового лазера
+            const laser = document.createElement('div');
+            laser.className = 'rainbow-laser';
+            laser.style.left = startX + 'px';
+            laser.style.top = startY + 'px';
+            laser.style.width = '0px';
+            laser.style.transform = `rotate(${angle}deg)`;
+            
+            // Радужный переливающийся градиент
+            laser.style.background = `linear-gradient(90deg, #ff5a6e, #ffd15a, #7ee08c, #5ab6ff)`;
+            boardEl.appendChild(laser);
+
+            // Выстреливаем лазер наружу до целевой фишки
+            setTimeout(() => {
+                laser.style.width = dist + 'px';
+            }, 20);
+
+            // Растворение лазера и взрыв искр на фишке
+            setTimeout(() => {
+                laser.style.opacity = '0';
+                spawnMatchParticles(r, c, color);
+                setTimeout(() => laser.remove(), 200);
+            }, 300);
+        });
     }
 
-    function countActiveDonuts() {
-        let count = 0;
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                if (grid[r][c] && grid[r][c].type === 'donut') count++;
-            }
-        }
-        return count;
-    }
+    // Активация одиночного бустера простым тапом по нему
+    function activateStandalone(tile) {
+        if (busy) return;
+        busy = true;
+        moves--; // Расходуем один ход игрока
+        updateMatch3HUD();
 
-    function collectDoughnuts() {
-        let collectedThisTurn = 0;
-        for (let c = 0; c < SIZE; c++) {
-            const t = grid[SIZE - 1][c];
-            if (t && t.type === 'donut') {
-                t.el.classList.add('clearing');
-                grid[SIZE - 1][c] = null;
-                donutsCollected++;
-                collectedThisTurn++;
-                setTimeout(((tileToKill) => () => tileToKill.el.remove())(t), CLEAR_MS);
-            }
-        }
-        if (collectedThisTurn > 0) {
-            updateMatch3HUD();
-            pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
-            applyGravityAndRefill();
-        }
-    }
-
-    function processThreatsAndJesters() {
-        let spawnedFoam = false;
-
-        for (let r = 1; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                const t = grid[r][c];
-                if (t && t.type === 'parrot' && levelLayout[r-1][c] === 1 && grid[r-1][c] === null) {
-                    grid[r-1][c] = t;
-                    grid[r][c] = null;
-                    moveTileTo(t, r - 1, c);
-                }
-            }
-        }
-
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                const t = grid[r][c];
-                if (t && (t.type === 'foam' || t.type === 'ivy') && !spawnedFoam) {
-                    const neighbors = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
-                    for (const [nr, nc] of neighbors) {
-                        if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && levelLayout[nr][nc] === 1 && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
-                            const victim = grid[nr][nc];
-                            victim.el.remove();
-                            grid[nr][nc] = createTile(nr, nc, t.type, nr);
-                            spawnedFoam = true;
-                            pulseToast(t.type === 'foam' ? "🧼 Мыло затекает!" : "🌿 Плющ наступает!");
-                            break;
+        let cells;
+        if (tile.type === 'rainbow') {
+            const colors = presentColors();
+            const color = colors.length ? colors[Math.floor(Math.random() * colors.length)] : null;
+            
+            if (color) {
+                const targets = [];
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (grid[r][c] && grid[r][c].type === color) {
+                            targets.push({ r, c });
                         }
                     }
                 }
+                animateRainbowTentacles(tile.row, tile.col, targets, color);
+                cells = cellsOfColor(color);
+            } else {
+                cells = new Set();
             }
-        }
-    }
-
-    function synchronizeObstaclesAndGoals() {
-        let playableCells = [];
-        let currentBoxes = 0;
-
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                if (levelLayout[r][c] === 1) {
-                    playableCells.push({r, c});
-                } else if (levelLayout[r][c] === 2) {
-                    currentBoxes++;
+            cells.add(key(tile.row, tile.col));
+            pulseToast('🌈 Радуга уничтожает цвет!');
+        } else {
+            if (tile.type === 'bomb') animateBombEffect(tile.row, tile.col);
+            else if (tile.type === 'rocketRow') animateRocketEffect(tile.row, tile.col, true);
+            else if (tile.type === 'rocketCol') animateRocketEffect(tile.row, tile.col, false);
+            else if (tile.type === 'plane') {
+                const target = findBestTargetForPlane(tile.row, tile.col);
+                if (target) {
+                    animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
+                        clearAndContinue(new Set([key(target.r, target.c)]), [], null, null, false, false, true);
+                    });
                 }
+                cells = new Set([key(tile.row, tile.col)]);
+            }
+            
+            if (tile.type !== 'plane') {
+                cells = computeActivationFootprint(tile);
             }
         }
 
-        if (targetType === "box") {
-            let targetBoxCount = Math.min(GOAL_HEARTS, 18);
-            while (currentBoxes < targetBoxCount && playableCells.length > 0) {
-                const rndIdx = Math.floor(Math.random() * playableCells.length);
-                const cell = playableCells.splice(rndIdx, 1)[0];
-                levelLayout[cell.r][cell.c] = 2; 
-                currentBoxes++;
-            }
-            GOAL_HEARTS = currentBoxes; 
-        }
-
-        if (selectedPreBoosters.rainbow) {
-            const cell = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-            if (cell) levelLayout[cell.r][cell.c] = 7; 
-        }
-        if (selectedPreBoosters.combo) {
-            if (playableCells.length > 1) {
-                const cell1 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-                const cell2 = playableCells.splice(Math.floor(Math.random()*playableCells.length), 1)[0];
-                levelLayout[cell1.r][cell1.c] = 3; 
-                levelLayout[cell2.r][cell2.c] = 4; 
-            }
-        }
-        doublePlanesActive = selectedPreBoosters.doublePlanes;
+        clearAndContinue(cells, [], null, null, false, false, true);
     }
 
-// ================================================
-// match3.js — ЧАСТЬ 2: ДВИЖОК ГРАВИТАЦИИ И МАТЧИНГА (ИСПРАВЛЕНО)
-// ================================================
-
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 6: ИНИЦИАЛИЗАЦИЯ И ПОСТРОЕНИЕ ПОЛЯ
+    // ----------------------------------------------------------------------
     function buildInitialGrid(){
         if (!boardEl) return;
         boardEl.innerHTML = '';
@@ -641,11 +430,13 @@
         }
     }
 
-    // Алгоритм гравитации с диагональным огибанием препятствий
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 7: ГРАВИТАЦИЯ, ПОРТАЛЫ И ДИАГОНАЛЬНОЕ ОГИБАНИЕ ПРЕПЯТСТВИЙ
+    // ----------------------------------------------------------------------
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
-        const maxLoops = 25;
+        const maxLoops = 25; // Защита от бесконечного цикла зависания
 
         while (moved && loops < maxLoops) {
             moved = false; loops++;
@@ -656,18 +447,20 @@
                         let sourceCol = c;
                         const cellKey = key(r, c);
 
+                        // Проверяем, связана ли данная ячейка с порталом
                         if (portals[cellKey]) {
                             const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
                             sourceRow = ep_r;
                             sourceCol = ep_c;
                         } else {
+                            // Ищем ближайшую заполненную ячейку по вертикали выше
                             for (let checkR = r - 1; checkR >= 0; checkR--) {
                                 if (levelLayout[checkR][c] === 0) break;
                                 if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
                             }
                         }
 
-                        // 1. Вертикальное падение
+                        // 1. Прямое вертикальное падение фишки
                         if (sourceRow >= 0 && sourceCol >= 0 && sourceCol < SIZE) {
                             const t = grid[sourceRow][sourceCol];
                             if (t && t.type !== 'box' && !t.frozen && !t.chained) {
@@ -679,7 +472,7 @@
                             }
                         }
 
-                        // 2. Диагональное сползание (огибание препятствий)
+                        // 2. Диагональное огибание (если прямой вертикальный путь заблокирован)
                         if (grid[r][c] === null && !portals[cellKey]) {
                             const sideDirections = [-1, 1];
                             if (Math.random() < 0.5) sideDirections.reverse();
@@ -706,7 +499,7 @@
                 }
             }
             
-            // Заполнение пустых мест сверху
+            // Заполнение пустых мест в самых верхних ячейках каждого отдельного сегмента
             for (let c = 0; c < SIZE; c++) {
                 for (let r = 0; r < SIZE; r++) {
                     const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
@@ -722,62 +515,12 @@
         resetHintTimer(); 
     }
 
-    function pulseToast(msg) {
-        if (toastEl) {
-            toastEl.textContent = msg;
-            toastEl.classList.add('show');
-            clearTimeout(pulseToast._t);
-            pulseToast._t = setTimeout(() => toastEl.classList.remove('show'), 1200);
-        }
-    }
-
-    function updateMatch3HUD() {
-        if (m3MovesText) m3MovesText.textContent = moves;
-        if (!m3GoalText) return;
-
-        if (targetType === "carpet") {
-            let currentCarpetCount = 0;
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (carpetGrid[r][c]) currentCarpetCount++;
-                }
-            }
-            m3GoalText.textContent = `${currentCarpetCount}/${GOAL_HEARTS} 🌿`;
-        } else if (targetType === "box") {
-            m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
-        } else if (targetType === "ice") {
-            m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
-        } else {
-            m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
-        }
-    }
-
-    function checkEndConditions(){
-        let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
-                        (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
-                        (targetType === "heart" && hearts >= GOAL_HEARTS);
-
-        if(isVictory){
-            clearTimeout(hintTimeout);
-            const rewards = getRewards(levelDifficulty);
-            if (window.GameState) {
-                window.GameState.addStars(rewards.stars);
-                window.GameState.addCash(rewards.coins);
-            }
-            showOverlay('Успешная вылазка!', `Заказ закрыт!\nБаза: +${rewards.base}₽\nБонус за ходы: +${rewards.bonus}₽`, true);
-            return;
-        }
-
-        if(moves <= 0){
-            clearTimeout(hintTimeout);
-            if (window.GameState) window.GameState.loseLife();
-            showOverlay('Вурдалаки победили!', `Тебе не хватило ходов. Жизнь -1.`, false);
-        }
-    }
-
-    // Детектор совпадений (Поиск комбинаций)
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 8: АНАЛИЗАТОР МАТЧЕЙ И ГЕНЕРАЦИЯ СУПЕР-ЭЛЕМЕНТОВ
+    // ----------------------------------------------------------------------
     const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata'].includes(type);
 
+    // Сбор всех горизонтальных и вертикальных линий одинаковых фишек (от 3-х в ряд)
     function collectRuns(){
         const runs = [];
         for(let r=0;r<SIZE;r++){
@@ -823,11 +566,13 @@
         return out;
     }
 
+    // Центральный математический анализатор: вычисляет бомбы, ракеты, радуги и самолетики 2х2
     function analyzeMatches(){
         const runs = collectRuns();
         const matchedByLine = new Set();
         runs.forEach(r=> r.cells.forEach(c=> matchedByLine.add(key(c[0],c[1]))));
 
+        // Поиск квадратов 2х2 для создания самолетиков
         const squares = [];
         const usedSquareCells = new Set();
         for(let r=0;r<SIZE-1;r++){
@@ -843,6 +588,7 @@
             }
         }
 
+        // Вычисление пересечений Т- и L-образных линий для генерации бомб
         const hRuns = runs.filter(r=>r.dir==='h');
         const vRuns = runs.filter(r=>r.dir==='v');
         const bombs = [];
@@ -859,6 +605,7 @@
             }
         });
 
+        // Создание ракет и радуг на основе длины линий (4 или 5 в ряд)
         const rockets = [], rainbows = [];
         const normalCells = new Set();
         runs.forEach(run=>{
@@ -876,7 +623,9 @@
         return {bombs, rockets, rainbows, squares, normalCells};
     }
 
-    // Очистка клеток и продолжение комбо
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 9: ОЧИСТКА КЛЕТОК И СИНХРОННЫЙ СПАВН СУПЕР-ЭЛЕМЕНТОВ
+    // ----------------------------------------------------------------------
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -914,22 +663,22 @@
         updateMatch3HUD();
         
         setTimeout(()=>{
-            // 1. Очистка уничтоженных фишек во встроенной памяти
+            // Очистка фишек во встроенной памяти
             finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r][c]; 
-                if(t){ t.el.remove(); grid[r][c] = null; }
+                if(t){ t.el.remove(); grid[r][c]=null; }
             });
 
-            // 2. ВОССТАНОВЛЕННЫЙ БЛОК: Рождение бустеров на поле на месте совпадений!
+            // МГНОВЕННЫЙ СИНХРОННЫЙ СПАВН БУСТЕРОВ (Исключает пропадание бонусов)
             specialSpawns.forEach(s => {
                 const [r, c] = s.at;
                 if (!grid[r]) return;
                 let t = grid[r][c];
                 if (t) {
-                    t.el.remove(); // Убираем фишку, которая там была
+                    t.el.remove(); // Стираем старый элемент
                 }
-                grid[r][c] = createTile(r, c, s.type, r); // Спавним новенький бустер
+                grid[r][c] = createTile(r, c, s.type, r); // Создаем новый бонус на плитке
             });
 
             applyGravityAndRefill();
@@ -985,7 +734,9 @@
         return cells;
     }
 
-    // Логика активных внутриигровых бустеров
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 10: ЛОГИКА 5 АКТИВНЫХ ИНСТРУМЕНТОВ БРАКОНЬЕРА
+    // ----------------------------------------------------------------------
     const ACTIVE_BOOSTER_COSTS = { hammer: 150, glove: 200, broom: 300, weight: 300, fan: 100 };
     let gloveSelectedTile = null;
 
@@ -1105,7 +856,9 @@
     if (btnWeight) btnWeight.addEventListener('click', () => toggleActiveBooster('weight'));
     if (btnFan) btnFan.addEventListener('click', () => toggleActiveBooster('fan'));
 
-    // Обработка обычного клика по фишкам
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 11: КЛИКИ И СВАЙПЫ (УПРАВЛЕНИЕ)
+    // ----------------------------------------------------------------------
     function onTileClick(e){
         if(busy) return;
         const tile = findTileById(e.currentTarget.dataset.id);
@@ -1248,6 +1001,9 @@
         pulseToast("🌪️ Вентилятор перемешал фишки!");
     }
 
+    // ----------------------------------------------------------------------
+    // РАЗДЕЛ 12: КАРТОЧКА ПРЕ-ЛЕВЕЛА И СТАРТ УРОВНЯ
+    // ----------------------------------------------------------------------
     function openPreLevelScreen(levelId) {
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) return;
@@ -1326,6 +1082,13 @@
         }
     });
 
+    if (btnCancelPreLevel) {
+        btnCancelPreLevel.addEventListener('click', () => {
+            if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
+            if (window.showScreen) window.showScreen('screenMap');
+        });
+    }
+
     if (btnStartMatch3) {
         btnStartMatch3.addEventListener('click', () => {
             ['rainbow', 'combo', 'doublePlanes'].forEach(type => {
@@ -1350,5 +1113,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Все модули игры успешно запущены в едином пространстве!");
+    console.log("match3.js: Движок полностью готов к игре!");
 })();
