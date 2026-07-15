@@ -1,5 +1,5 @@
 // ================================================
-// match3.js (ПОЛНАЯ ИСПРАВЛЕННАЯ СБОРКА)
+// match3.js (ПОЛНАЯ ИСПРАВЛЕННАЯ СБОРКА С ДИАГОНАЛЬНЫМ ЗАТЕКОМ)
 // ================================================
 
 (function() {
@@ -39,21 +39,17 @@
     let busy = false;
     let tileIdCounter = 0;
 
-    // Состояние бустеров
     let activeBooster = null; 
     let activePlanesCount = 0;
     let doublePlanesActive = false; 
 
-    // Выбранные перед боем бустеры
     let selectedPreBoosters = {
         rainbow: false,
         combo: false,
         doublePlanes: false
     };
 
-    // Таймер подсказок
     let hintTimeout = null;
-
     let dragStartX = 0, dragStartY = 0;
     let dragActiveTile = null;
 
@@ -63,7 +59,6 @@
     const m3MovesText = document.getElementById('m3MovesText');
     const toastEl = document.getElementById('toast');
 
-    // Кнопки бустеров на уровне
     const btnHammer = document.getElementById('btnHammer');
     const btnGlove = document.getElementById('btnGlove');
     const btnBroom = document.getElementById('btnBroom');
@@ -74,6 +69,30 @@
     const resultsTitle = document.getElementById('resultsTitle');
     const resultsText = document.getElementById('resultsText');
     const overlayPreLevel = document.getElementById('overlayPreLevel');
+
+    // ==========================================================================
+    // СИСТЕМНОЕ ОБЪЯВЛЕНИЕ ЭКРАНА РЕЗУЛЬТАТОВ (Исключает ReferenceError на мобильных)
+    // ==========================================================================
+    let pendingResultIsWin = null;
+
+    const showOverlay = function(title, text, isWin) {
+        pendingResultIsWin = !!isWin;
+        if (resultsTitle) resultsTitle.textContent = title;
+        if (resultsText) resultsText.textContent = text;
+        if (overlayResults) overlayResults.classList.remove('hidden');
+        busy = false;
+    };
+
+    if (btnResultsClose) {
+        btnResultsClose.addEventListener('click', () => {
+            if (overlayResults) overlayResults.classList.add('hidden');
+            if (pendingResultIsWin && window.GameState) {
+                window.GameState.nextLevel();
+            }
+            pendingResultIsWin = null;
+            if (window.showScreen) window.showScreen('screenMap');
+        });
+    }
 
     // ИНЖЕКТОР СТИЛЕЙ МНОГОСЛОЙНОСТИ И АКТИВНЫХ ЭЛЕМЕНТОВ
     (function injectStyles() {
@@ -200,7 +219,6 @@
         return null;
     }
 
-    // ТАЙМЕРЫ ИСКУССТВЕННЫХ ПОДСКАЗОК
     function resetHintTimer() {
         clearTimeout(hintTimeout);
         removeCurrentHints();
@@ -620,30 +638,74 @@
         }
     }
 
+    // ==========================================================================
+    // ЛОГИКА ГРАВИТАЦИИ С ДИАГОНАЛЬНЫМ ЗАТЕКОМ (Homescapes Style)
+    // ==========================================================================
     function applyGravityAndRefill(){
         let moved = true;
         let loops = 0;
-        while (moved && loops < 25) {
+        const maxLoops = 25;
+
+        while (moved && loops < maxLoops) {
             moved = false; loops++;
             for (let r = SIZE - 1; r >= 0; r--) {
                 for (let c = 0; c < SIZE; c++) {
                     if (levelLayout[r][c] !== 0 && grid[r][c] === null) {
                         let sourceRow = -1;
-                        for (let checkR = r - 1; checkR >= 0; checkR--) {
-                            if (levelLayout[checkR][c] === 0) break;
-                            if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
+                        let sourceCol = c;
+                        const cellKey = key(r, c);
+
+                        if (portals[cellKey]) {
+                            const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
+                            sourceRow = ep_r;
+                            sourceCol = ep_c;
+                        } else {
+                            for (let checkR = r - 1; checkR >= 0; checkR--) {
+                                if (levelLayout[checkR][c] === 0) break;
+                                if (levelLayout[checkR][c] !== 0) { sourceRow = checkR; break; }
+                            }
                         }
-                        if (sourceRow >= 0) {
-                            const t = grid[sourceRow][c];
+
+                        // 1. Вертикальное падение
+                        if (sourceRow >= 0 && sourceCol >= 0 && sourceCol < SIZE) {
+                            const t = grid[sourceRow][sourceCol];
                             if (t && t.type !== 'box' && !t.frozen && !t.chained) {
-                                grid[r][c] = t; grid[sourceRow][c] = null;
-                                moveTileTo(t, r, c); moved = true;
+                                grid[r][c] = t; 
+                                grid[sourceRow][sourceCol] = null;
+                                moveTileTo(t, r, c); 
+                                moved = true;
                                 continue;
+                            }
+                        }
+
+                        // 2. Диагональное огибание препятствий
+                        if (grid[r][c] === null && !portals[cellKey]) {
+                            const sideDirections = [-1, 1];
+                            if (Math.random() < 0.5) sideDirections.reverse();
+
+                            for (const dc of sideDirections) {
+                                const diagCol = c + dc;
+                                const diagRow = r - 1;
+
+                                if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
+                                    if (levelLayout[diagRow][diagCol] !== 0) {
+                                        const t = grid[diagRow][diagCol];
+                                        if (t && t.type !== 'box' && !t.frozen && !t.chained) {
+                                            grid[r][c] = t;
+                                            grid[diagRow][diagCol] = null;
+                                            moveTileTo(t, r, c);
+                                            moved = true;
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+            
+            // Наполнение колонок сверху
             for (let c = 0; c < SIZE; c++) {
                 for (let r = 0; r < SIZE; r++) {
                     const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
@@ -713,7 +775,7 @@
     }
 
     // ==========================================================================
-    // АНАЛИЗАТОР СОВПАДЕНИЙ (ВОССТАНОВЛЕННЫЕ АЛГОРИТМЫ СБОРА)
+    // АНАЛИЗАТОР СОВПАДЕНИЙ
     // ==========================================================================
     const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata'].includes(type);
 
@@ -854,7 +916,7 @@
         setTimeout(()=>{
             finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
-                const t = grid[r] && grid[r][c];
+                const t = grid[r] && grid[r][null];
                 if(t){ t.el.remove(); grid[r][c]=null; }
             });
             applyGravityAndRefill();
@@ -1149,31 +1211,6 @@
         return cells;
     }
 
-    function shuffleBoard() {
-        const movableTiles = [];
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                const t = grid[r][c];
-                if (levelLayout[r][c] === 1 && t && t.type !== 'box' && t.type !== 'donut' && !t.frozen && !t.chained && !isSpecial(t.type)) {
-                    movableTiles.push(t);
-                }
-            }
-        }
-        if (movableTiles.length < 2) return;
-        const types = movableTiles.map(t => t.type);
-        for (let i = types.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [types[i], types[j]] = [types[j], types[i]];
-        }
-        movableTiles.forEach((tile, idx) => {
-            tile.type = types[idx];
-            tile.inner.textContent = iconFor(tile.type, tile.boxLayers);
-            applySpecialClass(tile);
-        });
-        triggerBoardShake('shake-mild');
-        pulseToast("🌪️ Вентилятор перемешал фишки!");
-    }
-
     function openPreLevelScreen(levelId) {
         const levelData = window.LEVELS ? window.LEVELS[levelId - 1] : null;
         if (!levelData) return;
@@ -1276,5 +1313,5 @@
     }
 
     window.openPreLevelScreen = openPreLevelScreen;
-    console.log("match3.js: Ошибки вызова аналитических функций устранены!");
+    console.log("match3.js: Все логические ошибки устранены.");
 })();
