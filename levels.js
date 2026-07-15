@@ -108,7 +108,6 @@
             else layout = JSON.parse(JSON.stringify(LAYOUTS.square));
         } else {
             const cycle = levelId % 6;
-            // ИСПРАВЛЕНИЕ: Если уровень ЧЕТНЫЙ — это уровень с Коробками (без Льда)
             const isBoxLevel = levelId % 2 === 0;
 
             if (isBoxLevel) {
@@ -123,7 +122,6 @@
                     layout[3][6] = 2;
                 }
             } else {
-                // Если уровень НЕЧЕТНЫЙ — это чистый уровень со Льдом (Ящиков 2 здесь НЕТ!)
                 if (cycle === 1) layout = JSON.parse(JSON.stringify(LAYOUTS.islands));
                 else if (cycle === 3) layout = JSON.parse(JSON.stringify(LAYOUTS.butterfly));
                 else if (cycle === 5) layout = JSON.parse(JSON.stringify(LAYOUTS.cross));
@@ -202,8 +200,6 @@
                 safety++;
                 const r = Math.floor(Math.random() * 8);
                 const c = Math.floor(Math.random() * 8);
-                // ИСПРАВЛЕНИЕ: Замораживаем ТОЛЬКО разрешенные обычные фишки (1)!
-                // Ни в коем случае не трогаем пустоту (0) или коробки (2)!
                 if (layout[r][c] === 1 && iceLayout[r][c] === 0) {
                     iceLayout[r][c] = 1; 
                     frozenCount++;
@@ -211,8 +207,8 @@
             }
         }
 
-        // --- ЛОГИКА РАСТЕКАНИЯ КОВРА 🌿 (С 25 УРОВНЯ) ---
-        let targetType = "heart"; 
+        // ОПРЕДЕЛЕНИЕ ТИПА ЦЕЛИ УРОВНЯ
+        let targetType = "heart";
         if (i >= 25 && i % 5 === 0) {
             targetType = "carpet"; 
             
@@ -228,6 +224,12 @@
             carpetLayout[3][4] = 1;
             carpetLayout[4][3] = 1;
             carpetLayout[4][4] = 1;
+        } else if (i > 5 && i % 2 === 0) {
+            // Если уровень четный и содержит коробки (значение 2) — цель уничтожить коробки
+            targetType = "box";
+        } else if (isIceLevel) {
+            // Если уровень нечетный со льдом — цель растопить лед
+            targetType = "ice";
         }
 
         // Запись обычного уровня
@@ -235,7 +237,6 @@
             const phase1Goal = Math.floor(heartsGoal * 0.55);
             const phase2Goal = Math.floor(heartsGoal * 0.65);
             
-            // На двухфазных уровнях пусть всегда будут коробки
             let phase1Layout = JSON.parse(JSON.stringify(LAYOUTS.islands));
             phase1Layout[3][1] = 2;
             phase1Layout[3][6] = 2;
