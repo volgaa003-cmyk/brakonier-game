@@ -1411,12 +1411,11 @@
         footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
         return cells;
     }
-// Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бустеров
+// Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бесплатных бустеров
     function synchronizeObstaclesAndGoals() {
         let playableCells = [];
         let currentBoxes = 0;
 
-        // Сканируем поле, чтобы понять, сколько у нас коробок и свободных мест
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 if (levelLayout[r][c] === 1) {
@@ -1427,54 +1426,47 @@
             }
         }
 
-        // Если цель раунда — коробки, гарантируем их достаточное количество
         if (targetType === "box") {
-            let targetBoxCount = Math.min(GOAL_HEARTS, 18); // Максимум 18, чтобы не заблокировать всё поле
+            let targetBoxCount = Math.min(GOAL_HEARTS, 18);
             while (currentBoxes < targetBoxCount && playableCells.length > 0) {
                 const rndIdx = Math.floor(Math.random() * playableCells.length);
                 const cell = playableCells.splice(rndIdx, 1)[0];
-                levelLayout[cell.r][cell.c] = 2; // Превращаем свободную клетку в коробку
+                levelLayout[cell.r][cell.c] = 2; 
                 currentBoxes++;
             }
-            GOAL_HEARTS = currentBoxes; // Синхронизируем цель с количеством коробок на поле
+            GOAL_HEARTS = currentBoxes; 
         }
 
-        // ==========================================================================
         // СИСТЕМА ЗАКРЕПЛЕНИЯ БЕСПЛАТНЫХ БУСТЕРОВ ЗА СЛОЖНЫМИ УРОВНЯМИ
-        // ==========================================================================
-        let boostersToSpawn = []; // Список бустеров для размещения на поле
+        let boostersToSpawn = []; 
 
         if (levelDifficulty === "challenge") {
-            // Испытание: дарим 2 Самолетика (6) и 1 Бомбу (3)
-            boostersToSpawn = [6, 6, 3];
+            boostersToSpawn = [6, 6, 3]; // 2 Самолетика и Бомба
             setTimeout(() => pulseToast("🎁 Сюжетное испытание! Дарим 2 Самолетика и Бомбу!"), 900);
         } else if (levelDifficulty === "extreme") {
-            // Ультра-сложный: дарим 1 Радужный шар (7) и 1 Бомбу (3)
-            boostersToSpawn = [7, 3];
+            boostersToSpawn = [7, 3]; // Радуга и Бомба
             setTimeout(() => pulseToast("🎁 Ультра-сложная чистка! Дарим Радужный шар и Бомбу!"), 900);
         } else if (levelDifficulty === "hard") {
-            // Сложный: дарим 1 Бомбу (3) и 1 Ракету (4/5)
-            boostersToSpawn = [3, Math.random() < 0.5 ? 4 : 5];
+            boostersToSpawn = [3, Math.random() < 0.5 ? 4 : 5]; // Бомба и Ракета
             setTimeout(() => pulseToast("🎁 Опасный бой! Дарим Бомбу и Ракету!"), 900);
         } else {
-            // Обычные уровни, но с обилием ящиков (динамический балансировщик)
             if (currentBoxes >= 12) {
-                boostersToSpawn = [3, Math.random() < 0.5 ? 4 : 5]; // Бомба + Ракета
+                boostersToSpawn = [3, Math.random() < 0.5 ? 4 : 5]; 
                 setTimeout(() => pulseToast("🎁 Много коробок! Дарим Бомбу и Ракету для прорыва!"), 900);
             } else if (currentBoxes >= 6) {
-                boostersToSpawn = [3]; // 1 Бомба
+                boostersToSpawn = [3]; 
                 setTimeout(() => pulseToast("🎁 Сложный завал ящиков! Дарим стартовую Бомбу!"), 900);
             }
         }
 
-        // Размещаем подарочные бустеры на свободных плитках поля
         boostersToSpawn.forEach(type => {
             if (playableCells.length > 0) {
                 const rndIdx = Math.floor(Math.random() * playableCells.length);
                 const cell = playableCells.splice(rndIdx, 1)[0];
-                levelLayout[cell.r][cell.c] = type; // Записываем бустер в карту старта уровня
+                levelLayout[cell.r][cell.c] = type; 
             }
         });
+    }
 
         // Спавн покупного Радужного шара на старте, если игрок выбрал этот пре-бустер на экране старта
         if (selectedPreBoosters.rainbow && playableCells.length > 0) {
