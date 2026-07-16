@@ -1671,6 +1671,15 @@
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
     }
+    function getCarpetCount() {
+        let count = 0;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                if (carpetGrid[r] && carpetGrid[r][c]) count++;
+            }
+        }
+        return count;
+    }
     // Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
 // ИСПРАВЛЕНО: Добавлены все новые условия победы для ультимативного пака
