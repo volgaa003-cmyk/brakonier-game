@@ -806,7 +806,6 @@ function applySpecialClass(t){
                 pulseToast("🔗 Цепь полностью снята!");
             }
         }
-
         // 4. ИСПРАВЛЕНО: Повреждение многослойной глиняной Вазы (🏺) (2 уровня сложности)
         if (tile.type === 'vase') {
             tile.vaseLayers -= damage;
@@ -821,6 +820,49 @@ function applySpecialClass(t){
                 tile.el.classList.add('clearing');
                 grid[r][c] = null; // Очищаем ячейку в матрице памяти мгновенно
                 if (targetType === "vase") vasesBroken++; // Увеличиваем счетчик целей, если ваза — цель уровня
+                setTimeout(() => {
+                    tile.el.remove();
+                }, CLEAR_MS);
+            }
+            // 5. ИСПРАВЛЕНО: Повреждение Рулона Ковра (🏺🧻) (6 уровней прочности)
+        if (tile.type === 'carpetRoll') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('carpetRoll', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                // ДЕТОНАЦИЯ: Рулон раскрывается и стреляет ковровым крестом по всему полю!
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                
+                // Стреляем ковром по горизонтали и вертикали
+                for (let i = 0; i < SIZE; i++) {
+                    spreadCarpetAt(tile.row, i);
+                    spreadCarpetAt(i, tile.col);
+                }
+                
+                pulseToast("🌿 Ковровый рулон успешно развернут крестом!");
+                triggerBoardShake('shake-intense');
+                setTimeout(() => {
+                    tile.el.remove();
+                }, CLEAR_MS);
+            }
+        }
+
+        // 6. ИСПРАВЛЕНО: Повреждение Печенья (🍪) (3 уровня прочности)
+        if (tile.type === 'cookie') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('cookie', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                if (targetType === "cookie") cookiesBroken++;
                 setTimeout(() => {
                     tile.el.remove();
                 }, CLEAR_MS);
