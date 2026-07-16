@@ -693,8 +693,10 @@ function applySpecialClass(t){
         el.dataset.id = id;
         
         // Генерация слоев прочности для ящиков, льда, цепей и новых ваз (2 слоя)
-        const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 0;
         const initVaseLayers = (type === 'vase') ? 2 : 0; // ИСПРАВЛЕНО: Вазы всегда стартуют с 2 слоями прочности
+        const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 
+                             ((type === 'carpetRoll') ? 6 : // Рулон имеет 6 слоев
+                             ((type === 'cookie') ? 3 : 0)); // Печенье имеет 3 слоя
         const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
         const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
 
