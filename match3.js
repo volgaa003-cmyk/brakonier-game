@@ -1986,7 +1986,7 @@
         return cells;
     }
 
-    // Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бесплатных бустеров
+// Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бесплатных бустеров
     function synchronizeObstaclesAndGoals() {
         let playableCells = [];
         let currentBoxes = 0;
@@ -2088,39 +2088,44 @@
                 levelLayout[cell.r][cell.c] = type; 
             }
         });
-    }
 
-    // Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
-    function applySelectedPreBoosters() {
-        let playableCells = [];
-        
-        // Находим все оставшиеся свободные ячейки, где нет коробок или других бустеров
-        for (let r = 0; r < SIZE; r++) {
-            for (let c = 0; c < SIZE; c++) {
-                if (levelLayout[r][c] === 1) {
-                    playableCells.push({r, c});
+        // ==========================================================
+        // ДОБАВЛЕНО: КАЛИБРОВКА ЛЬДА И КОВРОВ ПОД РЕАЛЬНОЕ КОЛИЧЕСТВО НА ПОЛЕ
+        // ==========================================================
+        if (targetType === "ice") {
+            let currentIceCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (iceGrid[r] && iceGrid[r][c] === 1) {
+                        currentIceCount++;
+                    }
                 }
             }
+            // Если на поле по какой-то причине нет льда, нанесем его принудительно
+            if (currentIceCount === 0) {
+                let neededIce = Math.min(GOAL_HEARTS, 12);
+                while (currentIceCount < neededIce && playableCells.length > 0) {
+                    const rndIdx = Math.floor(Math.random() * playableCells.length);
+                    const cell = playableCells.splice(rndIdx, 1)[0];
+                    iceGrid[cell.r][cell.c] = 1;
+                    currentIceCount++;
+                }
+            }
+            // Корректируем финальную цель под реальное число ледяных ячеек
+            GOAL_HEARTS = currentIceCount;
         }
 
-        // Плюсуем выбранный Радужный шар (код 7)
-        if (selectedPreBoosters.rainbow && playableCells.length > 0) {
-            const rndIdx = Math.floor(Math.random() * playableCells.length);
-            const cell = playableCells.splice(rndIdx, 1)[0];
-            levelLayout[cell.r][cell.c] = 7; 
+        if (targetType === "carpet") {
+            let playableCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === 1) playableCount++;
+                }
+            }
+            // Цель по коврам не может превышать количество доступных клеток на поле
+            GOAL_HEARTS = Math.min(GOAL_HEARTS, playableCount);
         }
-
-        // Плюсуем выбранное Комбо (Бомба + Ракета)
-        if (selectedPreBoosters.combo && playableCells.length > 1) {
-            const cell1 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
-            const cell2 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
-            levelLayout[cell1.r][cell1.c] = 3; 
-            levelLayout[cell2.r][cell2.c] = Math.random() < 0.5 ? 4 : 5; 
-        }
-        
-        // Запоминаем статус активации Двойных самолетиков
-        doublePlanesActive = selectedPreBoosters.doublePlanes;
-    } // Конец функции applySelectedPreBoosters
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 10: ЛОГИКА 5 АКТИВНЫХ ИНСТРУМЕНТОВ БРАКОНЬЕРА
     // ----------------------------------------------------------------------
