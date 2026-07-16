@@ -1964,11 +1964,12 @@
             if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
             if (window.showScreen) window.showScreen('screenMatch3');
 
-            // Полностью обнуляем все показатели раунда
+// Полностью обнуляем все показатели раунда
             hearts = 0; 
             boxesBroken = 0; 
             iceMelted = 0; 
             donutsCollected = 0;
+            vasesBroken = 0; // ИСПРАВЛЕНО: Обнуляем счетчик разбитых ваз перед стартом уровня
             activeBooster = null; 
             gloveSelectedTile = null;
             if (boardEl) boardEl.classList.remove('aiming');
