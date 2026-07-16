@@ -755,6 +755,12 @@ function applySpecialClass(t){
         const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 
                              ((type === 'carpetRoll') ? 6 : // Рулон имеет 6 слоев
                              ((type === 'cookie') ? 3 : 0)); // Печенье имеет 3 слоя
+                             ((type === 'surpriseBox') ? 5 :  // Коробка-сюрприз: 5 слоев
+                             ((type === 'nut') ? 3 :          // Орехи: 3 слоя
+                             ((type === 'purpleFoam') ? 2 :   // Фиолетовая пена: 2 слоя
+                             ((type === 'ringCase') ? 3 :     // Футляр с кольцом: 3 слоя
+                             ((type === 'stone') ? 3 :        // Идол из камня: 3 слоя
+                             ((type === 'plaid') ? 4 : 0)))))))); // Плед: 4 слоя
         const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
         const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
 
@@ -924,6 +930,138 @@ function applySpecialClass(t){
                 setTimeout(() => {
                     tile.el.remove();
                 }, CLEAR_MS);
+            }
+            // 7. ИСПРАВЛЕНО: Орехи 🌰 (Иммунитет к обычным матчам, урон только от взрывов бонусов!)
+        if (tile.type === 'nut') {
+            if (!isExplosion) return; // Обычные матчи фишек рядом полностью игнорируются скорлупой!
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('nut', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                if (targetType === "nut") nutsBroken++;
+                setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+            }
+        }
+
+        // 8. ИСПРАВЛЕНО: Коробка-сюрприз 🎁 (При разрушении выплевывает случайный бустер)
+        if (tile.type === 'surpriseBox') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('surpriseBox', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                
+                // Спавним на этой клетке случайный ценный бустер
+                const boosterTypes = ['bomb', 'rocketRow', 'rocketCol', 'plane'];
+                const randomType = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
+                grid[r][c] = createTile(r, c, randomType, r);
+                
+                pulseToast("🎁 Коробка-сюрприз открыта! Получен бустер!");
+                setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+            }
+        }
+
+        // 9. ИСПРАВЛЕНО: Пышная фиолетовая пена 🧼💜 (Требует 2 хита)
+        if (tile.type === 'purpleFoam') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('purpleFoam', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+            }
+        }
+
+        // 10. ИСПРАВЛЕНО: Футляр с Кольцом 💍 (При открытии собирает кольцо)
+        if (tile.type === 'ringCase') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('ringCase', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                if (targetType === "ring") ringsCollected++;
+                pulseToast("💍 Сверкающее кольцо найдено в футляре!");
+                setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+            }
+        }
+
+        // 11. ИСПРАВЛЕНО: Лента с бантами 🎀 (При развязывании одного банта сносится вся соединенная лента на поле!)
+        if (tile.type === 'ribbon') {
+            levelLayout[r][c] = 1;
+            tile.el.classList.add('clearing');
+            grid[r][c] = null;
+            
+            // Находим все связанные ячейки ленты на поле и цепной реакцией убираем их
+            for (let rowIdx = 0; rowIdx < SIZE; rowIdx++) {
+                for (let colIdx = 0; colIdx < SIZE; colIdx++) {
+                    const other = grid[rowIdx][colIdx];
+                    if (other && other.type === 'ribbon') {
+                        levelLayout[rowIdx][colIdx] = 1;
+                        other.el.classList.add('clearing');
+                        grid[rowIdx][colIdx] = null;
+                        setTimeout(((tToKill) => () => tToKill.remove())(other.el), CLEAR_MS);
+                    }
+                }
+            }
+            pulseToast("🎀 Лента развязана! Все банты исчезли!");
+            setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+        }
+
+        // 12. ИСПРАВЛЕНО: Каменные Фигурки 🗿 (Иммунитет к матчам, активация только от 3-х взрывов бустеров!)
+        if (tile.type === 'stone') {
+            if (!isExplosion) return; // Обычные матчи фишек фигуре безразличны!
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('stone', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                if (targetType === "stone") stoneFiguresCreated++;
+                setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+            }
+        }
+
+        // 13. ИСПРАВЛЕНО: Плющ 🥀 (Срезается комбинациями и бустерами)
+        if (tile.type === 'ivy') {
+            levelLayout[r][c] = 1;
+            tile.el.classList.add('clearing');
+            grid[r][c] = null;
+            if (targetType === "ivy") iviesCleared++;
+            setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
+        }
+
+        // 14. ИСПРАВЛЕНО: Плед 🛏️ (4 уровня плотности, лоскутное одеяло)
+        if (tile.type === 'plaid') {
+            tile.boxLayers -= damage;
+            if (tile.boxLayers > 0) {
+                tile.inner.textContent = iconFor('plaid', tile.boxLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin');
+            } else {
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null;
+                if (targetType === "plaid") plaidsCleared++;
+                setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
         }
     }
@@ -1126,9 +1264,25 @@ function applySpecialClass(t){
                 } else if (cellType === 8) {
                     grid[r][c] = createTile(r, c, 'vase', r); 
                 } else if (cellType === 9) {
-                    grid[r][c] = createTile(r, c, 'carpetRoll', r); // ИСПРАВЛЕНО: Спавним рулон ковра (код 9)
+                    grid[r][c] = createTile(r, c, 'carpetRoll', r); 
                 } else if (cellType === 10) {
-                    grid[r][c] = createTile(r, c, 'cookie', r); // ИСПРАВЛЕНО: Спавним печенье (код 10)
+                    grid[r][c] = createTile(r, c, 'cookie', r); 
+                } else if (cellType === 11) {
+                    grid[r][c] = createTile(r, c, 'surpriseBox', r); // ИСПРАВЛЕНО: Коробка-сюрприз (код 11)
+                } else if (cellType === 12) {
+                    grid[r][c] = createTile(r, c, 'nut', r); // ИСПРАВЛЕНО: Орех (код 12)
+                } else if (cellType === 13) {
+                    grid[r][c] = createTile(r, c, 'purpleFoam', r); // ИСПРАВЛЕНО: Фиолетовая пена (код 13)
+                } else if (cellType === 14) {
+                    grid[r][c] = createTile(r, c, 'ringCase', r); // ИСПРАВЛЕНО: Футляр с кольцом (код 14)
+                } else if (cellType === 15) {
+                    grid[r][c] = createTile(r, c, 'ribbon', r); // ИСПРАВЛЕНО: Лента с бантами (код 15)
+                } else if (cellType === 16) {
+                    grid[r][c] = createTile(r, c, 'stone', r); // ИСПРАВЛЕНО: Каменная фигура (код 16)
+                } else if (cellType === 17) {
+                    grid[r][c] = createTile(r, c, 'ivy', r); // ИСПРАВЛЕНО: Плющ (код 17)
+                } else if (cellType === 18) {
+                    grid[r][c] = createTile(r, c, 'plaid', r); // ИСПРАВЛЕНО: Плед (код 18)
                 } else {
                     let t, guard=0;
                     do{ t=randType(); guard++; } 
