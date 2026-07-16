@@ -1217,9 +1217,11 @@
 
     // Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
+// ИСПРАВЛЕНО: Добавлено условие победы при уничтожении всех целевых Ваз🏺
         let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
                         (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
-                        (targetType === "donut" && donutsCollected >= GOAL_HEARTS) || // ИСПРАВЛЕНО: Условие победы при сборе всех пончиков
+                        (targetType === "donut" && donutsCollected >= GOAL_HEARTS) ||
+                        (targetType === "vase" && vasesBroken >= GOAL_HEARTS) ||
                         (targetType === "heart" && hearts >= GOAL_HEARTS);
 
         if(isVictory){
