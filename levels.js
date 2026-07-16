@@ -160,20 +160,21 @@
             // Уровни с плющом 🥀 (растет и расползается по полю каждый ход!)
             targetType = "ivy";
             heartsGoal = 5 + Math.floor(Math.random() * 4);
-        } else if (i >= 15 && i % 2 === 1) {
+} else if (i >= 15 && i % 2 === 1) {
             targetType = "ice";
-            // Спавним лед
+            // Постепенно увеличиваем количество льда от 8 до 16 блоков в зависимости от уровня
+            let targetIceCount = Math.min(16, 8 + Math.floor(i / 15));
             let frozenCount = 0, safety = 0;
-            while (frozenCount < 6 && safety < 100) {
+            while (frozenCount < targetIceCount && safety < 150) {
                 safety++;
-                const r = Math.floor(Math.random() * 8);
-                const c = Math.floor(Math.random() * 8);
+                const r = Math.floor(Math.random() * SIZE);
+                const c = Math.floor(Math.random() * SIZE);
                 if (layout[r][c] === 1) {
                     iceLayout[r][c] = 1;
                     frozenCount++;
                 }
             }
-        } else if (i > 5 && i % 2 === 0) {
+        }else if (i > 5 && i % 2 === 0) {
             targetType = "box";
         }
 
