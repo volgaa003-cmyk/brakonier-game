@@ -461,9 +461,19 @@
             else if (tile.type === 'plane') {
                 const target = findBestTargetForPlane(tile.row, tile.col);
                 if (target) {
+                    // 1. Запускаем красивый полет самолетика к далекой цели
                     animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
+                        // По прилету взрываем далекую цель
                         clearAndContinue(new Set([key(target.r, target.c)]), [], null, null, false, false, true);
                     });
+                }
+                
+                // 2. ИСПРАВЛЕНО: В момент взлета мгновенно уничтожаем крест из 5 клеток вокруг самого самолетика!
+                cells = new Set();
+                footprintFor(tile).forEach(([r, c]) => {
+                    cells.add(key(r, c));
+                });
+            }
                 }
                 cells = new Set([key(tile.row, tile.col)]);
             }
