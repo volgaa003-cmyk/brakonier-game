@@ -1516,6 +1516,30 @@ function applySpecialClass(t){
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r][c]; 
                 if(t){ t.el.remove(); grid[r][c]=null; }
+                
+                // ИСПРАВЛЕНО: Если фишка лежала поверх желе — топим желе на 1 слой!
+                if (jellyGrid[r] && jellyGrid[r][c] > 0) {
+                    jellyGrid[r][c]--; // Уменьшаем плотность желе
+                    
+                    const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
+                    if (cellEl) {
+                        cellEl.className = 'grid-cell'; // Сбрасываем старые классы
+                        
+                        // Если ковер там был, сохраняем его
+                        if (carpetGrid[r] && carpetGrid[r][c]) cellEl.classList.add('carpet');
+                        
+                        if (jellyGrid[r][c] > 0) {
+                            // Если желе еще осталось, рисуем его с новым слоем плотности
+                            cellEl.classList.add('jelly', `jelly-${jellyGrid[r][c]}`);
+                        } else {
+                            // Если желе полностью растаяло — освобождаем Вишню!
+                            cherriesCollected++;
+                            pulseToast("🍒 Вишня освобождена из желе!");
+                            spawnMatchParticles(r, c, 'heart');
+                            updateMatch3HUD();
+                        }
+                    }
+                }
             });
 
             // Синхронный спавн новых бустеров на месте совпадений
