@@ -1206,8 +1206,10 @@
             m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
         } else if (targetType === "ice") {
             m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
-        } else if (targetType === "donut") {
-            m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`; // ИСПРАВЛЕНО: Отображаем прогресс сбора пончиков
+} else if (targetType === "donut") {
+            m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`;
+        } else if (targetType === "vase") {
+            m3GoalText.textContent = `${vasesBroken}/${GOAL_HEARTS} 🏺`; // ИСПРАВЛЕНО: Выводим счетчик ваз на панель HUD
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
