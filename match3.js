@@ -729,12 +729,6 @@ function applySpecialClass(t){
         if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
         if(t.chained) t.el.classList.add('chained', `chain-${t.chainedLayers}`);
     }
-        
-        // Навешивание графики льда и цепей с учетом оставшихся HP-слоев
-        if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
-        if(t.chained) t.el.classList.add('chained', `chain-${t.chainedLayers}`);
-    }
-
     // Отрисовка физических координат фишки на экране смартфона (перевод в проценты для адаптивности)
     function setTilePos(el, row, col){
         el.style.left = (col*100/SIZE)+'%';
