@@ -1872,14 +1872,14 @@
         selectedPreBoosters = { rainbow: false, combo: false, doublePlanes: false };
         updatePreBoostersUI();
 
-        // Инициализируем чистые базовые двумерные сетки 8х8
-        carpetGrid = []; iceGrid = []; chainGrid = [];
+// Инициализируем чистые базовые двумерные сетки 8х8
+        carpetGrid = []; iceGrid = []; chainGrid = []; jellyGrid = [];
         for (let r = 0; r < SIZE; r++) {
             carpetGrid.push(new Array(SIZE).fill(false));
             iceGrid.push(new Array(SIZE).fill(0));
             chainGrid.push(new Array(SIZE).fill(0));
+            jellyGrid.push(new Array(SIZE).fill(0)); // ИСПРАВЛЕНО: Инициализируем пустую сетку желе 8х8
         }
-
         // Копируем данные из шаблона уровня ТОЛЬКО если они реально там заполнены (исключает перезапись на пустые [])
         if (levelData.carpetLayout && levelData.carpetLayout.length > 0) {
             carpetGrid = JSON.parse(JSON.stringify(levelData.carpetLayout));
@@ -1890,7 +1890,9 @@
         if (levelData.chainLayout && levelData.chainLayout.length > 0) {
             chainGrid = JSON.parse(JSON.stringify(levelData.chainLayout));
         }
-        
+        if (levelData.jellyLayout && levelData.jellyLayout.length > 0) {
+            jellyGrid = JSON.parse(JSON.stringify(levelData.jellyLayout));
+        }
         levelLayout = JSON.parse(JSON.stringify(levelData.layout));
 
         // Безопасно адаптируем препятствия и цели
@@ -1978,7 +1980,9 @@
             boxesBroken = 0; 
             iceMelted = 0; 
             donutsCollected = 0;
-            vasesBroken = 0; // ИСПРАВЛЕНО: Обнуляем счетчик разбитых ваз перед стартом уровня
+            vasesBroken = 0;
+            cookiesBroken = 0;   // ИСПРАВЛЕНО: Обнуляем печенье перед раундом
+            cherriesCollected = 0; // ИСПРАВЛЕНО: Обнуляем вишни перед раундом
             activeBooster = null; 
             gloveSelectedTile = null;
             if (boardEl) boardEl.classList.remove('aiming');
