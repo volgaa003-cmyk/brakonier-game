@@ -1995,15 +1995,62 @@
             }
         }
 
-        if (targetType === "box") {
-            let targetBoxCount = Math.min(GOAL_HEARTS, 18);
-            while (currentBoxes < targetBoxCount && playableCells.length > 0) {
+        // ИСПРАВЛЕНО: обобщенная система размещения препятствий-целей на карте.
+        // Раньше только "box" реально размещался на поле — vase/cookie/nut/ring/stone/plaid/ivy
+        // были полностью реализованы в match3.js, но levels.js никогда не выставлял для них
+        // targetType, а сама эта функция не умела их расставлять. Теперь любая цель из карты
+        // ниже автоматически получает нужное количество фишек-препятствий на поле.
+        const OBSTACLE_TARGET_MAP = {
+            box:   { code: 2,  max: 18 },
+            vase:  { code: 8,  max: 14 },
+            cookie:{ code: 10, max: 14 },
+            nut:   { code: 12, max: 12 },
+            ring:  { code: 14, max: 10 },
+            stone: { code: 16, max: 10 },
+            plaid: { code: 18, max: 10 },
+            ivy:   { code: 17, max: 12 }
+        };
+
+        if (OBSTACLE_TARGET_MAP[targetType]) {
+            const cfg = OBSTACLE_TARGET_MAP[targetType];
+            let currentCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] === cfg.code) currentCount++;
+                }
+            }
+            let targetCount = Math.min(GOAL_HEARTS, cfg.max);
+            while (currentCount < targetCount && playableCells.length > 0) {
                 const rndIdx = Math.floor(Math.random() * playableCells.length);
                 const cell = playableCells.splice(rndIdx, 1)[0];
-                levelLayout[cell.r][cell.c] = 2; 
-                currentBoxes++;
+                levelLayout[cell.r][cell.c] = cfg.code;
+                currentCount++;
             }
-            GOAL_HEARTS = currentBoxes; 
+            GOAL_HEARTS = currentCount;
+            if (cfg.code === 2) currentBoxes = currentCount; // Синхронизируем счетчик для системы бустеров-подарков ниже
+        }
+
+        // ИСПРАВЛЕНО: изредка добавляем "бонусные" препятствия без отдельной цели — они просто
+        // разнообразят уровень и дают приятные сюрпризы (не были нигде задействованы раньше).
+        if (targetType === "carpet") {
+            // Рулон ковра (🧻) помогает быстрее раскрыть новые клетки ковра при взрыве крестом
+            for (let n = 0; n < 2 && playableCells.length > 0; n++) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                levelLayout[cell.r][cell.c] = 9; // carpetRoll
+            }
+        } else if (levelDifficulty === "hard" || levelDifficulty === "extreme" || levelDifficulty === "challenge") {
+            // На сложных уровнях изредка добавляем коробку-сюрприз и фиолетовую пену для разнообразия
+            if (Math.random() < 0.5 && playableCells.length > 0) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                levelLayout[cell.r][cell.c] = 11; // surpriseBox
+            }
+            if (Math.random() < 0.35 && playableCells.length > 0) {
+                const rndIdx = Math.floor(Math.random() * playableCells.length);
+                const cell = playableCells.splice(rndIdx, 1)[0];
+                levelLayout[cell.r][cell.c] = 13; // purpleFoam
+            }
         }
 
         // СИСТЕМА ЗАКРЕПЛЕНИЯ БЕСПЛАТНЫХ БУСТЕРОВ ЗА СЛОЖНЫМИ УРОВНЯМИ
@@ -2384,9 +2431,20 @@
 
         const goalVal = document.getElementById('preLevelGoalVal');
         if (goalVal) {
-            if (targetType === "box") goalVal.textContent = `${GOAL_HEARTS} 📦 Многослойных Ящиков`;
-            else if (targetType === "ice") goalVal.textContent = `${GOAL_HEARTS} 🧊 Клеток со Льдом`;
-            else goalVal.textContent = `${GOAL_HEARTS} ❤️ Вампирских Сердец`;
+            const GOAL_LABELS = {
+                box: "📦 Многослойных Ящиков",
+                ice: "🧊 Клеток со Льдом",
+                donut: "🍩 Пончиков в самый низ",
+                carpet: "🌿 Зеленых Ковров",
+                vase: "🏺 Ваз",
+                cookie: "🍪 Печенья",
+                nut: "🌰 Орехов",
+                ring: "💍 Футляров с Кольцами",
+                stone: "🗿 Каменных Фигурок",
+                plaid: "🛏️ Пледов",
+                ivy: "🥀 Побегов Плюща"
+            };
+            goalVal.textContent = `${GOAL_HEARTS} ${GOAL_LABELS[targetType] || '❤️ Вампирских Сердец'}`;
         }
 
         const rewards = getRewards(levelDifficulty, START_MOVES);
