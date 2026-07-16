@@ -728,9 +728,9 @@
         tile.row = row; tile.col = col;
         setTilePos(tile.el, row, col);
     }
-    // Функция послойного разрушения прочных препятствий (коробки, лед, цепи)
+// Функция послойного разрушения прочных препятствий (коробки, лед, цепи, вазы)
     function damageObstacle(tile, r, c, isExplosion) {
-        const damage = isExplosion ? 2 : 1; // Взрывы бонусов наносят двойной урон (пробивают 2 слоя)
+        const damage = isExplosion ? 2 : 1; // Взрывы бонусов наносят двойной урон (пробивают сразу 2 слоя)
         
         // 1. Повреждение многослойной коробки (📦)
         if (tile.type === 'box') {
@@ -777,6 +777,26 @@
                 chainGrid[r][c] = 0;
                 applySpecialClass(tile);
                 pulseToast("🔗 Цепь полностью снята!");
+            }
+        }
+
+        // 4. ИСПРАВЛЕНО: Повреждение многослойной глиняной Вазы (🏺) (2 уровня сложности)
+        if (tile.type === 'vase') {
+            tile.vaseLayers -= damage;
+            if (tile.vaseLayers > 0) {
+                // Если прочность еще осталась — показываем треснувшую вазу 🏺💥
+                tile.inner.textContent = iconFor('vase', tile.vaseLayers);
+                applySpecialClass(tile);
+                spawnMatchParticles(r, c, 'coin'); // Спавним золотые/глиняные осколки
+            } else {
+                // Если ваза полностью разбита — убираем её и освобождаем клетку поля
+                levelLayout[r][c] = 1;
+                tile.el.classList.add('clearing');
+                grid[r][c] = null; // Очищаем ячейку в матрице памяти мгновенно
+                if (targetType === "vase") vasesBroken++; // Увеличиваем счетчик целей, если ваза — цель уровня
+                setTimeout(() => {
+                    tile.el.remove();
+                }, CLEAR_MS);
             }
         }
     }
