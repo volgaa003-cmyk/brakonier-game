@@ -38,11 +38,11 @@ html, body {
 }
 
 body {
-  /* Пыльный задний фон с радиальным градиентом */
-  background-image:
-    radial-gradient(var(--ink) 1px, transparent 1px),
-    radial-gradient(circle at 50% 0%, var(--violet) 0%, var(--ink) 70%);
-  background-size: 10px 10px, cover;
+  /* Замените 'images/background.jpg' на путь к вашему красивому фону */
+  background-image: url('images/background.jpg'); 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -391,16 +391,23 @@ body {
   will-change: transform, opacity;
 }
 
-/* Фоновая решетка ячеек поля (Основа Homescapes) */
+/* Базовый дизайн ячеек поля */
 .grid-cell {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  border: 1.5px solid rgba(232, 225, 208, 0.08); 
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 0;
   pointer-events: none;
   transition: background 0.3s ease;
+}
+
+/* Эффект шахматной доски (светлые и темные плитки попеременно) */
+.grid-cell:nth-child(even) {
+  background: rgba(255, 255, 255, 0.08); /* Светлая плитка */
+}
+.grid-cell:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.15); /* Темная плитка */
 }
 
 /* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА */
