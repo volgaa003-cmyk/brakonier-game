@@ -299,7 +299,7 @@
         `;
         document.head.appendChild(style);
     })();
-    // ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
     // РАЗДЕЛ 5: КИНЕМАТОГРАФИЧЕСКИЕ АНИМАЦИИ И ЭФФЕКТЫ ВЗРЫВОВ
     // ----------------------------------------------------------------------
 
@@ -350,79 +350,119 @@
         }, 20);
     }
 
-    // Взрыв Бомбы (динамическая ударная волна 5х5 с встряхиванием экрана)
+    // Взрыв Бомбы (надувание + динамическая ударная волна 5х5 с встряхиванием экрана)
     function animateBombEffect(row, col) {
         if (!boardEl) return;
-        triggerBoardShake('shake-intense'); // Сильно трясем игровое поле
         const cellWidth = boardEl.offsetWidth / SIZE;
         const x = (col + 0.5) * cellWidth;
         const y = (row + 0.5) * cellWidth;
 
-        // Создаем элемент расширяющейся ударной волны
-        const shockwave = document.createElement('div');
-        shockwave.className = 'bomb-shockwave';
-        shockwave.style.left = x + 'px';
-        shockwave.style.top = y + 'px';
-        boardEl.appendChild(shockwave);
+        // ЭФФЕКТ НАДУВАНИЯ: Создаем временную бомбу для эффекта предвкушения взрыва
+        const tempBomb = document.createElement('div');
+        tempBomb.className = 'm3-projectile';
+        tempBomb.textContent = '💣';
+        tempBomb.style.left = x + 'px';
+        tempBomb.style.top = y + 'px';
+        tempBomb.style.transition = 'transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        boardEl.appendChild(tempBomb);
 
-        // Запуск расширения волны
+        // Бомба комично надувается
         setTimeout(() => {
-            shockwave.style.transform = 'translate(-50%, -50%) scale(4.5)';
-            shockwave.style.opacity = '0';
-        }, 20);
+            tempBomb.style.transform = 'translate(-50%, -50%) scale(1.4)';
+        }, 10);
 
-        setTimeout(() => shockwave.remove(), 350);
+        // Через 180мс происходит сам взрыв
+        setTimeout(() => {
+            tempBomb.remove(); // Убираем надувшуюся бомбу
+            
+            triggerBoardShake('shake-intense'); // Сильно трясем игровое поле
 
-        // Круговой спавн большого количества искр вокруг бомбы
-        for (let i = 0; i < 12; i++) {
-            spawnMatchParticles(row, col, 'coin');
-        }
+            // Создаем элемент расширяющейся ударной волны
+            const shockwave = document.createElement('div');
+            shockwave.className = 'bomb-shockwave';
+            shockwave.style.left = x + 'px';
+            shockwave.style.top = y + 'px';
+            boardEl.appendChild(shockwave);
+
+            setTimeout(() => {
+                shockwave.style.transform = 'translate(-50%, -50%) scale(4.5)';
+                shockwave.style.opacity = '0';
+            }, 20);
+
+            setTimeout(() => shockwave.remove(), 350);
+
+            // Круговой спавн большого количества искр вокруг бомбы
+            for (let i = 0; i < 12; i++) {
+                spawnMatchParticles(row, col, 'coin');
+            }
+        }, 180);
     }
 
-    // Запуск двух Ракет в разные стороны экрана (по горизонтали или вертикали)
+    // Запуск двух Ракет (сжатие на старте + вылет в разные стороны экрана)
     function animateRocketEffect(row, col, isRowDirection) {
         if (!boardEl) return;
-        triggerBoardShake('shake-mild');
         const cellWidth = boardEl.offsetWidth / SIZE;
         const startX = (col + 0.5) * cellWidth;
         const startY = (row + 0.5) * cellWidth;
 
-        // Вычисляем углы полета: 0 и 180 (влево-вправо) или -90 и 90 (вверх-вниз)
-        const angles = isRowDirection ? [0, 180] : [-90, 90];
-        
-        angles.forEach(angle => {
-            const proj = document.createElement('div');
-            proj.className = 'm3-projectile';
-            proj.textContent = '🚀';
-            proj.style.left = startX + 'px';
-            proj.style.top = startY + 'px';
-            proj.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-            boardEl.appendChild(proj);
+        // ЭФФЕКТ НАТЯЖЕНИЯ: Создаем временную сжимающуюся ракету перед стартом
+        const tempRocket = document.createElement('div');
+        tempRocket.className = 'm3-projectile';
+        tempRocket.textContent = '🚀';
+        tempRocket.style.left = startX + 'px';
+        tempRocket.style.top = startY + 'px';
+        tempRocket.style.transition = 'transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        tempRocket.style.transform = `translate(-50%, -50%) rotate(${isRowDirection ? 90 : 0}deg)`;
+        boardEl.appendChild(tempRocket);
 
-            const rad = angle * Math.PI / 180;
-            const dist = boardEl.offsetWidth; // Дистанция полета за пределы видимости
-            const endX = startX + Math.cos(rad) * dist;
-            const endY = startY + Math.sin(rad) * dist;
+        // Ракета сжимается по бокам, как бы натягивая тетиву перед выстрелом
+        setTimeout(() => {
+            tempRocket.style.transform = `translate(-50%, -50%) rotate(${isRowDirection ? 90 : 0}deg) scale(1.4, 0.7)`;
+        }, 10);
 
-            setTimeout(() => {
-                proj.style.left = endX + 'px';
-                proj.style.top = endY + 'px';
-                
-                // Шлейф патронов-искр вслед за ракетой
-                let trail = setInterval(() => {
-                    const trRow = Math.floor(parseFloat(proj.style.top) / cellWidth);
-                    const trCol = Math.floor(parseFloat(proj.style.left) / cellWidth);
-                    if (trRow >= 0 && trRow < SIZE && trCol >= 0 && trCol < SIZE) {
-                        spawnMatchParticles(trRow, trCol, 'bullet');
-                    }
-                }, 30);
+        // Через 180мс происходит запуск ракет в обе стороны
+        setTimeout(() => {
+            tempRocket.remove(); // Убираем стартовую ракету
+
+            triggerBoardShake('shake-mild');
+
+            // Вычисляем углы полета: 0 и 180 (влево-вправо) или -90 и 90 (вверх-вниз)
+            const angles = isRowDirection ? [0, 180] : [-90, 90];
+            
+            angles.forEach(angle => {
+                const proj = document.createElement('div');
+                proj.className = 'm3-projectile';
+                proj.textContent = '🚀';
+                proj.style.left = startX + 'px';
+                proj.style.top = startY + 'px';
+                proj.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+                boardEl.appendChild(proj);
+
+                const rad = angle * Math.PI / 180;
+                const dist = boardEl.offsetWidth; // Дистанция полета за пределы видимости
+                const endX = startX + Math.cos(rad) * dist;
+                const endY = startY + Math.sin(rad) * dist;
 
                 setTimeout(() => {
-                    clearInterval(trail);
-                    proj.remove();
-                }, 400);
-            }, 20);
-        });
+                    proj.style.left = endX + 'px';
+                    proj.style.top = endY + 'px';
+                    
+                    // Шлейф патронов-искр вслед за ракетой
+                    let trail = setInterval(() => {
+                        const trRow = Math.floor(parseFloat(proj.style.top) / cellWidth);
+                        const trCol = Math.floor(parseFloat(proj.style.left) / cellWidth);
+                        if (trRow >= 0 && trRow < SIZE && trCol >= 0 && trCol < SIZE) {
+                            spawnMatchParticles(trRow, trCol, 'bullet');
+                        }
+                    }, 30);
+
+                    setTimeout(() => {
+                        clearInterval(trail);
+                        proj.remove();
+                    }, 400);
+                }, 20);
+            });
+        }, 180);
     }
 
     // Радужные светящиеся щупальца, летящие от Радужного шара к фишкам выбранного цвета
@@ -467,7 +507,8 @@
             }, 300);
         });
     }
-// Вычисление математической зоны поражения (сетки ячеек) для одного конкретного бустера
+
+    // Вычисление математической зоны поражения (сетки ячеек) для одного конкретного бустера
     function footprintFor(tile){
         const cells = [];
         if(tile.type==='bomb'){
@@ -514,6 +555,7 @@
         }
         return footprint;
     }
+
     // Активация одиночного бустера простым тапом по нему
     function activateStandalone(tile) {
         if (busy) return;
@@ -562,9 +604,6 @@
                     cells.add(key(r, c));
                 });
             }
-                }
-                cells = new Set([key(tile.row, tile.col)]);
-            }
             
             if (tile.type !== 'plane') {
                 cells = computeActivationFootprint(tile);
@@ -577,7 +616,7 @@
     // СИСТЕМА СОЗДАНИЯ ПЛИТОК И DRAG-AND-DROP ОБРАБОТЧИКОВ (Homescapes Physics)
     // ==========================================================================
 
-   function iconFor(type, extraState){
+    function iconFor(type, extraState){
         if (type === 'box') {
             const layers = extraState || 1;
             if (layers === 3) return '📦🔒'; 
@@ -664,7 +703,7 @@
             return '🛏️';                     // Обычное одеялко
         }
     }
-
+}
     // Применение CSS-классов спецэффектов к бустерам, льду, цепям и вазам на основе их текущего здоровья
 function applySpecialClass(t){
         t.el.className = 'tile';
