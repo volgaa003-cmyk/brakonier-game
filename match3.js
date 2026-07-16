@@ -187,7 +187,7 @@
             setTimeout(() => spark.remove(), 420); // Удаляем частицу после завершения анимации
         }
     }
-    // ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
     // РАЗДЕЛ 4: ВНЕДРЕНИЕ СТИЛЕЙ КИНЕМАТОГРАФИЧЕСКИХ АНИМАЦИЙ
     // ----------------------------------------------------------------------
     (function injectStyles() {
@@ -217,10 +217,88 @@
             
             .booster-btn { position: relative; }
             .booster-btn .b-count { position: absolute; top: -5px; right: -5px; background: var(--blood); color: #fff; font-size: 10px; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-family: sans-serif; border: 1.5px solid var(--ink); font-weight: bold; }
+
+            /* Стили для Печенья 🍪 (3 уровня прочности) */
+            .tile.cookie.layer-3 .tile-inner { background: #5c4033; border-color: #3d251a; }
+            .tile.cookie.layer-2 .tile-inner { background: #8b5a2b; border-color: #5c3a21; }
+            .tile.cookie.layer-1 .tile-inner { background: #cd853f; }
+
+            /* Стили для Рулона ковра */
+            .tile.carpet-roll .tile-inner { background: linear-gradient(135deg, #e91e63, #c2185b); box-shadow: inset 0 0 8px #fff; }
+
+            /* Стили для малинового Желе под фишками с вишней ::after */
+            .grid-cell.jelly {
+              background: radial-gradient(circle, rgba(233, 30, 99, 0.7) 0%, rgba(136, 14, 79, 0.5) 100%) !important;
+              border: 2px solid #ff4081 !important;
+              box-shadow: inset 0 0 8px rgba(255,255,255,0.8);
+              position: relative;
+            }
+            /* Плавное таяние желе по слоям от 6 до 1 */
+            .grid-cell.jelly.jelly-6 { filter: brightness(0.6) saturate(1.5); }
+            .grid-cell.jelly.jelly-5 { filter: brightness(0.7) saturate(1.4); }
+            .grid-cell.jelly.jelly-4 { filter: brightness(0.8) saturate(1.3); }
+            .grid-cell.jelly.jelly-3 { filter: brightness(0.9) saturate(1.2); }
+            .grid-cell.jelly.jelly-2 { filter: brightness(1.0) saturate(1.1); }
+            .grid-cell.jelly.jelly-1 { filter: brightness(1.1) saturate(1.0); }
+            
+            /* Вишенка внутри желе */
+            .grid-cell.jelly::after {
+              content: '🍒';
+              position: absolute;
+              inset: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 20px;
+              animation: jellyWobble 2s infinite alternate ease-in-out;
+              z-index: 0;
+              pointer-events: none;
+            }
+            @keyframes jellyWobble {
+              from { transform: scale(0.9) rotate(-5deg); }
+              to { transform: scale(1.05) rotate(5deg); }
+            }
+
+            /* Стили для Коробки-сюрприза 🎁 */
+            .tile.surprise-box.layer-5 .tile-inner { background: linear-gradient(135deg, #ffd700, #ff8c00); border-color: #ff4500; }
+            .tile.surprise-box.layer-4 .tile-inner { background: linear-gradient(135deg, #ff8c00, #d2691e); border-color: #8b4513; }
+            .tile.surprise-box.layer-3 .tile-inner { background: linear-gradient(135deg, #d2691e, #a0522d); }
+            .tile.surprise-box.layer-2 .tile-inner { background: #cd853f; }
+            .tile.surprise-box.layer-1 .tile-inner { background: #f4a460; }
+
+            /* Стили для Орехов 🌰 */
+            .tile.nut.layer-3 .tile-inner { background: #3d251a; border-color: #1a0f0a; box-shadow: inset 0 0 10px #000; }
+            .tile.nut.layer-2 .tile-inner { background: #5c3a21; border-color: #3d251a; }
+            .tile.nut.layer-1 .tile-inner { background: #8b5a2b; }
+
+            /* Стили для Фиолетовой пены 🧼💜 */
+            .tile.purple-foam.layer-2 .tile-inner { background: radial-gradient(circle, #b39ddb 0%, #4a148c 100%); border-color: #7b1fa2; }
+            .tile.purple-foam.layer-1 .tile-inner { background: radial-gradient(circle, #e1bee7 0%, #8e24aa 100%); }
+
+            /* Стили для Футляров с Кольцами 💍 */
+            .tile.ring-case.layer-3 .tile-inner { background: #4a0000; border-color: #ffd700; }
+            .tile.ring-case.layer-2 .tile-inner { background: #800000; border-color: #c0c0c0; }
+            .tile.ring-case.layer-1 .tile-inner { background: #c0c0c0; }
+
+            /* Стили для Ленты с бантами 🎀 */
+            .tile.ribbon .tile-inner { background: linear-gradient(135deg, #ff4081, #f50057); border-color: #ff4081; box-shadow: 0 0 8px #ff4081; }
+
+            /* Стили для Каменных Фигурок 🗿 */
+            .tile.stone.layer-3 .tile-inner { background: #424242; border-color: #212121; }
+            .tile.stone.layer-2 .tile-inner { background: #616161; border-color: #424242; }
+            .tile.stone.layer-1 .tile-inner { background: #9e9e9e; }
+
+            /* Стили для Плюща 🥀 */
+            .tile.ivy .tile-inner { background: linear-gradient(135deg, #2e7d32, #1b5e20); border-color: #00c853; box-shadow: inset 0 0 8px #00c853; }
+
+            /* Стили для Пледа 🛏️ */
+            .tile.plaid.layer-4 .tile-inner { background: linear-gradient(135deg, #0d47a1, #1565c0); border-color: #0d47a1; }
+            .tile.plaid.layer-3 .tile-inner { background: linear-gradient(135deg, #1976d2, #1e88e5); }
+            .tile.plaid.layer-2 .tile-inner { background: linear-gradient(135deg, #2196f3, #42a5f5); }
+            .tile.plaid.layer-1 .tile-inner { background: #90caf9; }
         `;
         document.head.appendChild(style);
     })();
-
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 5: КИНЕМАТОГРАФИЧЕСКИЕ АНИМАЦИИ И ЭФФЕКТЫ ВЗРЫВОВ
     // ----------------------------------------------------------------------
@@ -819,7 +897,7 @@ function applySpecialClass(t){
         tile.row = row; tile.col = col;
         setTilePos(tile.el, row, col);
     }
-// Функция послойного разрушения прочных препятствий (коробки, лед, цепи, вазы)
+// Функция послойного разрушения прочных препятствий (коробки, лед, цепи, вазы, печенье, рулоны и т.д.)
     function damageObstacle(tile, r, c, isExplosion) {
         const damage = isExplosion ? 2 : 1; // Взрывы бонусов наносят двойной урон (пробивают сразу 2 слоя)
         
@@ -827,12 +905,10 @@ function applySpecialClass(t){
         if (tile.type === 'box') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
-                // Если слои еще остались — просто обновляем иконку на треснувшую/доски
                 tile.inner.textContent = iconFor('box', tile.boxLayers);
                 applySpecialClass(tile);
                 spawnMatchParticles(r, c, 'coin');
             } else {
-                // Если прочность упала до 0 — мгновенно очищаем сетку и запускаем анимацию удаления
                 levelLayout[r][c] = 1;
                 tile.el.classList.add('clearing');
                 grid[r][c] = null; // Синхронное очищение ячейки в матрице (Исключает баг дыр!)
@@ -870,25 +946,26 @@ function applySpecialClass(t){
                 pulseToast("🔗 Цепь полностью снята!");
             }
         }
-        // 4. ИСПРАВЛЕНО: Повреждение многослойной глиняной Вазы (🏺) (2 уровня сложности)
+
+        // 4. Повреждение многослойной глиняной Вазы (🏺) (2 уровня сложности)
         if (tile.type === 'vase') {
             tile.vaseLayers -= damage;
             if (tile.vaseLayers > 0) {
-                // Если прочность еще осталась — показываем треснувшую вазу 🏺💥
                 tile.inner.textContent = iconFor('vase', tile.vaseLayers);
                 applySpecialClass(tile);
-                spawnMatchParticles(r, c, 'coin'); // Спавним золотые/глиняные осколки
+                spawnMatchParticles(r, c, 'coin');
             } else {
-                // Если ваза полностью разбита — убираем её и освобождаем клетку поля
                 levelLayout[r][c] = 1;
                 tile.el.classList.add('clearing');
-                grid[r][c] = null; // Очищаем ячейку в матрице памяти мгновенно
-                if (targetType === "vase") vasesBroken++; // Увеличиваем счетчик целей, если ваза — цель уровня
+                grid[r][c] = null;
+                if (targetType === "vase") vasesBroken++;
                 setTimeout(() => {
                     tile.el.remove();
                 }, CLEAR_MS);
             }
-            // 5. ИСПРАВЛЕНО: Повреждение Рулона Ковра (🏺🧻) (6 уровней прочности)
+        } // Скобка закрывает блок Вазы
+
+        // 5. Повреждение Рулона Ковра (🧻) (6 уровней прочности)
         if (tile.type === 'carpetRoll') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -913,9 +990,9 @@ function applySpecialClass(t){
                     tile.el.remove();
                 }, CLEAR_MS);
             }
-        }
+        } // Скобка закрывает блок Рулона
 
-        // 6. ИСПРАВЛЕНО: Повреждение Печенья (🍪) (3 уровня прочности)
+        // 6. Повреждение Печенья (🍪) (3 уровня прочности)
         if (tile.type === 'cookie') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -931,7 +1008,9 @@ function applySpecialClass(t){
                     tile.el.remove();
                 }, CLEAR_MS);
             }
-            // 7. ИСПРАВЛЕНО: Орехи 🌰 (Иммунитет к обычным матчам, урон только от взрывов бонусов!)
+        } // Скобка закрывает блок Печенья
+
+        // 7. Орехи 🌰 (Иммунитет к обычным матчам, урон только от взрывов бонусов!)
         if (tile.type === 'nut') {
             if (!isExplosion) return; // Обычные матчи фишек рядом полностью игнорируются скорлупой!
             tile.boxLayers -= damage;
@@ -946,9 +1025,9 @@ function applySpecialClass(t){
                 if (targetType === "nut") nutsBroken++;
                 setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
-        }
+        } // Скобка закрывает блок Орехов
 
-        // 8. ИСПРАВЛЕНО: Коробка-сюрприз 🎁 (При разрушении выплевывает случайный бустер)
+        // 8. Коробка-сюрприз 🎁 (При разрушении выплевывает случайный бустер)
         if (tile.type === 'surpriseBox') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -967,9 +1046,9 @@ function applySpecialClass(t){
                 pulseToast("🎁 Коробка-сюрприз открыта! Получен бустер!");
                 setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
-        }
+        } // Скобка закрывает блок Сюрприза
 
-        // 9. ИСПРАВЛЕНО: Пышная фиолетовая пена 🧼💜 (Требует 2 хита)
+        // 9. Пышная фиолетовая пена 🧼💜 (Требует 2 хита)
         if (tile.type === 'purpleFoam') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -982,9 +1061,9 @@ function applySpecialClass(t){
                 grid[r][c] = null;
                 setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
-        }
+        } // Скобка закрывает блок Фиолетовой пены
 
-        // 10. ИСПРАВЛЕНО: Футляр с Кольцом 💍 (При открытии собирает кольцо)
+        // 10. Футляр с Кольцом 💍 (При открытии собирает кольцо)
         if (tile.type === 'ringCase') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -999,9 +1078,9 @@ function applySpecialClass(t){
                 pulseToast("💍 Сверкающее кольцо найдено в футляре!");
                 setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
-        }
+        } // Скобка закрывает блок Кольца
 
-        // 11. ИСПРАВЛЕНО: Лента с бантами 🎀 (При развязывании одного банта сносится вся соединенная лента на поле!)
+        // 11. Лента с бантами 🎀 (При развязывании одного банта сносится вся соединенная лента на поле!)
         if (tile.type === 'ribbon') {
             levelLayout[r][c] = 1;
             tile.el.classList.add('clearing');
@@ -1021,9 +1100,9 @@ function applySpecialClass(t){
             }
             pulseToast("🎀 Лента развязана! Все банты исчезли!");
             setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
-        }
+        } // Скобка закрывает блок Ленты
 
-        // 12. ИСПРАВЛЕНО: Каменные Фигурки 🗿 (Иммунитет к матчам, активация только от 3-х взрывов бустеров!)
+        // 12. Каменные Фигурки 🗿 (Иммунитет к матчам, активация только от 3-х взрывов бустеров!)
         if (tile.type === 'stone') {
             if (!isExplosion) return; // Обычные матчи фишек фигуре безразличны!
             tile.boxLayers -= damage;
@@ -1038,18 +1117,18 @@ function applySpecialClass(t){
                 if (targetType === "stone") stoneFiguresCreated++;
                 setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
-        }
+        } // Скобка закрывает блок Фигурок
 
-        // 13. ИСПРАВЛЕНО: Плющ 🥀 (Срезается комбинациями и бустерами)
+        // 13. Плющ 🥀 (Срезается комбинациями и бустерами)
         if (tile.type === 'ivy') {
             levelLayout[r][c] = 1;
             tile.el.classList.add('clearing');
             grid[r][c] = null;
             if (targetType === "ivy") iviesCleared++;
             setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
-        }
+        } // Скобка закрывает блок Плюща
 
-        // 14. ИСПРАВЛЕНО: Плед 🛏️ (4 уровня плотности, лоскутное одеяло)
+        // 14. Плед 🛏️ (4 уровня плотности, лоскутное одеяло)
         if (tile.type === 'plaid') {
             tile.boxLayers -= damage;
             if (tile.boxLayers > 0) {
@@ -1063,8 +1142,8 @@ function applySpecialClass(t){
                 if (targetType === "plaid") plaidsCleared++;
                 setTimeout(() => { tile.el.remove(); }, CLEAR_MS);
             }
-        }
-    }
+        } // Скобка закрывает блок Пледа
+    } // Скобка закрывает саму функцию damageObstacle!
 // Интеллектуальный алгоритм поиска наилучшей цели для Бумажного самолетика (Homescapes Goal AI)
     function findBestTargetForPlane(excludeRow, excludeCol) {
         let targetRow = excludeRow, targetCol = excludeCol;
