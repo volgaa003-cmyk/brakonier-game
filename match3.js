@@ -984,14 +984,22 @@ function applySpecialClass(t){
         grid = [];
         for(let r=0;r<SIZE;r++) grid.push(new Array(SIZE).fill(null));
 
-        // 1. Сначала строим визуальные ячейки-подложки на поле (сетка 8х8)
+// 1. Сначала строим визуальные ячейки-подложки на поле (сетка 8х8 ковров и желе)
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 if (levelLayout[r][c] !== 0) {
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.dataset.pos = `${r},${c}`; 
+                    
+                    // Рисуем ковер
                     if (carpetGrid[r] && carpetGrid[r][c]) cell.classList.add('carpet');
+                    
+                    // ИСПРАВЛЕНО: Рисуем малиновое желе с вишенкой
+                    if (jellyGrid[r] && jellyGrid[r][c] > 0) {
+                        cell.classList.add('jelly', `jelly-${jellyGrid[r][c]}`);
+                    }
+                    
                     boardEl.appendChild(cell);
                 }
             }
@@ -1016,7 +1024,11 @@ function applySpecialClass(t){
                 } else if (cellType === 7) {
                     grid[r][c] = createTile(r, c, 'rainbow', r);
                 } else if (cellType === 8) {
-                    grid[r][c] = createTile(r, c, 'vase', r); // ИСПРАВЛЕНО: Спавним Вазу на поле, если в карте уровня стоит цифра 8
+                    grid[r][c] = createTile(r, c, 'vase', r); 
+                } else if (cellType === 9) {
+                    grid[r][c] = createTile(r, c, 'carpetRoll', r); // ИСПРАВЛЕНО: Спавним рулон ковра (код 9)
+                } else if (cellType === 10) {
+                    grid[r][c] = createTile(r, c, 'cookie', r); // ИСПРАВЛЕНО: Спавним печенье (код 10)
                 } else {
                     let t, guard=0;
                     do{ t=randType(); guard++; } 
