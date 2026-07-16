@@ -660,21 +660,25 @@
         dragActiveTile = null;
     }
 
-    /// Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
+    // Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
     function createTile(row, col, type, spawnRow){
         const id = 'tile'+(tileIdCounter++);
         const el = document.createElement('div');
         el.className = 'tile';
         el.dataset.id = id;
         
-        // Генерация слоев прочности для усложнения уровней (ящики от 1 до 3 слоев, лед/цепи до 2)
+        // Генерация слоев прочности для ящиков, льда, цепей и новых ваз (2 слоя)
         const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 0;
+        const initVaseLayers = (type === 'vase') ? 2 : 0; // ИСПРАВЛЕНО: Вазы всегда стартуют с 2 слоями прочности
         const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
         const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
 
         const inner = document.createElement('div');
         inner.className = 'tile-inner';
-        inner.textContent = iconFor(type, initBoxLayers);
+        
+        // Передаем правильный слой в функцию iconFor в зависимости от типа объекта
+        const layersState = type === 'box' ? initBoxLayers : (type === 'vase' ? initVaseLayers : 1);
+        inner.textContent = iconFor(type, layersState);
         el.appendChild(inner);
 
         // Объект фишки, хранящий все параметры прочности и физические координаты матрицы
@@ -689,7 +693,8 @@
             frozenLayers: initFrozenLayers,
             chained: initChainedLayers > 0,
             chainedLayers: initChainedLayers,
-            boxLayers: initBoxLayers
+            boxLayers: initBoxLayers,
+            vaseLayers: initVaseLayers // ИСПРАВЛЕНО: Добавляем прочность вазы в объект плитки
         };
 
         // Навешиваем слушатели событий мыши (ПК) и тач-интерфейса (смартфоны)
@@ -710,7 +715,6 @@
         if(spawnRow !== undefined && spawnRow !== row){
             setTimeout(() => {
                 el.style.transition = '';
-                // ИСПРАВЛЕНО: Используем динамические tile.row и tile.col вместо статических row и col!
                 setTilePos(el, tile.row, tile.col); 
             }, 16); 
         }
