@@ -989,6 +989,8 @@
                     grid[r][c] = createTile(r, c, 'plane', r);
                 } else if (cellType === 7) {
                     grid[r][c] = createTile(r, c, 'rainbow', r);
+                } else if (cellType === 8) {
+                    grid[r][c] = createTile(r, c, 'vase', r); // ИСПРАВЛЕНО: Спавним Вазу на поле, если в карте уровня стоит цифра 8
                 } else {
                     let t, guard=0;
                     do{ t=randType(); guard++; } 
