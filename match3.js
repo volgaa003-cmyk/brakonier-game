@@ -493,19 +493,30 @@
     // СИСТЕМА СОЗДАНИЯ ПЛИТОК И DRAG-AND-DROP ОБРАБОТЧИКОВ (Homescapes Physics)
     // ==========================================================================
 
-    // Сопоставление типов фишек и препятствий с их графическими иконками с учётом слоёв прочности
-    function iconFor(type, extraState){
+   function iconFor(type, extraState){
         if (type === 'box') {
             const layers = extraState || 1;
-            if (layers === 3) return '📦🔒'; // Тяжелый ящик
-            if (layers === 2) return '📦💥'; // Треснувший ящик
-            return '🪵';                      // Доски (1 удар до уничтожения)
+            if (layers === 3) return '📦🔒'; 
+            if (layers === 2) return '📦💥'; 
+            return '🪵';                      
         }
-        // ИСПРАВЛЕНО: Добавлены иконки для Вазы (2 слоя прочности)
         if (type === 'vase') {
             const layers = extraState || 1;
-            if (layers === 2) return '🏺';   // Целая глиняная ваза
-            return '🏺💥';                    // Треснувшая ваза (1 удар до уничтожения)
+            if (layers === 2) return '🏺';   
+            return '🏺💥';                    
+        }
+        // ИСПРАВЛЕНО: Иконка для рулона ковра (имеет 6 слоев прочности)
+        if (type === 'carpetRoll') {
+            const layers = extraState || 1;
+            if (layers >= 5) return '🎀🧻'; // Рулон завязан лентой
+            return '🧻'; // Рулон развязан
+        }
+        // ИСПРАВЛЕНО: Иконка для печенья (3 слоя)
+        if (type === 'cookie') {
+            const layers = extraState || 1;
+            if (layers === 3) return '🍪🍫'; // Шоколадное печенье
+            if (layers === 2) return '🍪✨'; // Крошка
+            return '🍪'; // Простое печенье
         }
         switch(type){
             case 'bomb': return '💣';
@@ -519,7 +530,7 @@
     }
 
     // Применение CSS-классов спецэффектов к бустерам, льду, цепям и вазам на основе их текущего здоровья
-    function applySpecialClass(t){
+function applySpecialClass(t){
         t.el.className = 'tile';
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
@@ -529,10 +540,20 @@
         else if(t.type==='box') {
             t.el.classList.add('box', `layer-${t.boxLayers}`);
         }
-        // ИСПРАВЛЕНО: Навешиваем класс вазы и текущий слой прочности
         else if(t.type==='vase') {
             t.el.classList.add('vase', `layer-${t.vaseLayers}`);
         }
+        // ИСПРАВЛЕНО: Классы для рулона ковра и печенья
+        else if(t.type==='carpetRoll') {
+            t.el.classList.add('carpet-roll', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='cookie') {
+            t.el.classList.add('cookie', `layer-${t.boxLayers}`);
+        }
+        
+        if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
+        if(t.chained) t.el.classList.add('chained', `chain-${t.chainedLayers}`);
+    }
         
         // Навешивание графики льда и цепей с учетом оставшихся HP-слоев
         if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
