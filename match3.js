@@ -1951,10 +1951,19 @@
         }, CLEAR_MS);
     }
     
-    // Сборка карт взрыва по типам бустеров
+// Сборка карт взрыва по типам бустеров
     function applyResolutionFull(result){
         const specialSpawns = [];
         const scoreSet = new Set();
+        
+        // ДОБАВЛЕНО: Обработка создания радужных шаров (для комбинаций из 5 и более фишек)
+        if (result.rainbows) {
+            result.rainbows.forEach(rb => { 
+                rb.cells.forEach(c => scoreSet.add(key(c[0], c[1]))); 
+                specialSpawns.push({ at: rb.at, type: 'rainbow' }); 
+            });
+        }
+
         result.bombs.forEach(b=>{ b.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:b.at, type:'bomb'}); });
         result.rockets.forEach(rk=>{ rk.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:rk.at, type:rk.type}); });
         result.squares.forEach(sq=>{ sq.cells.forEach(c=>scoreSet.add(key(c[0],c[1]))); specialSpawns.push({at:sq.at, type:'plane'}); });
