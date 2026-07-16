@@ -2312,13 +2312,29 @@ if (tile.type === 'rainbow') {
                 moves--; updateMatch3HUD();
                 let cells;
                 if(special.type === 'rainbow'){
-                    cells = cellsOfColor(partner.type);
-                    cells.add(key(special.row, special.col));
-                } else {
-                    cells = computeActivationFootprint(special);
+                const targets = [];
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (grid[r][c] && grid[r][c].type === partner.type) {
+                            targets.push({ r, c });
+                        }
+                    }
                 }
+                // Запуск анимации щупалец к фишкам выбранного цвета
+                animateRainbowTentacles(special.row, special.col, targets, partner.type);
+                
+                cells = cellsOfColor(partner.type);
+                cells.add(key(special.row, special.col));
+                
+                // Задержка очищения
+                setTimeout(() => {
+                    clearAndContinue(cells, [], null, null, false, false, true);
+                }, 300);
+            } else {
+                cells = computeActivationFootprint(special);
                 clearAndContinue(cells, [], null, null, false, false, true);
-                return;
+            }
+            return;
             }
             const result = analyzeMatches();
             const hasMatch = result.bombs.length || result.rockets.length || result.rainbows.length || result.squares.length || result.normalCells.size;
