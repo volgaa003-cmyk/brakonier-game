@@ -1336,10 +1336,11 @@
 
         return { bombs, rockets, rainbows, squares, normalCells };
     }
-    // ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
     // РАЗДЕЛ 9: ОЧИСТКА КЛЕТОК И СИНХРОННЫЙ СПАВН СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
-// Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
+
+    // Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -1367,8 +1368,10 @@
                         hearts++;
                     }
                 }
-            } // <-- ИСПРАВЛЕНО: Добавлена эта закрывающая скобка для блока "if (t)"
+            } // Закрытие блока проверки существования фишки "if (t)"
         });
+
+        // Запуск взлома соседних ящиков
         checkAndBreakBoxes(finalClearSet, isExplosion);
 
         finalClearSet.forEach(k=>{
@@ -1380,14 +1383,14 @@
         updateMatch3HUD();
         
         setTimeout(()=>{
-            // Очистка уничтоженных фишек во встроенной памяти (ИСПРАВЛЕНО: null заменен на c)
+            // Очистка уничтоженных фишек во встроенной памяти
             finalClearSet.forEach(k=>{
                 const [r,c] = k.split(',').map(Number);
                 const t = grid[r][c]; 
                 if(t){ t.el.remove(); grid[r][c]=null; }
             });
 
-            // Синхронный спавн бустеров на месте совпадений
+            // Синхронный спавн новых бустеров на месте совпадений
             specialSpawns.forEach(s => {
                 const [r, c] = s.at;
                 if (!grid[r]) return;
@@ -1408,6 +1411,7 @@
         }, CLEAR_MS);
     }
     
+    // Сборка карт взрыва по типам бустеров
     function applyResolutionFull(result){
         const specialSpawns = [];
         const scoreSet = new Set();
@@ -1423,6 +1427,7 @@
         clearAndContinue(clearSet, specialSpawns, scoreSet);
     }
 
+    // Совместная активация (свайп) двух соседних бустеров
     function comboFootprint(a, b){
         let cells = new Set();
         const kinds = [a.type, b.type];
@@ -1450,7 +1455,8 @@
         footprintFor(b).forEach(([r,c])=>cells.add(key(r,c)));
         return cells;
     }
-// Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бесплатных бустеров
+
+    // Функция автоматической адаптации препятствий под цели уровня и выдачи закрепленных бесплатных бустеров
     function synchronizeObstaclesAndGoals() {
         let playableCells = [];
         let currentBoxes = 0;
@@ -1506,7 +1512,8 @@
             }
         });
     }
-// Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
+
+    // Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
     function applySelectedPreBoosters() {
         let playableCells = [];
         
@@ -1518,6 +1525,7 @@
                 }
             }
         }
+
         // Плюсуем выбранный Радужный шар (код 7)
         if (selectedPreBoosters.rainbow && playableCells.length > 0) {
             const rndIdx = Math.floor(Math.random() * playableCells.length);
