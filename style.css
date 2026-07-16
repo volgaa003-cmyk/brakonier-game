@@ -1122,3 +1122,24 @@ to { transform: scale(1.05) rotate(5deg); }
   transition: transform 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.35s ease-out;
   will-change: transform, opacity;
 }
+/* Замена эмодзи на картинки в кнопках бустеров */
+.booster-btn {
+  background-size: 24px 24px;
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  padding-left: 44px; /* Освобождаем место под картинку слева */
+}
+
+#btnHammer { background-image: url('images/hammer.png'); }
+#btnGlove { background-image: url('images/glove.png'); }
+#btnBroom { background-image: url('images/broom.png'); }
+#btnWeight { background-image: url('images/weight.png'); }
+#btnFan { background-image: url('images/fan.png'); }
+
+/* Делаем кнопки красивыми, скругляем углы */
+.booster-btn {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  font-family: 'Rubik', sans-serif;
+  font-weight: bold;
+}
