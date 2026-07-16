@@ -564,7 +564,7 @@
         updateMatch3HUD();
 
         let cells;
-        if (tile.type === 'rainbow') {
+if (tile.type === 'rainbow') {
             const colors = presentColors();
             const color = colors.length ? colors[Math.floor(Math.random() * colors.length)] : null;
             
@@ -584,6 +584,13 @@
             }
             cells.add(key(tile.row, tile.col));
             pulseToast('🌈 Радуга уничтожает цвет!');
+            
+            // Задержка удаления фишек, чтобы анимация лазеров успела проиграться
+            setTimeout(() => {
+                clearAndContinue(cells, [], null, null, false, false, true);
+            }, 300);
+            return; // Прерываем выполнение, чтобы не вызвать моментальный clearAndContinue ниже
+        }
         } else {
             if (tile.type === 'bomb') animateBombEffect(tile.row, tile.col);
             else if (tile.type === 'rocketRow') animateRocketEffect(tile.row, tile.col, true);
