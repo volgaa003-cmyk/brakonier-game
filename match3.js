@@ -2300,11 +2300,68 @@ if (tile.type === 'rainbow') {
         
         setTimeout(()=>{
             const aSpecial = isSpecial(a.type), bSpecial = isSpecial(b.type);
-            if(aSpecial && bSpecial){
-                moves--; updateMatch3HUD();
-                const cells = comboFootprint(a,b);
-                clearAndContinue(cells, []);
+if(aSpecial && bSpecial){
+            moves--; updateMatch3HUD();
+            const kinds = [a.type, b.type];
+            
+            // Если одно из спец-средств — Радужный шар
+            if (kinds.includes('rainbow')) {
+                const rainbowTile = a.type === 'rainbow' ? a : b;
+                const boosterTile = a.type === 'rainbow' ? b : a;
+                const boosterType = boosterTile.type;
+
+                // Выбираем случайный цвет для трансформации
+                const colors = presentColors();
+                const targetColor = colors.length ? colors[Math.floor(Math.random() * colors.length)] : randType();
+
+                const transformCells = [];
+                for (let r = 0; r < SIZE; r++) {
+                    for (let c = 0; c < SIZE; c++) {
+                        if (grid[r][c] && grid[r][c].type === targetColor) {
+                            transformCells.push({r, c});
+                        }
+                    }
+                }
+
+                pulseToast(`🌈 РЕАКЦИЯ: Массовый запуск ${boosterType === 'bomb' ? '💣' : boosterType.includes('rocket') ? '🚀' : '✈️'}!`);
+                animateRainbowTentacles(rainbowTile.row, rainbowTile.col, transformCells, targetColor);
+
+                setTimeout(() => {
+                    // Удаляем сам радужный шар и исходный бустер
+                    const clearSet = new Set([key(rainbowTile.row, rainbowTile.col), key(boosterTile.row, boosterTile.col)]);
+                    
+                    // Создаем новые бустеры на месте фишек выбранного цвета
+                    const specialSpawns = transformCells.map(cell => ({
+                        at: [cell.r, cell.c],
+                        type: boosterType
+                    }));
+
+                    clearAndContinue(clearSet, specialSpawns, null, () => {
+                        // Активируем все созданные бустеры во второй фазе
+                        let cellsToExplode = new Set();
+                        for (let r = 0; r < SIZE; r++) {
+                            for (let c = 0; c < SIZE; c++) {
+                                const t = grid[r][c];
+                                if (t && isSpecial(t.type)) {
+                                    computeActivationFootprint(t).forEach(k => cellsToExplode.add(k));
+                                }
+                            }
+                        }
+                        if (cellsToExplode.size > 0) {
+                            setTimeout(() => {
+                                clearAndContinue(cellsToExplode, [], null, null, false, false, true);
+                            }, 150);
+                        }
+                    }, false, false, true);
+                }, 300);
                 return;
+            }
+
+            const cells = comboFootprint(a,b);
+            if (cells.size > 0) {
+                clearAndContinue(cells, []);
+            }
+            return;
             }
             if(aSpecial || bSpecial){
                 const special = aSpecial ? a : b;
