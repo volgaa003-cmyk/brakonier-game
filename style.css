@@ -983,7 +983,7 @@ to { transform: scale(1.05) rotate(5deg); }
 }
 
 /* ==========================================================================
-   13. СВЕТЯЩИЕСЯ НЕОНОВЫЕ ЩУПАЛЬЦА РАДУЖНОГО ШАРА 🌈 (НОВЫЙ БЛОК)
+   13. СВЕТЯЩИЕСЯ НЕОНОВЫЕ ЩУПАЛЬЦА РАДУЖНОГО ШАРА 🌈
    ========================================================================== */
 .rainbow-laser {
   position: absolute;
@@ -992,7 +992,7 @@ to { transform: scale(1.05) rotate(5deg); }
   transform-origin: left center;
   z-index: 99;
   pointer-events: none;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.85);
   /* Плавный вылет луча и растворение */
   transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out;
   will-change: width, opacity;
@@ -1111,17 +1111,4 @@ to { transform: scale(1.05) rotate(5deg); }
   opacity: 1;
   transition: transform 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.35s ease-out;
   will-change: transform, opacity;
-}
-
-/* Радужные лазерные щупальца */
-.rainbow-laser {
-  position: absolute;
-  height: 6px;
-  border-radius: 4px;
-  transform-origin: left center;
-  z-index: 99;
-  pointer-events: none;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
-  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out;
-  will-change: width, opacity;
 }
