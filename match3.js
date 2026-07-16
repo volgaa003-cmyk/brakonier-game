@@ -1450,19 +1450,20 @@ function applySpecialClass(t){
             }
         }
 
-        // Логика мыла и плюща: захватывают соседние плитки, превращая их в пену/плющ
+// ИСПРАВЛЕНО: Логика авто-разрастания угроз (Мыло, Фиолетовое мыло, Плющ)
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 const t = grid[r][c];
-                if (t && (t.type === 'foam' || t.type === 'ivy') && !spawnedFoam) {
+                if (t && (t.type === 'foam' || t.type === 'purpleFoam' || t.type === 'ivy') && !spawnedFoam) {
                     const neighbors = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
                     for (const [nr, nc] of neighbors) {
                         if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && levelLayout[nr][nc] === 1 && grid[nr][nc] !== null && !isSpecial(grid[nr][nc].type) && grid[nr][nc].type !== 'box' && grid[nr][nc].type !== 'donut') {
                             const victim = grid[nr][nc];
                             victim.el.remove();
+                            // Рождаем угрозу соответствующего типа на захваченной ячейке
                             grid[nr][nc] = createTile(nr, nc, t.type, nr);
                             spawnedFoam = true;
-                            pulseToast(t.type === 'foam' ? "🧼 Мыло затекает!" : "🌿 Плющ наступает!");
+                            pulseToast(t.type === 'ivy' ? "🥀 Плющ расползается!" : "🧼 Мыльная пена растекается!");
                             break;
                         }
                     }
