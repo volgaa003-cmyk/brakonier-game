@@ -1855,7 +1855,7 @@
     // РАЗДЕЛ 9: ОЧИСТКА КЛЕТОК И СИНХРОННЫЙ СПАВН СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
 
-    // Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
+// Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
@@ -1878,14 +1878,36 @@
                     damageObstacle(t, r, c, isExplosion);
                 } else {
                     finalClearSet.add(k);
-                    // Бронированная проверка совпадения типа фишки с целью уровня (срезает пробелы и регистр)
+                    // Бронированная проверка совпадения типа фишки с целью уровня
                     const isTargetMatch = String(targetType).trim().toLowerCase() === String(t.type).trim().toLowerCase();
                     if (isTargetMatch) {
                         hearts++;
                     }
                 }
-            } // Закрытие блока проверки существования фишки "if (t)"
+            }
         });
+
+        // ==========================================================
+        // ДОБАВЛЕНО: ЛОГИКА РАСТЕКАНИЯ КОВРА ПОД СОВПАВШИМИ ФИШКАМИ
+        // ==========================================================
+        let hasCarpetInMatch = false;
+
+        // Проверяем, лежала ли хоть одна из уничтожаемых фишек на ковре
+        finalClearSet.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            if (carpetGrid[r] && carpetGrid[r][c]) {
+                hasCarpetInMatch = true;
+            }
+        });
+
+        // Если в комбинации или взрыве участвовал ковер — застилаем им все уничтоженные клетки!
+        if (hasCarpetInMatch) {
+            finalClearSet.forEach(k => {
+                const [r, c] = k.split(',').map(Number);
+                spreadCarpetAt(r, c);
+            });
+        }
+        // ==========================================================
 
         // Запуск взлома соседних ящиков
         checkAndBreakBoxes(finalClearSet, isExplosion);
@@ -1905,22 +1927,19 @@
                 const t = grid[r][c]; 
                 if(t){ t.el.remove(); grid[r][c]=null; }
                 
-                // ИСПРАВЛЕНО: Если фишка лежала поверх желе — топим желе на 1 слой!
+                // Если фишка лежала поверх желе — топим желе на 1 слой
                 if (jellyGrid[r] && jellyGrid[r][c] > 0) {
-                    jellyGrid[r][c]--; // Уменьшаем плотность желе
+                    jellyGrid[r][c]--;
                     
                     const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
                     if (cellEl) {
-                        cellEl.className = 'grid-cell'; // Сбрасываем старые классы
+                        cellEl.className = 'grid-cell';
                         
-                        // Если ковер там был, сохраняем его
                         if (carpetGrid[r] && carpetGrid[r][c]) cellEl.classList.add('carpet');
                         
                         if (jellyGrid[r][c] > 0) {
-                            // Если желе еще осталось, рисуем его с новым слоем плотности
                             cellEl.classList.add('jelly', `jelly-${jellyGrid[r][c]}`);
                         } else {
-                            // Если желе полностью растаяло — освобождаем Вишню!
                             cherriesCollected++;
                             pulseToast("🍒 Вишня освобождена из желе!");
                             spawnMatchParticles(r, c, 'heart');
@@ -1950,7 +1969,6 @@
             }, FALL_MS + 20);
         }, CLEAR_MS);
     }
-    
 // Сборка карт взрыва по типам бустеров
     function applyResolutionFull(result){
         const specialSpawns = [];
