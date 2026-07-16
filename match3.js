@@ -1192,7 +1192,7 @@
         }
     }
 
-    // Обновление показателей интерфейса HUD во время уровня три в ряд
+// Обновление показателей интерфейса HUD во время уровня три в ряд
     function updateMatch3HUD() {
         if (m3MovesText) m3MovesText.textContent = moves;
         if (!m3GoalText) return;
@@ -1209,22 +1209,28 @@
             m3GoalText.textContent = `${boxesBroken}/${GOAL_HEARTS} 📦`;
         } else if (targetType === "ice") {
             m3GoalText.textContent = `${iceMelted}/${GOAL_HEARTS} 🧊`;
-} else if (targetType === "donut") {
+        } else if (targetType === "donut") {
             m3GoalText.textContent = `${donutsCollected}/${GOAL_HEARTS} 🍩`;
         } else if (targetType === "vase") {
-            m3GoalText.textContent = `${vasesBroken}/${GOAL_HEARTS} 🏺`; // ИСПРАВЛЕНО: Выводим счетчик ваз на панель HUD
+            m3GoalText.textContent = `${vasesBroken}/${GOAL_HEARTS} 🏺`;
+        } else if (targetType === "cookie") {
+            m3GoalText.textContent = `${cookiesBroken}/${GOAL_HEARTS} 🍪`; // ИСПРАВЛЕНО: Вывод печенья в HUD
+        } else if (targetType === "cherry") {
+            m3GoalText.textContent = `${cherriesCollected}/${GOAL_HEARTS} 🍒`; // ИСПРАВЛЕНО: Вывод вишни в HUD
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
     }
-
     // Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
 // ИСПРАВЛЕНО: Добавлено условие победы при уничтожении всех целевых Ваз🏺
+// ИСПРАВЛЕНО: Добавлены условия победы для всех новых типов целей
         let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
                         (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
                         (targetType === "donut" && donutsCollected >= GOAL_HEARTS) ||
                         (targetType === "vase" && vasesBroken >= GOAL_HEARTS) ||
+                        (targetType === "cookie" && cookiesBroken >= GOAL_HEARTS) ||
+                        (targetType === "cherry" && cherriesCollected >= GOAL_HEARTS) ||
                         (targetType === "heart" && hearts >= GOAL_HEARTS);
 
         if(isVictory){
