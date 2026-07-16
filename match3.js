@@ -1506,7 +1506,7 @@
             }
         });
     }
-    // Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
+// Функция спавна дополнительных пре-бустеров, выбранных игроком на старте (плюсуются к базовым)
     function applySelectedPreBoosters() {
         let playableCells = [];
         
@@ -1518,7 +1518,24 @@
                 }
             }
         }
-    }
+        // Плюсуем выбранный Радужный шар (код 7)
+        if (selectedPreBoosters.rainbow && playableCells.length > 0) {
+            const rndIdx = Math.floor(Math.random() * playableCells.length);
+            const cell = playableCells.splice(rndIdx, 1)[0];
+            levelLayout[cell.r][cell.c] = 7; 
+        }
+
+        // Плюсуем выбранное Комбо (Бомба + Ракета)
+        if (selectedPreBoosters.combo && playableCells.length > 1) {
+            const cell1 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
+            const cell2 = playableCells.splice(Math.floor(Math.random() * playableCells.length), 1)[0];
+            levelLayout[cell1.r][cell1.c] = 3; 
+            levelLayout[cell2.r][cell2.c] = Math.random() < 0.5 ? 4 : 5; 
+        }
+        
+        // Запоминаем статус активации Двойных самолетиков
+        doublePlanesActive = selectedPreBoosters.doublePlanes;
+    } // Конец функции applySelectedPreBoosters
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 10: ЛОГИКА 5 АКТИВНЫХ ИНСТРУМЕНТОВ БРАКОНЬЕРА
     // ----------------------------------------------------------------------
