@@ -1677,6 +1677,7 @@
         let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
                         (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
                         (targetType === "donut" && donutsCollected >= GOAL_HEARTS) ||
+                        (targetType === "carpet" && getCarpetCount() >= GOAL_HEARTS) || // Добавлено условие для ковра
                         (targetType === "vase" && vasesBroken >= GOAL_HEARTS) ||
                         (targetType === "cookie" && cookiesBroken >= GOAL_HEARTS) ||
                         (targetType === "cherry" && cherriesCollected >= GOAL_HEARTS) ||
