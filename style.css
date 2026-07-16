@@ -412,9 +412,12 @@ body {
 
 /* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА */
 .grid-cell.carpet {
-  background: radial-gradient(circle, #52a334 0%, #2f611d 100%);
+  background-image: url('images/carpet.png'); /* Ссылка на вашу картинку ковра */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1.5px solid rgba(82, 163, 52, 0.4);
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
   animation: carpetSpread 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
