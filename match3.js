@@ -641,16 +641,7 @@
             if (layers === 2) return '🍪✨'; // Крошка
             return '🍪'; // Простое печенье
         }
-        switch(type){
-            case 'bomb': return '💣';
-            case 'rocketRow': return '🚀';
-            case 'rocketCol': return '🚀';
-            case 'plane': return '✈️';
-            case 'rainbow': return '🌈';
-            case 'donut': return '🍩';
-            default: return (TYPES.find(t=>t.id===type) || {icon: '❓'}).icon;
-        }
-       // ИСПРАВЛЕНО: Иконки для Коробки-сюрприза (5 уровней прочности)
+        // ИСПРАВЛЕНО: Иконки для Коробки-сюрприза (5 уровней прочности)
         if (type === 'surpriseBox') {
             const layers = extraState || 1;
             if (layers === 5) return '🎁⭐'; // Золотая лента
@@ -702,8 +693,16 @@
             if (layers === 2) return '🛏️✨'; // Нитки
             return '🛏️';                     // Обычное одеялко
         }
+        switch(type){
+            case 'bomb': return '💣';
+            case 'rocketRow': return '🚀';
+            case 'rocketCol': return '🚀';
+            case 'plane': return '✈️';
+            case 'rainbow': return '🌈';
+            case 'donut': return '🍩';
+            default: return (TYPES.find(t=>t.id===type) || {icon: '❓'}).icon;
+        }
     }
-}
 // Применение CSS-классов спецэффектов к бустерам, льду, цепям и вазам на основе их текущего здоровья
     function applySpecialClass(t){
         t.el.className = 'tile';
@@ -886,15 +885,16 @@
         
         // Генерация слоев прочности для ящиков, льда, цепей и новых ваз (2 слоя)
         const initVaseLayers = (type === 'vase') ? 2 : 0; // ИСПРАВЛЕНО: Вазы всегда стартуют с 2 слоями прочности
-        const initBoxLayers = (type === 'box') ? (Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1)) : 
-                             ((type === 'carpetRoll') ? 6 : // Рулон имеет 6 слоев
-                             ((type === 'cookie') ? 3 : 0)); // Печенье имеет 3 слоя
-                             ((type === 'surpriseBox') ? 5 :  // Коробка-сюрприз: 5 слоев
-                             ((type === 'nut') ? 3 :          // Орехи: 3 слоя
-                             ((type === 'purpleFoam') ? 2 :   // Фиолетовая пена: 2 слоя
-                             ((type === 'ringCase') ? 3 :     // Футляр с кольцом: 3 слоя
-                             ((type === 'stone') ? 3 :        // Идол из камня: 3 слоя
-                             ((type === 'plaid') ? 4 : 0)))))))); // Плед: 4 слоя
+        let initBoxLayers = 0;
+        if (type === 'box') initBoxLayers = Math.random() < 0.4 ? 3 : (Math.random() < 0.5 ? 2 : 1);
+        else if (type === 'carpetRoll') initBoxLayers = 6;       // Рулон имеет 6 слоев
+        else if (type === 'cookie') initBoxLayers = 3;           // Печенье имеет 3 слоя
+        else if (type === 'surpriseBox') initBoxLayers = 5;      // Коробка-сюрприз: 5 слоев
+        else if (type === 'nut') initBoxLayers = 3;              // Орехи: 3 слоя
+        else if (type === 'purpleFoam') initBoxLayers = 2;       // Фиолетовая пена: 2 слоя
+        else if (type === 'ringCase') initBoxLayers = 3;         // Футляр с кольцом: 3 слоя
+        else if (type === 'stone') initBoxLayers = 3;            // Идол из камня: 3 слоя
+        else if (type === 'plaid') initBoxLayers = 4;            // Плед: 4 слоя
         const initFrozenLayers = (iceGrid[row] && iceGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
         const initChainedLayers = (chainGrid[row] && chainGrid[row][col] === 1) ? (Math.random() < 0.5 ? 2 : 1) : 0;
 
@@ -1448,6 +1448,15 @@
     // ----------------------------------------------------------------------
 
     // 1. Функция подсчета пончиков (Самостоятельная, на одном уровне со всеми)
+    // ИСПРАВЛЕНО: функция вызывалась в damageObstacle (детонация рулона ковра) и других местах, но нигде не была объявлена — это вызывало ReferenceError и зависание игры при разрушении рулона.
+    function spreadCarpetAt(r, c) {
+        if (levelLayout[r] && levelLayout[r][c] === 1 && !carpetGrid[r][c]) {
+            carpetGrid[r][c] = true;
+            const cellEl = document.querySelector(`.grid-cell[data-pos="${r},${c}"]`);
+            if (cellEl) cellEl.classList.add('carpet');
+        }
+    }
+
     function countActiveDonuts() {
         let count = 0;
         for (let r = 0; r < SIZE; r++) {
@@ -1692,7 +1701,7 @@
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 8: АНАЛИЗАТОР МАТЧЕЙ И ГЕНЕРАЦИЯ СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
-    const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata'].includes(type);
+    const isNotMatchable = type => isSpecial(type) || ['box', 'donut', 'vase', 'brick', 'ring', 'capsule', 'jester', 'foam', 'ivy', 'steam', 'parrot', 'pinata', 'carpetRoll', 'cookie', 'surpriseBox', 'nut', 'purpleFoam', 'ringCase', 'ribbon', 'stone', 'plaid'].includes(type);
 
     // Сбор всех горизонтальных и вертикальных линий одинаковых фишек (от 3-х в ряд)
     function collectRuns(){
@@ -1848,7 +1857,8 @@
             if (t) {
                 spawnMatchParticles(r, c, t.type);
 
-                if (t.type === 'box' || t.frozen || t.chained) {
+                const isLayeredObstacle = ['box', 'vase', 'carpetRoll', 'cookie', 'surpriseBox', 'nut', 'purpleFoam', 'ringCase', 'ribbon', 'stone', 'ivy', 'plaid'].includes(t.type);
+                if (isLayeredObstacle || t.frozen || t.chained) {
                     damageObstacle(t, r, c, isExplosion);
                 } else {
                     finalClearSet.add(k);
