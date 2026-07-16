@@ -56,6 +56,12 @@
     let vasesBroken = 0;          // Счетчик разбитых ваз на уровне
     let cookiesBroken = 0;        // ИСПРАВЛЕНО: Счетчик разбитого печенья 🍪
     let cherriesCollected = 0;    // ИСПРАВЛЕНО: Счетчик освобожденных вишен 🍒
+    let nutsBroken = 0;           // Разбитые орехи 🌰
+    let ringsCollected = 0;       // Собранные кольца из футляров 💍
+    let stoneFiguresCreated = 0;  // Собранные каменные фигурки 🗿
+    let iviesCleared = 0;         // Срезанные ветки плюща 🥀
+    let plaidsCleared = 0;        // Собранные пледы 🛏️
+
     let jellyGrid = [];           // ИСПРАВЛЕНО: Двумерная сетка слоев желе под фишками (от 6 до 0)
     let busy = false;             // Флаг блокировки интерфейса во время анимаций взрывов/падений
     let tileIdCounter = 0;        // Генератор уникальных ID для DOM-элементов плиток
@@ -526,6 +532,58 @@
             case 'rainbow': return '🌈';
             case 'donut': return '🍩';
             default: return (TYPES.find(t=>t.id===type) || {icon: '❓'}).icon;
+        }
+       // ИСПРАВЛЕНО: Иконки для Коробки-сюрприза (5 уровней прочности)
+        if (type === 'surpriseBox') {
+            const layers = extraState || 1;
+            if (layers === 5) return '🎁⭐'; // Золотая лента
+            if (layers === 4) return '🎁🔒'; // Замочек
+            if (layers === 3) return '🎁💥'; // Трещина
+            if (layers === 2) return '📦🎁'; // Полуоткрытая
+            return '📦';                     // Обычная коробка
+        }
+        // ИСПРАВЛЕНО: Иконки для Орехов (3 уровня прочности)
+        if (type === 'nut') {
+            const layers = extraState || 1;
+            if (layers === 3) return '🌰🔒'; // Сверхпрочная скорлупа
+            if (layers === 2) return '🌰💥'; // Треснувший орех
+            return '🌰';                     // Обычный орех
+        }
+        // ИСПРАВЛЕНО: Иконки для Пышной фиолетовой мыльной пены (2 уровня)
+        if (type === 'purpleFoam') {
+            const layers = extraState || 1;
+            if (layers === 2) return '🧼💜'; // Плотная пена
+            return '🧼';                     // Обычный пузырь
+        }
+        // ИСПРАВЛЕНО: Иконки для Футляров с Кольцами (3 уровня)
+        if (type === 'ringCase') {
+            const layers = extraState || 1;
+            if (layers === 3) return '💍🔒'; // Закрытый бархатный футляр
+            if (layers === 2) return '💍💥'; // Приоткрытый
+            return '💍';                     // Сверкающее кольцо
+        }
+        // ИСПРАВЛЕНО: Иконки для Ленты с бантами (1 уровень)
+        if (type === 'ribbon') {
+            return '🎀';                     // Красивый бант
+        }
+        // ИСПРАВЛЕНО: Иконки для Каменных Фигурок (3 уровня)
+        if (type === 'stone') {
+            const layers = extraState || 1;
+            if (layers === 3) return '🗿🔒'; // Необработанный камень
+            if (layers === 2) return '🗿💥'; // Треснувший контур фигурки
+            return '🗿';                     // Готовая фигурка древнего идола
+        }
+        // ИСПРАВЛЕНО: Иконки для Плюща (1 уровень)
+        if (type === 'ivy') {
+            return '🥀';                     // Цепкая ветвь плюща
+        }
+        // ИСПРАВЛЕНО: Иконки для Пледа (4 уровня сложности)
+        if (type === 'plaid') {
+            const layers = extraState || 1;
+            if (layers === 4) return '🛏️🔒'; // Плотное лоскутное одеяло
+            if (layers === 3) return '🛏️💥'; // Распоротый край
+            if (layers === 2) return '🛏️✨'; // Нитки
+            return '🛏️';                     // Обычное одеялко
         }
     }
 
@@ -1293,21 +1351,35 @@ function applySpecialClass(t){
         } else if (targetType === "cookie") {
             m3GoalText.textContent = `${cookiesBroken}/${GOAL_HEARTS} 🍪`; // ИСПРАВЛЕНО: Вывод печенья в HUD
         } else if (targetType === "cherry") {
-            m3GoalText.textContent = `${cherriesCollected}/${GOAL_HEARTS} 🍒`; // ИСПРАВЛЕНО: Вывод вишни в HUD
+            m3GoalText.textContent = `${cherriesCollected}/${GOAL_HEARTS} 🍒`;
+        } else if (targetType === "nut") {
+            m3GoalText.textContent = `${nutsBroken}/${GOAL_HEARTS} 🌰`; // ИСПРАВЛЕНО: Вывод орехов на HUD
+        } else if (targetType === "ring") {
+            m3GoalText.textContent = `${ringsCollected}/${GOAL_HEARTS} 💍`; // ИСПРАВЛЕНО: Вывод колец на HUD
+        } else if (targetType === "stone") {
+            m3GoalText.textContent = `${stoneFiguresCreated}/${GOAL_HEARTS} 🗿`; // ИСПРАВЛЕНО: Вывод каменных фигур на HUD
+        } else if (targetType === "ivy") {
+            m3GoalText.textContent = `${iviesCleared}/${GOAL_HEARTS} 🥀`; // ИСПРАВЛЕНО: Вывод плюща на HUD
+        } else if (targetType === "plaid") {
+            m3GoalText.textContent = `${plaidsCleared}/${GOAL_HEARTS} 🛏️`; // ИСПРАВЛЕНО: Вывод пледа на HUD
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
     }
     // Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
-// ИСПРАВЛЕНО: Добавлено условие победы при уничтожении всех целевых Ваз🏺
-// ИСПРАВЛЕНО: Добавлены условия победы для всех новых типов целей
+// ИСПРАВЛЕНО: Добавлены все новые условия победы для ультимативного пака
         let isVictory = (targetType === "box" && boxesBroken >= GOAL_HEARTS) ||
                         (targetType === "ice" && iceMelted >= GOAL_HEARTS) ||
                         (targetType === "donut" && donutsCollected >= GOAL_HEARTS) ||
                         (targetType === "vase" && vasesBroken >= GOAL_HEARTS) ||
                         (targetType === "cookie" && cookiesBroken >= GOAL_HEARTS) ||
                         (targetType === "cherry" && cherriesCollected >= GOAL_HEARTS) ||
+                        (targetType === "nut" && nutsBroken >= GOAL_HEARTS) ||
+                        (targetType === "ring" && ringsCollected >= GOAL_HEARTS) ||
+                        (targetType === "stone" && stoneFiguresCreated >= GOAL_HEARTS) ||
+                        (targetType === "ivy" && iviesCleared >= GOAL_HEARTS) ||
+                        (targetType === "plaid" && plaidsCleared >= GOAL_HEARTS) ||
                         (targetType === "heart" && hearts >= GOAL_HEARTS);
 
         if(isVictory){
@@ -2090,6 +2162,11 @@ function applySpecialClass(t){
             vasesBroken = 0;
             cookiesBroken = 0;   // ИСПРАВЛЕНО: Обнуляем печенье перед раундом
             cherriesCollected = 0; // ИСПРАВЛЕНО: Обнуляем вишни перед раундом
+            nutsBroken = 0;
+            ringsCollected = 0;
+            stoneFiguresCreated = 0;
+            iviesCleared = 0;
+            plaidsCleared = 0;
             activeBooster = null; 
             gloveSelectedTile = null;
             if (boardEl) boardEl.classList.remove('aiming');
