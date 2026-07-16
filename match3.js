@@ -704,8 +704,8 @@
         }
     }
 }
-    // Применение CSS-классов спецэффектов к бустерам, льду, цепям и вазам на основе их текущего здоровья
-function applySpecialClass(t){
+// Применение CSS-классов спецэффектов к бустерам, льду, цепям и вазам на основе их текущего здоровья
+    function applySpecialClass(t){
         t.el.className = 'tile';
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
@@ -718,12 +718,35 @@ function applySpecialClass(t){
         else if(t.type==='vase') {
             t.el.classList.add('vase', `layer-${t.vaseLayers}`);
         }
-        // ИСПРАВЛЕНО: Классы для рулона ковра и печенья
         else if(t.type==='carpetRoll') {
             t.el.classList.add('carpet-roll', `layer-${t.boxLayers}`);
         }
         else if(t.type==='cookie') {
             t.el.classList.add('cookie', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='surpriseBox') {
+            t.el.classList.add('surprise-box', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='nut') {
+            t.el.classList.add('nut', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='purpleFoam') {
+            t.el.classList.add('purple-foam', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='ringCase') {
+            t.el.classList.add('ring-case', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='ribbon') {
+            t.el.classList.add('ribbon');
+        }
+        else if(t.type==='stone') {
+            t.el.classList.add('stone', `layer-${t.boxLayers}`);
+        }
+        else if(t.type==='ivy') {
+            t.el.classList.add('ivy');
+        }
+        else if(t.type==='plaid') {
+            t.el.classList.add('plaid', `layer-${t.boxLayers}`);
         }
         
         if(t.frozen) t.el.classList.add('frozen', `frozen-${t.frozenLayers}`);
