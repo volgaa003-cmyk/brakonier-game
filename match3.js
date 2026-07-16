@@ -1240,63 +1240,92 @@
         return out;
     }
 
-    // Центральный математический анализатор: вычисляет бомбы, ракеты, радуги и самолетики 2х2
+// Центральный приоритетный анализатор: вычисляет радуги, бомбы, ракеты, самолетики и тройки по старшинству
     function analyzeMatches(){
-        const runs = collectRuns();
-        const matchedByLine = new Set();
-        runs.forEach(r=> r.cells.forEach(c=> matchedByLine.add(key(c[0],c[1]))));
-
-        // Поиск квадратов 2х2 для создания самолетиков
-        const squares = [];
-        const usedSquareCells = new Set();
-        for(let r=0;r<SIZE-1;r++){
-            for(let c=0;c<SIZE-1;c++){
-                const cells = [[r,c],[r,c+1],[r+1,c],[r+1,c+1]];
-                if(cells.some(cc=> matchedByLine.has(key(cc[0],cc[1])) || usedSquareCells.has(key(cc[0],cc[1])))) continue;
-                const t0 = getType(r,c);
-                if(!t0 || isNotMatchable(t0)) continue;
-                if(cells.every(cc=> getType(cc[0],cc[1])===t0)){
-                    squares.push({type:'plane', at:[r,c], cells});
-                    cells.forEach(cc=> usedSquareCells.add(key(cc[0],cc[1])));
-                }
-            }
-        }
-
-        // Вычисление пересечений Т- и L-образных линий для генерации бомб
-        const hRuns = runs.filter(r=>r.dir==='h');
-        const vRuns = runs.filter(r=>r.dir==='v');
+        const runs = collectRuns(); // Собираем все базовые непрерывные линии на поле
+        
+        const rainbows = [];
         const bombs = [];
-        hRuns.forEach(h=>{
-            if(h.used) return;
-            for(const v of vRuns){
-                if(v.used || v.type!==h.type) continue;
-                const shared = h.cells.find(hc=> v.cells.some(vc=> vc[0]===hc[0] && vc[1]===hc[1]));
-                if(shared){
-                    h.used=true; v.used=true;
-                    bombs.push({type:'bomb', at:shared, cells: dedupeCells(h.cells.concat(v.cells))});
+        const rockets = [];
+        const squares = [];
+        const normalCells = new Set();
+
+        const usedCells = new Set(); // Клетки, уже зарезервированные под создание мощных бустеров
+
+        // 1. ПРИОРИТЕТ 1: РАДУЖНЫЙ ШАР (Линии длиной 5 и более фишек)
+        runs.forEach(run => {
+            if (run.length >= 5) {
+                const centerCell = run.cells[Math.floor(run.length / 2)];
+                rainbows.push({ type: 'rainbow', at: centerCell, cells: run.cells });
+                run.cells.forEach(c => usedCells.add(key(c[0], c[1]))); // Блокируем ячейки
+                run.used = true;
+            }
+        });
+
+        // 2. ПРИОРИТЕТ 2: БОМБА (Пересечения горизонтальных и вертикальных линий одного цвета)
+        const hRuns = runs.filter(r => !r.used && r.dir === 'h');
+        const vRuns = runs.filter(r => !r.used && r.dir === 'v');
+
+        hRuns.forEach(h => {
+            for (const v of vRuns) {
+                if (v.used || v.type !== h.type) continue;
+                // Ищем общую (пересекающуюся) клетку-центр
+                const shared = h.cells.find(hc => v.cells.some(vc => vc[0] === hc[0] && vc[1] === hc[1]));
+                if (shared) {
+                    h.used = true;
+                    v.used = true;
+                    const combinedCells = dedupeCells(h.cells.concat(v.cells));
+                    bombs.push({ type: 'bomb', at: shared, cells: combinedCells });
+                    combinedCells.forEach(c => usedCells.add(key(c[0], c[1]))); // Блокируем ячейки
                     break;
                 }
             }
         });
 
-        // Создание ракет и радуг на основе длины линий (4 или 5 в ряд)
-        const rockets = [], rainbows = [];
-        const normalCells = new Set();
-        runs.forEach(run=>{
-            if(run.used) return;
-            if(run.length>=5){
-                rainbows.push({type:'rainbow', at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
-            } else if(run.length===4){
-                const spType = run.dir==='h' ? 'rocketCol' : 'rocketRow';
-                rockets.push({type: spType, at: run.cells[Math.floor(run.cells.length/2)], cells: run.cells});
-            } else {
-                run.cells.forEach(c=> normalCells.add(key(c[0],c[1])));
+        // 3. ПРИОРИТЕТ 3: РАКЕТЫ (Линии длиной ровно 4 фишки)
+        runs.forEach(run => {
+            if (!run.used && run.length === 4) {
+                const centerCell = run.cells[Math.floor(run.length / 2)];
+                const spType = run.dir === 'h' ? 'rocketCol' : 'rocketRow'; // Горизонтальный сбор дает вертикальную ракету
+                rockets.push({ type: spType, at: centerCell, cells: run.cells });
+                run.cells.forEach(c => usedCells.add(key(c[0], c[1]))); // Блокируем ячейки
+                run.used = true;
             }
         });
 
-        return {bombs, rockets, rainbows, squares, normalCells};
-    }
+        // 4. ПРИОРИТЕТ 4: БУМАЖНЫЕ САМОЛЕТИКИ (Квадраты 2х2)
+        // Ищем их только на тех клетках, которые еще не были заняты Радугами, Бомбами или Ракетами
+        for (let r = 0; r < SIZE - 1; r++) {
+            for (let c = 0; c < SIZE - 1; c++) {
+                const cells = [[r,c], [r,c+1], [r+1,c], [r+1,c+1]];
+                // Если хоть одна ячейка квадрата уже занята более сильным бустером — пропускаем квадрат
+                if (cells.some(cc => usedCells.has(key(cc[0], cc[1])))) continue;
+                
+                const t0 = getType(r, c);
+                if (!t0 || isNotMatchable(t0)) continue;
+                
+                if (cells.every(cc => getType(cc[0], cc[1]) === t0)) {
+                    squares.push({ type: 'plane', at: [r, c], cells });
+                    cells.forEach(cc => usedCells.add(key(cc[0], cc[1]))); // Блокируем ячейки
+                }
+            }
+        }
 
+        // 5. ПРИОРИТЕТ 5: ОБЫЧНЫЕ ТРОЙКИ (Оставшиеся неиспользованные линии)
+        runs.forEach(run => {
+            if (!run.used) {
+                run.cells.forEach(c => {
+                    const cellKey = key(c[0], c[1]);
+                    // Очищаем ячейку как обычную фишку только если она не вошла в состав бустера
+                    if (!usedCells.has(cellKey)) {
+                        normalCells.add(cellKey);
+                    }
+                });
+            }
+        });
+
+        return { bombs, rockets, rainbows, squares, normalCells };
+    }
     // ----------------------------------------------------------------------
     // РАЗДЕЛ 9: ОЧИСТКА КЛЕТОК И СИНХРОННЫЙ СПАВН СУПЕР-ЭЛЕМЕНТОВ
     // ----------------------------------------------------------------------
