@@ -176,26 +176,27 @@
         }
     }
 
-    // 6. УПРАВЛЕНИЕ СПРАЙТОМ ПЕРСОНАЖА
+// 6. УПРАВЛЕНИЕ СПРАЙТОМ ПЕРСОНАЖА (ИСПРАВЛЕНО)
     function updateCharacterSprite(speakerName) {
         if (!dialogueSprite) return;
 
-        // Нормализуем имя для сопоставления с именами файлов
         let normalizedSpeaker = speakerName ? speakerName.trim() : null;
 
         if (normalizedSpeaker === "Голос из темноты") {
-            normalizedSpeaker = "Mitrich";
+            normalizedSpeaker = "Митрич"; // Приводим к единому имени для файла картинки
         }
 
         const hasSprite = normalizedSpeaker && AVAILABLE_SPRITES.includes(normalizedSpeaker);
 
         if (hasSprite) {
-            // Переключаем картинку спрайта
+            // Меняем картинку, убираем блокирующий скрытый класс и делаем активным
             dialogueSprite.src = `images/char_${normalizedSpeaker}.png`;
+            dialogueSprite.classList.remove('hidden'); 
             dialogueSprite.classList.add('active');
         } else {
-            // Если говорит диктор (null) или фоновый персонаж — скрываем спрайт
+            // Плавное скрытие и возврат блокирующего класса
             dialogueSprite.classList.remove('active');
+            dialogueSprite.classList.add('hidden');
         }
     }
 
