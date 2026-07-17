@@ -543,18 +543,31 @@ to { transform: scale(1.05) rotate(5deg); }
 }
 
 /* Полупрозрачный голубой купол льда с эффектом размытия */
-.tile.frozen .tile-inner::after {
-  content: "";
+/* Сложные преграды: Лёд и Цепи (ИСПРАВЛЕНО — С ПОЗИЦИОНИРОВАНИЕМ) */
+.tile.frozen .tile-inner::after { 
+  content: "" !important; 
   position: absolute;
-  inset: -1px;
-  background: radial-gradient(circle, rgba(200, 240, 255, 0.5) 0%, rgba(100, 200, 255, 0.3) 100%);
-  border: 2px solid #aadeff;
-  border-radius: 8px;
-  box-shadow: 0 0 6px rgba(100, 200, 255, 0.6), inset 0 0 8px rgba(255,255,255,0.7);
-  backdrop-filter: blur(1.5px); 
+  inset: 0;
+  background-size: 100% 100% !important; 
+  background-repeat: no-repeat;
+  background-position: center;
+  backdrop-filter: none; 
   z-index: 6;
-  animation: iceShimmer 2s infinite ease-in-out;
 }
+.tile.frozen-2 .tile-inner::after { background-image: url('images/frozen-2.png') !important; }
+.tile.frozen-1 .tile-inner::after { background-image: url('images/frozen-1.png') !important; }
+
+.tile.chained .tile-inner::after { 
+  content: "" !important; 
+  position: absolute;
+  inset: 0; /* Растягиваем цепи на весь размер фишки */
+  background-size: 100% 100% !important; 
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 7; /* Отображаем строго поверх фишки */
+}
+.tile.chain-2 .tile-inner::after { background-image: url('images/chain-2.png') !important; }
+.tile.chain-1 .tile-inner::after { background-image: url('images/chain-1.png') !important; }
 
 @keyframes iceShimmer {
   0%, 100% { filter: brightness(1); }
