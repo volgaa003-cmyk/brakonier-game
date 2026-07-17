@@ -748,7 +748,7 @@
 // Обновленная функция наложения спецэффектов (БЕЗ ЗАТИРАНИЯ КЛАССОВ)
     function applySpecialClass(t){
         // Сохраняем базовый класс фишки, чтобы не пропадали картинки
-        t.el.className = `tile tile-${t.type}`;
+        t.el.className = 'tile tile-' + t.type;
         
         if(t.type==='bomb') t.el.classList.add('bomb');
         else if(t.type==='rocketRow') t.el.classList.add('rocket-row');
