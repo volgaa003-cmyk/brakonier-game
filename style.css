@@ -448,14 +448,13 @@ body {
 
 .tile-inner {
   position: absolute;
-  inset: 3px;
+  inset: 0; /* Растягиваем фишку на все 100% ячейки */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 5.8vw;
-  background: var(--paper);
-  border-radius: 10px;
-  border: 2px solid var(--ink);
+  font-size: 0 !important; /* Полностью скрываем старый текст эмодзи */
+  background: transparent; /* Убираем серую бумагу, чтобы PNG были прозрачными */
+  border: none; /* Убираем черную рамку */
   transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
   will-change: transform, opacity;
 }
