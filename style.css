@@ -1432,7 +1432,7 @@ to { transform: scale(1.05) rotate(5deg); }
 .tile-vial .tile-inner { background-image: url('images/vial.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
 .tile-coin .tile-inner { background-image: url('images/coin.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
 /* ==========================================================================
-   ПОДКЛЮЧЕНИЕ ГРАФИЧЕСКОГО ПАКЕТА ФИШЕК (100% ЗАПОЛНЕНИЕ)
+   ПОДКЛЮЧЕНИЕ ГРАФИЧЕСКОГО ПАКЕТА ФИШЕК (ТОЧНЫЕ СЕРВЕРНЫЕ ИМЕНА)
    ========================================================================== */
 .tile-heart .tile-inner { background-image: url('images/heart.png'); background-size: 100% 100%; background-repeat: no-repeat; }
 .tile-bullet .tile-inner { background-image: url('images/bullet.png'); background-size: 100% 100%; background-repeat: no-repeat; }
@@ -1442,57 +1442,82 @@ to { transform: scale(1.05) rotate(5deg); }
 .tile-coin .tile-inner { background-image: url('images/coin.png'); background-size: 100% 100%; background-repeat: no-repeat; }
 .tile-donut .tile-inner { background-image: url('images/donut.png'); background-size: 100% 100%; background-repeat: no-repeat; }
 
-/* Препятствия: Деревянные Ящики (Слои прочности 1-3) */
-.tile.box.layer-3 .tile-inner { background-image: url('images/box-3.png') !important; background-size: 100% 100%; }
-.tile.box.layer-2 .tile-inner { background-image: url('images/box-2.png') !important; background-size: 100% 100%; }
-.tile.box.layer-1 .tile-inner { background-image: url('images/box-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Деревянные Ящики ( box_1, box_2, box_3 ) */
+.tile.box.layer-3 .tile-inner { background-image: url('images/box_3.png') !important; background-size: 100% 100%; }
+.tile.box.layer-2 .tile-inner { background-image: url('images/box_2.png') !important; background-size: 100% 100%; }
+.tile.box.layer-1 .tile-inner { background-image: url('images/box_1.png') !important; background-size: 100% 100%; }
 
-/* Препятствия: Глиняные Вазы (Слои прочности 1-2) */
-.tile.vase.layer-2 .tile-inner { background-image: url('images/vase-2.png') !important; background-size: 100% 100%; }
-.tile.vase.layer-1 .tile-inner { background-image: url('images/vase-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Глиняные Вазы ( vase_1, vase_2 ) */
+.tile.vase.layer-2 .tile-inner { background-image: url('images/vase_2.png') !important; background-size: 100% 100%; }
+.tile.vase.layer-1 .tile-inner { background-image: url('images/vase_1.png') !important; background-size: 100% 100%; }
 
-/* Препятствия: Орехи (Слои прочности 1-3) */
-.tile.nut.layer-3 .tile-inner { background-image: url('images/nut-3.png') !important; background-size: 100% 100%; }
-.tile.nut.layer-2 .tile-inner { background-image: url('images/nut-2.png') !important; background-size: 100% 100%; }
-.tile.nut.layer-1 .tile-inner { background-image: url('images/nut-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Орехи ( nut_1, nut_2, nut_3 ) */
+.tile.nut.layer-3 .tile-inner { background-image: url('images/nut_3.png') !important; background-size: 100% 100%; }
+.tile.nut.layer-2 .tile-inner { background-image: url('images/nut_2.png') !important; background-size: 100% 100%; }
+.tile.nut.layer-1 .tile-inner { background-image: url('images/nut_1.png') !important; background-size: 100% 100%; }
 
-/* Препятствия: Печенье (Слои прочности 1-3) */
-.tile.cookie.layer-3 .tile-inner { background-image: url('images/cookie-3.png') !important; background-size: 100% 100%; }
-.tile.cookie.layer-2 .tile-inner { background-image: url('images/cookie-2.png') !important; background-size: 100% 100%; }
-.tile.cookie.layer-1 .tile-inner { background-image: url('images/cookie-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Печенье ( cookie_1, cookie_2, cookie_3 ) */
+.tile.cookie.layer-3 .tile-inner { background-image: url('images/cookie_3.png') !important; background-size: 100% 100%; }
+.tile.cookie.layer-2 .tile-inner { background-image: url('images/cookie_2.png') !important; background-size: 100% 100%; }
+.tile.cookie.layer-1 .tile-inner { background-image: url('images/cookie_1.png') !important; background-size: 100% 100%; }
 
-/* Препятствия: Пледы (Слои прочности 1-4) */
-.tile.plaid.layer-4 .tile-inner { background-image: url('images/plaid-4.png') !important; background-size: 100% 100%; }
-.tile.plaid.layer-3 .tile-inner { background-image: url('images/plaid-3.png') !important; background-size: 100% 100%; }
-.tile.plaid.layer-2 .tile-inner { background-image: url('images/plaid-2.png') !important; background-size: 100% 100%; }
-.tile.plaid.layer-1 .tile-inner { background-image: url('images/plaid-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Пледы ( plaid_1, plaid_2, plaid_3, plaid_4 ) */
+.tile.plaid.layer-4 .tile-inner { background-image: url('images/plaid_4.png') !important; background-size: 100% 100%; }
+.tile.plaid.layer-3 .tile-inner { background-image: url('images/plaid_3.png') !important; background-size: 100% 100%; }
+.tile.plaid.layer-2 .tile-inner { background-image: url('images/plaid_2.png') !important; background-size: 100% 100%; }
+.tile.plaid.layer-1 .tile-inner { background-image: url('images/plaid_1.png') !important; background-size: 100% 100%; }
 
-/* Препятствия: Сейфы / Футляры с кольцами (Слои прочности 1-3) */
-.tile.ring-case.layer-3 .tile-inner { background-image: url('images/ringCase-3.png') !important; background-size: 100% 100%; }
-.tile.ring-case.layer-2 .tile-inner { background-image: url('images/ringCase-2.png') !important; background-size: 100% 100%; }
-.tile.ring-case.layer-1 .tile-inner { background-image: url('images/ringCase-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Сейфы / Футляры с кольцами ( ringCase_1, ringCase_2, ringCase_3 ) */
+.tile.ring-case.layer-3 .tile-inner { background-image: url('images/ringCase_3.png') !important; background-size: 100% 100%; }
+.tile.ring-case.layer-2 .tile-inner { background-image: url('images/ringCase_2.png') !important; background-size: 100% 100%; }
+.tile.ring-case.layer-1 .tile-inner { background-image: url('images/ringCase_1.png') !important; background-size: 100% 100%; }
 
-/* Препятствия: Каменные Фигурки (Слои прочности 1-3) */
-.tile.stone.layer-3 .tile-inner { background-image: url('images/stone-3.png') !important; background-size: 100% 100%; }
-.tile.stone.layer-2 .tile-inner { background-image: url('images/stone-2.png') !important; background-size: 100% 100%; }
-.tile.stone.layer-1 .tile-inner { background-image: url('images/stone-1.png') !important; background-size: 100% 100%; }
+/* Препятствия: Каменные Фигурки ( stone_1, stone_2, stone_3 ) */
+.tile.stone.layer-3 .tile-inner { background-image: url('images/stone_3.png') !important; background-size: 100% 100%; }
+.tile.stone.layer-2 .tile-inner { background-image: url('images/stone_2.png') !important; background-size: 100% 100%; }
+.tile.stone.layer-1 .tile-inner { background-image: url('images/stone_1.png') !important; background-size: 100% 100%; }
 
-/* Особые Угрозы: Рулон ковра, лента с бантами, плющ и коробка-сюрприз */
-.tile.carpet-roll .tile-inner { background-image: url('images/carpet-roll.png') !important; background-size: 100% 100%; }
+/* Особые Угрозы: Рулон ковра, лента с бантами, плющ, мыло и коробка-сюрприз */
+.tile.carpet-roll .tile-inner { background-image: url('images/carpetRoll_6.png') !important; background-size: 100% 100%; }
 .tile.ribbon .tile-inner { background-image: url('images/ribbon.png') !important; background-size: 100% 100%; }
 .tile.ivy .tile-inner { background-image: url('images/ivy.png') !important; background-size: 100% 100%; }
-.tile.surprise-box .tile-inner { background-image: url('images/surprise-box.png') !important; background-size: 100% 100%; }
+.tile.foam .tile-inner { background-image: url('images/foam.png') !important; background-size: 100% 100%; }
+.tile.purple-foam .tile-inner { background-image: url('images/purpleFoam.png') !important; background-size: 100% 100%; }
 
-/* Сложные интерактивные преграды поверх фишек: Лёд и Цепи (убираем эмодзи) */
-.tile.frozen .tile-inner::after { content: "" !important; background-size: 100% 100%; backdrop-filter: none; }
-.tile.frozen-2 .tile-inner::after { background-image: url('images/frozen-2.png') !important; }
-.tile.frozen-1 .tile-inner::after { background-image: url('images/frozen-1.png') !important; }
+/* Многослойные коробки сюрпризы ( surpriseBox_1 - surpriseBox_5 ) */
+.tile.surprise-box.layer-5 .tile-inner { background-image: url('images/surpriseBox_5.png') !important; background-size: 100% 100%; }
+.tile.surprise-box.layer-4 .tile-inner { background-image: url('images/surpriseBox_4.png') !important; background-size: 100% 100%; }
+.tile.surprise-box.layer-3 .tile-inner { background-image: url('images/surpriseBox_3.png') !important; background-size: 100% 100%; }
+.tile.surprise-box.layer-2 .tile-inner { background-image: url('images/surpriseBox_2.png') !important; background-size: 100% 100%; }
+.tile.surprise-box.layer-1 .tile-inner { background-image: url('images/surpriseBox_1.png') !important; background-size: 100% 100%; }
 
-.tile.chained .tile-inner::after { content: "" !important; background-size: 100% 100%; z-index: 7; }
-.tile.chain-2 .tile-inner::after { background-image: url('images/chain-2.png') !important; }
-.tile.chain-1 .tile-inner::after { background-image: url('images/chain-1.png') !important; }
+/* Преграды поверх фишек: Лёд ( ice_1, ice_2 ) и Цепи ( chain_1, chain_2 ) */
+.tile.frozen .tile-inner::after { 
+  content: "" !important; 
+  position: absolute;
+  inset: 0;
+  background-size: 100% 100% !important; 
+  background-repeat: no-repeat;
+  background-position: center;
+  backdrop-filter: none; 
+  z-index: 6;
+}
+.tile.frozen-2 .tile-inner::after { background-image: url('images/ice_2.png') !important; }
+.tile.frozen-1 .tile-inner::after { background-image: url('images/ice_1.png') !important; }
 
-/* Бустеры внутри сетки: Ракеты, Бомба, Радуга, Самолетик */
+.tile.chained .tile-inner::after { 
+  content: "" !important; 
+  position: absolute;
+  inset: 0;
+  background-size: 100% 100% !important; 
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 7;
+}
+.tile.chain-2 .tile-inner::after { background-image: url('images/chain_2.png') !important; }
+.tile.chain-1 .tile-inner::after { background-image: url('images/chain_1.png') !important; }
+
+/* Бустеры: Ракеты, Бомба, Радуга, Самолетик */
 .tile.bomb .tile-inner { background-image: url('images/bomb.png') !important; background-size: 100% 100%; background-color: transparent; }
 .tile.plane .tile-inner { background-image: url('images/plane.png') !important; background-size: 100% 100%; }
 .tile.rainbow .tile-inner { background-image: url('images/rainbow.png') !important; background-size: 100% 100%; }
