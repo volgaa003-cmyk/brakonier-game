@@ -1498,3 +1498,19 @@ to { transform: scale(1.05) rotate(5deg); }
 .tile.rainbow .tile-inner { background-image: url('images/rainbow.png') !important; background-size: 100% 100%; }
 .tile.rocket-row .tile-inner { background-image: url('images/rocketRow.png') !important; background-size: 100% 100%; transform: none !important; }
 .tile.rocket-col .tile-inner { background-image: url('images/rocketCol.png') !important; background-size: 100% 100%; }
+/* ==========================================================================
+   ЗАМЕНА ВСЕХ СЛОЖНЫХ ШРИФТОВ НА ЧИТАЕМЫЙ ШРИФТ RUBIK (ДЛЯ КИРИЛЛИЦЫ)
+   ========================================================================== */
+.hud-val, 
+.location-banner, 
+.menu-btn, 
+.decor-card h3, 
+.ui-card h2, 
+.action-btn, 
+.speaker-name, 
+.pre-level-card h2, 
+.task-btn {
+  font-family: 'Rubik', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  letter-spacing: 0px !important; /* Убираем лишний разброс букв для лучшей читаемости */
+  font-weight: 800 !important;   /* Делаем заголовки сочными и четкими */
+}
