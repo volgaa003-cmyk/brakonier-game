@@ -133,24 +133,30 @@
     <div class="match3-footer">Свапни два бонуса — получи комбо!</div>
   </main>
 
-  <!-- ==================== ОВЕРЛЕЙ 1: ОКНО ДИАЛОГОВ (НОВЕЛЛА) ==================== -->
-  <div id="overlayDialogue" class="ui-overlay hidden">
-    <div class="dialogue-window">
-      <div class="speaker-name" id="dialogueSpeaker">Скупщик</div>
-      <div class="dialogue-text-container">
-        <p class="dialogue-text" id="dialogueText">Текст реплики...</p>
-      </div>
-      
-      <!-- Кнопки выбора ответов -->
-      <div class="choices-container hidden" id="dialogueChoices">
-        <button class="choice-btn">1. Отдать сердца (Требует 👑 10)</button>
-        <button class="choice-btn">2. Атаковать стражу</button>
-      </div>
-
-      <div class="dialogue-hint" id="dialogueHint">Кликни на окно, чтобы продолжить...</div>
-    </div>
+<!-- ==================== ОВЕРЛЕЙ 1: ОКНО ДИАЛОГОВ (НОВЕЛЛА) ==================== -->
+<div id="overlayDialogue" class="ui-overlay hidden">
+  <!-- Динамический задний фон локации -->
+  <div id="dialogueBg" class="dialogue-bg"></div>
+  
+  <!-- Контейнер для отображения спрайтов персонажей -->
+  <div id="dialogueSpriteContainer" class="dialogue-sprite-container">
+    <img id="dialogueSprite" class="dialogue-sprite hidden" src="" alt="Персонаж">
   </div>
 
+  <div class="dialogue-window" id="dialogueBox">
+    <div class="speaker-name" id="dialogueSpeaker">Скупщик</div>
+    <div class="dialogue-text-container">
+      <p class="dialogue-text" id="dialogueText">Текст реплики...</p>
+    </div>
+    
+    <!-- Кнопки выбора ответов -->
+    <div class="choices-container hidden" id="dialogueChoices">
+      <!-- Наполняется динамически из JS -->
+    </div>
+
+    <div class="dialogue-hint" id="dialogueHint">Кликни на окно, чтобы продолжить...</div>
+  </div>
+</div>
   <!-- ==================== ОВЕРЛЕЙ 2: ОКНО СПИСКА ЗАДАНИЙ ПО РЕМОНТУ ==================== -->
   <div id="overlayTasks" class="ui-overlay hidden">
     <div class="ui-card">
