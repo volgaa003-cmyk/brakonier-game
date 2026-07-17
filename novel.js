@@ -62,16 +62,19 @@
         }
     }
 
-    // 2. ВОСПРОИЗВЕДЕНИЕ СЦЕНЫ ИЗ ГРАФА
+// 2. ВОСПРОИЗВЕДЕНИЕ СЦЕНЫ ИЗ ГРАФА
     function playScene(sceneId) {
+        // Ищем сцену СТРОГО внутри запущенного в данный момент графа
+        if (!activeStoryData || !activeStoryData.isGraph || !activeStoryData.scenes || !activeStoryData.scenes[sceneId]) {
+            console.error(`novel.js: Сцена ${sceneId} не найдена в текущей главе.`);
+            endDialogue();
+            return;
+        }
+
         currentSceneId = sceneId;
         currentSlideIndex = 0;
 
         const scene = activeStoryData.scenes[sceneId];
-        if (!scene) {
-            endDialogue();
-            return;
-        }
 
         // Установка фонового изображения сцены
         if (dialogueBg && scene.background) {
