@@ -2525,7 +2525,7 @@ function applyGravityAndRefill(){
             return;
         }
 
-        if(tile.type === 'box' || tile.frozen || tile.chained) return;
+        if(!isMovable(tile)) return;
 
         if(selected === null){
             if(isSpecial(tile.type)) { activateStandalone(tile); return; }
