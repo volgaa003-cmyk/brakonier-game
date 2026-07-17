@@ -570,6 +570,15 @@ to { transform: scale(1.05) rotate(5deg); }
   z-index: 2;
 }
 
+/* ДОБАВЛЕНО: Визуальная обратная связь при перетаскивании фишки пальцем/мышкой (свайп) */
+.tile.dragging {
+  z-index: 25;
+}
+.tile.dragging .tile-inner {
+  transform: scale(1.1);
+  box-shadow: 0 8px 16px rgba(0,0,0,.35);
+}
+
 .tile.shake .tile-inner { animation: shake .25s ease; }
 @keyframes shake {
   0%,100% { transform: translateX(0); }
