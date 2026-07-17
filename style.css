@@ -1410,3 +1410,12 @@ to { transform: scale(1.05) rotate(5deg); }
   padding: 4px 10px;
   box-shadow: 2px 2px 0 var(--ink);
 }
+/* ==========================================================================
+   ЗАМЕНА ТЕКСТОВЫХ ЭМОДЗИ НА КАРТИНКИ-ФИШКИ (ИСПРАВЛЕНО)
+   ========================================================================== */
+.tile-heart .tile-inner { background-image: url('images/heart.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
+.tile-bullet .tile-inner { background-image: url('images/bullet.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
+.tile-garlic .tile-inner { background-image: url('images/garlic.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
+.tile-stake .tile-inner { background-image: url('images/stake.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
+.tile-vial .tile-inner { background-image: url('images/vial.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
+.tile-coin .tile-inner { background-image: url('images/coin.png'); font-size: 0 !important; background-size: 75% 75%; background-repeat: no-repeat; background-position: center; }
