@@ -967,7 +967,7 @@
             if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
                 const partner = grid[targetRow][targetCol];
                 // Разрешаем обмен, только если цель не является коробкой, льдом или цепью
-                if (partner && partner.type !== 'box' && !partner.frozen && !partner.chained) {
+                if (partner && isMovable(partner)) {
                     tile.el.classList.remove('selected');
                     if (selected) selected.el.classList.remove('selected');
                     selected = null;
