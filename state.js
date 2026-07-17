@@ -119,7 +119,36 @@ const DEFAULT_STATE = {
         getActiveBoosterCount: (type) => state.boostersActive[type] || 0,
 
         isTaskCompleted: (taskId) => state.completedTasks.includes(taskId),
+        getActiveRoom: () => state.activeRoom,
+        setActiveRoom: (room) => {
+            state.activeRoom = room;
+            saveGame();
+        },
 
+        getDecorLevel: (room, item) => {
+            return state.decor[room] ? (state.decor[room][item] || 0) : 0;
+        },
+
+        setDecorLevel: (room, item, level) => {
+            if (state.decor[room]) {
+                state.decor[room][item] = level;
+                saveGame();
+            }
+        },
+
+        getInventory: () => state.inventory || [],
+        
+        addInventoryItem: (itemId, itemName) => {
+            if (!state.inventory) state.inventory = [];
+            state.inventory.push(itemName);
+            if (!state.collectedCollectibleIds) state.collectedCollectibleIds = [];
+            state.collectedCollectibleIds.push(itemId);
+            saveGame();
+        },
+
+        isCollectibleCollected: (itemId) => {
+            return state.collectedCollectibleIds ? state.collectedCollectibleIds.includes(itemId) : false;
+        },
         addStars: (amount) => {
             state.stars += amount;
             updateHUD();
