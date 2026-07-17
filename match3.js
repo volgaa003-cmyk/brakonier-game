@@ -1010,7 +1010,7 @@
     function createTile(row, col, type, spawnRow){
         const id = 'tile'+(tileIdCounter++);
         const el = document.createElement('div');
-        el.className = 'tile';
+        el.className = `tile tile-${type}`;
         el.dataset.id = id;
         
         // Генерация слоев прочности для ящиков, льда, цепей и новых ваз (2 слоя)
