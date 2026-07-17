@@ -1092,6 +1092,7 @@ to { transform: scale(1.05) rotate(5deg); }
 /* Овальный ценник бустера (снизу по центру) */
 .booster-btn .cost {
   position: absolute;
+  top: unset; /* Снимаем верхнее позиционирование */
   bottom: -8px;
   left: 50%;
   transform: translateX(-50%); /* Центрируем ценник строго под кнопкой */
