@@ -1061,19 +1061,6 @@ to { transform: scale(1.05) rotate(5deg); }
   background-position: center;
 }
 
-/* Прячем текст эмодзи, когда загружается PNG фоном */
-#btnHammer { background-image: url('images/hammer.png'); color: transparent; }
-#btnGlove { background-image: url('images/glove.png'); color: transparent; }
-#btnBroom { background-image: url('images/broom.png'); color: transparent; }
-#btnWeight { background-image: url('images/weight.png'); color: transparent; }
-#btnFan { background-image: url('images/fan.png'); color: transparent; }
-
-/* Анимация при нажатии */
-.booster-btn:active {
-  transform: scale(0.9) translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--ink);
-}
-
 /* Круглый счетчик количества бустеров (сверху справа) */
 .booster-btn .b-count {
   position: absolute;
