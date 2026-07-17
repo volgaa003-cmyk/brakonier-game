@@ -3,26 +3,40 @@
 // ================================================
 
 (function() {
-    const DEFAULT_STATE = {
+const DEFAULT_STATE = {
         lives: 5,               
-        stars: 1,               
+        stars: 3, // Даем 3 звезды на старте для проверки ремонта              
         cash: 1000,             
-        reputation: 10, // Общая репутация (устаревшая)
+        reputation: 10,         
         
-        // Три раздельные фракции интерактивного сценария
-        reputation_people: 0,       // Люди
-        reputation_underground: 0,  // Подполье
-        reputation_changed: 0,      // Измененные
+        reputation_people: 0,       
+        reputation_underground: 0,  
+        reputation_changed: 0,      
 
-        currentLevel: 1,        
+        currentLevel: 1,
+        
+        // Текущая комната, в которой находится игрок
+        activeRoom: "living_room",
+        
+        // Модернизированный реестр мебели по комнатам (хранит индекс уровня улучшения от 0 до 3)
         decor: {
-            floor: "Гнилые доски",
-            walls: "Осыпающаяся штукатурка",
-            bed: "Пыльный матрас",
-            table: "Шатающийся верстак",
-            cabinet: "Сломанный комод",
-            windows: "Забиты фанерой"
+            living_room: {
+                door: 0,     // 0 - гнилая дверь, 1 - деревянная, 2 - стальная, 3 - гермозатвор
+                bed: 0,      // 0 - матрас, 1 - раскладушка, 2 - дубовая кровать, 3 - спальный бокс
+                windows: 0   // 0 - фанера, 1 - стекло, 2 - решетки, 3 - ставни
+            },
+            workshop: {
+                table: 0,    // 0 - шатающийся верстак, 1 - доски, 2 - швеллер, 3 - лаборатория
+                cabinet: 0   // 0 - комод, 1 - шкаф, 2 - сейф для оружия, 3 - электронный замок
+            }
         },
+        
+        // Сборник найденных игроком предметов
+        inventory: [],
+        
+        // ID предметов, которые уже были собраны (чтобы не собирать повторно)
+        collectedCollectibleIds: [],
+
         completedTasks: [],
         boostersPre: { rainbow: 2, combo: 2, doublePlanes: 2 },
         boostersActive: { hammer: 3, glove: 3, broom: 3, weight: 3, fan: 3 }
