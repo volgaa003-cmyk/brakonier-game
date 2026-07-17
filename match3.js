@@ -24,6 +24,21 @@
 // Вспомогательные хелперы вычислений (Стрелочные математические функции)
     const isSpecial = t => SPECIALS.includes(t); // Проверка: является ли элемент спец-бустером
     const randType = () => TYPES[Math.floor(Math.random() * TYPES.length)].id; // Генерация случайного цвета фишки
+
+    // ДОБАВЛЕНО: "Мягкая гарантия" нужного цвета — применяется ТОЛЬКО при довыпадении новых фишек
+    // (не при первичной генерации поля, чтобы старт уровня оставался честным). Чем сильнее игрок
+    // отстаёт от темпа по оставшимся ходам, тем выше шанс подложить именно целевой цвет.
+    function weightedRandType() {
+        const colorGoalTypes = TYPES.map(t => t.id);
+        if (colorGoalTypes.includes(targetType)) {
+            const remaining = Math.max(0, GOAL_HEARTS - hearts);
+            const movesLeft = Math.max(1, moves);
+            const pace = remaining / movesLeft; // Сколько целевых фишек нужно собирать за ход в среднем
+            const boostChance = Math.min(0.42, 0.16 + pace * 0.12); // Базовый шанс ~1/6, максимум 0.42
+            if (Math.random() < boostChance) return targetType;
+        }
+        return randType();
+    }
     const key = (r, c) => r + ',' + c; // Конвертация координат строки и столбца в строковый ключ словаря "row,col"
     const getType = (r, c) => grid[r] && grid[r][c] ? grid[r][c].type : null; // Безопасное получение типа элемента без падения игры
     // Временные задержки (в миллисекундах) для плавной синхронизации анимаций
@@ -595,13 +610,20 @@
             else if (tile.type === 'rocketRow') animateRocketEffect(tile.row, tile.col, true);
             else if (tile.type === 'rocketCol') animateRocketEffect(tile.row, tile.col, false);
             else if (tile.type === 'plane') {
-                const target = findBestTargetForPlane(tile.row, tile.col);
-                if (target) {
-                    // 1. Запускаем красивый полет самолетика к далекой цели
-                    animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
-                        // По прилету взрываем далекую цель
-                        clearAndContinue(new Set([key(target.r, target.c)]), [], null, null, false, false, true);
-                    });
+                // ИСПРАВЛЕНО: раньше doublePlanesActive учитывался только при свайпе двух самолётиков
+                // друг о друга. Теперь пре-бустер удваивает число летящих самолётиков при ЛЮБОМ запуске.
+                const planeCount = doublePlanesActive ? 2 : 1;
+                const usedTargets = new Set();
+                for (let i = 0; i < planeCount; i++) {
+                    const target = findBestTargetForPlane(tile.row, tile.col, usedTargets);
+                    if (target) {
+                        usedTargets.add(key(target.r, target.c));
+                        // 1. Запускаем красивый полет самолетика к далекой цели
+                        animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
+                            // По прилету взрываем далекую цель
+                            clearAndContinue(new Set([key(target.r, target.c)]), [], null, null, false, false, true);
+                        });
+                    }
                 }
                 
                 // 2. В момент взлета мгновенно уничтожаем крест из 5 клеток вокруг самого самолетика
@@ -827,6 +849,54 @@
         }
         return null; // Если возможных ходов вообще нет
     }
+
+    // ДОБАВЛЕНО: Красивое перемешивание поля, когда у игрока не осталось ни одного валидного хода.
+    // Фишки не пересоздаются и поле не "ломается" — существующие DOM-элементы физически переставляются
+    // на новые клетки через ту же плавную CSS-анимацию left/top, что и при обычном падении.
+    function reshuffleBoard() {
+        const positions = [];
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const t = grid[r][c];
+                // Перемешиваем только обычные подвижные фишки — препятствия, спецбустеры,
+                // лёд и цепи остаются на своих местах
+                if (t && !t.frozen && !t.chained && !isNotMatchable(t.type)) {
+                    positions.push({ r, c });
+                }
+            }
+        }
+        if (positions.length < 4) return; // Перемешивать почти нечего
+
+        busy = true;
+        pulseToast('🔀 Нет ходов — перемешиваем поле!');
+
+        let attempts = 0;
+        let shuffledTiles;
+        do {
+            shuffledTiles = positions.map(p => grid[p.r][p.c]);
+            // Fisher-Yates перетасовка объектов фишек между собранными позициями
+            for (let i = shuffledTiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledTiles[i], shuffledTiles[j]] = [shuffledTiles[j], shuffledTiles[i]];
+            }
+            positions.forEach((p, idx) => { grid[p.r][p.c] = shuffledTiles[idx]; });
+            attempts++;
+            // Требуем: сразу после решафла нет готовых совпадений, но хотя бы один ход возможен
+        } while (attempts < 40 && (collectRuns().length > 0 || !findValidSwapMove()));
+
+        // Плавно переставляем DOM-элементы фишек на новые места — они буквально меняются местами
+        positions.forEach((p, idx) => {
+            moveTileTo(shuffledTiles[idx], p.r, p.c);
+        });
+
+        triggerBoardShake('shake-mild');
+
+        setTimeout(() => {
+            busy = false;
+            resetHintTimer();
+        }, FALL_MS + 60);
+    }
+
     // Начало перетаскивания фишки пальцем (для мобильных) или мышкой (для ПК)
     function handleDragStart(e, tile) {
         if (busy || activeBooster || tile.type === 'box' || tile.frozen || tile.chained) return;
@@ -837,11 +907,19 @@
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         dragStartX = clientX;
         dragStartY = clientY;
-        
+
+        tile.el.classList.add('dragging');
         resetHintTimer(); // Сбрасываем таймер подсказки при активности игрока
     }
 
-    // Движение пальца/мыши во время перетаскивания фишки
+    // ИСПРАВЛЕНО: Движение пальца/мыши во время перетаскивания фишки.
+    // Раньше эта функция вообще не была подписана ни на один обработчик событий,
+    // из-за чего свайпы физически не работали — игра реагировала только на двойной тап.
+    // Теперь функция подписана глобально (см. регистрацию ниже) и добавляет визуальное
+    // перетаскивание "призрака" фишки за пальцем до момента пересечения порога свайпа.
+    const SWIPE_THRESHOLD = 26; // Порог в пикселях, после которого жест засчитывается как свайп
+    const DRAG_VISUAL_CLAMP = 34; // Насколько далеко визуально можно "оттянуть" фишку до порога
+
     function handleDragMove(e) {
         if (!dragActiveTile || busy) return;
         
@@ -851,10 +929,14 @@
         const dy = clientY - dragStartY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Если сдвиг больше 30 пикселей — фиксируем направление свайпа
-        if (dist > 30) { 
-            let targetRow = dragActiveTile.row;
-            let targetCol = dragActiveTile.col;
+        // Блокируем скролл страницы пальцем, пока идёт перетаскивание фишки
+        if (dist > 4 && e.cancelable) e.preventDefault();
+
+        // Если сдвиг больше порога — фиксируем направление свайпа и запускаем своп
+        if (dist > SWIPE_THRESHOLD) { 
+            const tile = dragActiveTile;
+            let targetRow = tile.row;
+            let targetCol = tile.col;
 
             // Вычисляем, куда был совершен жест: по горизонтали или вертикали
             if (Math.abs(dx) > Math.abs(dy)) {
@@ -863,24 +945,53 @@
                 if (dy > 0) targetRow++; else targetRow--; // Вниз или вверх
             }
 
+            tile.el.classList.remove('dragging');
+            tile.el.style.transition = '';
+            tile.el.style.transform = '';
+            dragActiveTile = null; // Обнуляем активность перетаскивания сразу, чтобы не задвоить своп
+
             // Если целевая клетка лежит внутри игрового поля
             if (targetRow >= 0 && targetRow < SIZE && targetCol >= 0 && targetCol < SIZE) {
                 const partner = grid[targetRow][targetCol];
                 // Разрешаем обмен, только если цель не является коробкой, льдом или цепью
                 if (partner && partner.type !== 'box' && !partner.frozen && !partner.chained) {
-                    dragActiveTile.el.classList.remove('selected');
+                    tile.el.classList.remove('selected');
+                    if (selected) selected.el.classList.remove('selected');
                     selected = null;
-                    performSwap(dragActiveTile, partner); // Запускаем анимацию обмена
+                    performSwap(tile, partner); // Запускаем анимацию обмена
+                    return;
                 }
             }
-            dragActiveTile = null; // Обнуляем активность перетаскивания
+
+            // Некуда свайпать (край поля/препятствие) — упругий отскок фишки на место
+            tile.el.classList.add('shake');
+            setTimeout(() => tile.el.classList.remove('shake'), 220);
+        } else {
+            // Визуальное перетаскивание "призрака" фишки за пальцем, ограниченное радиусом ячейки
+            const cx = Math.max(-DRAG_VISUAL_CLAMP, Math.min(DRAG_VISUAL_CLAMP, dx));
+            const cy = Math.max(-DRAG_VISUAL_CLAMP, Math.min(DRAG_VISUAL_CLAMP, dy));
+            dragActiveTile.el.style.transition = 'none';
+            dragActiveTile.el.style.transform = `translate(${cx}px, ${cy}px)`;
         }
     }
 
-    // Завершение жеста перетаскивания
+    // Завершение жеста перетаскивания (отпустили палец/кнопку мыши, не дотянув до порога свайпа)
     function handleDragEnd() {
-        dragActiveTile = null;
+        if (dragActiveTile) {
+            dragActiveTile.el.classList.remove('dragging');
+            dragActiveTile.el.style.transition = 'transform .18s cubic-bezier(.34,1.56,.64,1)'; // Упругий отскок
+            dragActiveTile.el.style.transform = '';
+            dragActiveTile = null;
+        }
     }
+
+    // ИСПРАВЛЕНО: Регистрация глобальных обработчиков движения/отпускания — раньше их не было
+    // вообще, поэтому handleDragMove/handleDragEnd никогда не вызывались, и свайпы не работали.
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchend', handleDragEnd);
+    document.addEventListener('touchcancel', handleDragEnd);
 
     // Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
     function createTile(row, col, type, spawnRow){
@@ -1207,13 +1318,14 @@
         } // Скобка закрывает блок Пледа
     } // Скобка закрывает саму функцию damageObstacle!
 // Интеллектуальный алгоритм поиска наилучшей цели для Бумажного самолетика (Homescapes Goal AI)
-    function findBestTargetForPlane(excludeRow, excludeCol) {
+    function findBestTargetForPlane(excludeRow, excludeCol, usedTargets) {
         let targetRow = excludeRow, targetCol = excludeCol;
         let foundTarget = false;
 
         // Вспомогательная функция проверки валидности ячейки для удара
         const isValidTarget = (r, c) => {
             if (r === excludeRow && c === excludeCol) return false;
+            if (usedTargets && usedTargets.has(key(r, c))) return false; // Не бьём дважды в одну клетку
             const t = grid[r] && grid[r][c];
             if (!t) return false;
             if (t.type === 'donut') return false; // Запрещаем бить по самим пончикам, их нужно только ронять
@@ -1547,7 +1659,7 @@
                 for (let r = 0; r < SIZE; r++) {
                     const isSegmentTop = levelLayout[r][c] !== 0 && (r === 0 || levelLayout[r - 1][c] === 0);
                     if (isSegmentTop && grid[r][c] === null) {
-                        let spawnType = randType();
+                        let spawnType = weightedRandType();
                         // Если цель уровня — пончики, и их на поле меньше 2, спавним новый пончик сверху
                         if (targetType === "donut" && countActiveDonuts() < 2 && Math.random() < 0.25) {
                             spawnType = "donut";
@@ -1705,6 +1817,13 @@
                 window.GameState.addCash(rewards.coins);
             }
             showOverlay('Успешная вылазка!', `Заказ закрыт!\nБаза: +${rewards.base}₽\nБонус за ходы: +${rewards.bonus}₽`, true);
+            return;
+        }
+
+        // ДОБАВЛЕНО: Если у игрока ещё есть ходы, но на поле нет ни одной валидной комбинации —
+        // красиво перемешиваем поле вместо того, чтобы игра зависала без возможных действий.
+        if (moves > 0 && !findValidSwapMove()) {
+            reshuffleBoard();
             return;
         }
 
@@ -1871,6 +1990,12 @@
             const [r, c] = k.split(',').map(Number);
             const t = grid[r] && grid[r][c];
             if (t) {
+                // ИСПРАВЛЕНО: Пончик неуязвим к бомбам/ракетам/самолётикам. Взрыв просто "проходит" мимо
+                // него, расчищая клетки вокруг и открывая путь вниз, но сам пончик не уничтожается.
+                if (t.type === 'donut') {
+                    return;
+                }
+
                 spawnMatchParticles(r, c, t.type);
 
                 const isLayeredObstacle = ['box', 'vase', 'carpetRoll', 'cookie', 'surpriseBox', 'nut', 'purpleFoam', 'ringCase', 'ribbon', 'stone', 'ivy', 'plaid'].includes(t.type);
@@ -1963,9 +2088,21 @@
             applyGravityAndRefill();
             setTimeout(()=>{
                 const result = analyzeMatches();
-                if(!result.normalCells.size && onComplete) onComplete();
-                else if(result.normalCells.size) applyResolutionFull(result);
-                else { busy = false; checkEndConditions(); }
+                // ИСПРАВЛЕНО: раньше здесь проверялось только result.normalCells.size, из-за чего
+                // каскадные совпадения (например 2х2-квадрат, собравшийся сам после падения фишек)
+                // теряли своё превращение в бомбу/ракету/самолётик/радугу, если рядом не было ещё и
+                // обычной тройки. Теперь учитываем ЛЮБой тип найденного совпадения.
+                const hasAnyMatch = result.bombs.length || result.rockets.length ||
+                                     result.rainbows.length || result.squares.length ||
+                                     result.normalCells.size;
+                if (hasAnyMatch) {
+                    applyResolutionFull(result);
+                } else if (onComplete) {
+                    onComplete();
+                } else {
+                    busy = false;
+                    checkEndConditions();
+                }
             }, FALL_MS + 20);
         }, CLEAR_MS);
     }
@@ -1999,7 +2136,45 @@
         let cells = new Set();
         const kinds = [a.type, b.type];
         const has = t => kinds.includes(t);
-        
+        const isRocketType = t => t === 'rocketRow' || t === 'rocketCol';
+
+        // ДОБАВЛЕНО: Бомба + Бомба — увеличенный вдвое радиус взрыва (7х7 вместо обычных 5х5)
+        if (a.type === 'bomb' && b.type === 'bomb') {
+            const cx = Math.round((a.row + b.row) / 2);
+            const cy = Math.round((a.col + b.col) / 2);
+            for (let dr = -3; dr <= 3; dr++) {
+                for (let dc = -3; dc <= 3; dc++) {
+                    const rr = cx + dr, cc = cy + dc;
+                    if (rr >= 0 && rr < SIZE && cc >= 0 && cc < SIZE) cells.add(key(rr, cc));
+                }
+            }
+            pulseToast('💥 ДВОЙНОЙ ВЗРЫВ: увеличенный радиус!');
+            return cells;
+        }
+
+        // ДОБАВЛЕНО: Ракета + Ракета — каждая превращается в крест (и строка, и столбец разом)
+        if (isRocketType(a.type) && isRocketType(b.type)) {
+            for (let c = 0; c < SIZE; c++) { cells.add(key(a.row, c)); cells.add(key(b.row, c)); }
+            for (let r = 0; r < SIZE; r++) { cells.add(key(r, a.col)); cells.add(key(r, b.col)); }
+            pulseToast('🚀 ДВОЙНОЙ ЗАЛП: крест на всё поле!');
+            return cells;
+        }
+
+        // ДОБАВЛЕНО: Бомба + Ракета — три полосы (3 строки и 3 столбца) вокруг эпицентра бомбы
+        if ((a.type === 'bomb' && isRocketType(b.type)) || (b.type === 'bomb' && isRocketType(a.type))) {
+            const bombTile = a.type === 'bomb' ? a : b;
+            for (let dr = -1; dr <= 1; dr++) {
+                const rr = bombTile.row + dr;
+                if (rr >= 0 && rr < SIZE) for (let c = 0; c < SIZE; c++) cells.add(key(rr, c));
+            }
+            for (let dc = -1; dc <= 1; dc++) {
+                const cc = bombTile.col + dc;
+                if (cc >= 0 && cc < SIZE) for (let r = 0; r < SIZE; r++) cells.add(key(r, cc));
+            }
+            pulseToast('🎯 ТРОЙНОЙ УДАР: 3 полосы!');
+            return cells;
+        }
+
         if (has('plane') && has('plane')) {
             cells = computeActivationFootprint(a);
             activePlanesCount += doublePlanesActive ? 6 : 3;
