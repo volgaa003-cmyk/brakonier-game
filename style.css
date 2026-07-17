@@ -1038,7 +1038,7 @@ to { transform: scale(1.05) rotate(5deg); }
   padding: 0 10px;
 }
 
-/* Круглая кнопка бустера */
+/* Круглая кнопка бустера (ИСПРАВЛЕНО) */
 .booster-btn {
   position: relative;
   width: 58px;
@@ -1051,15 +1051,22 @@ to { transform: scale(1.05) rotate(5deg); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px; /* Размер эмодзи, если картинка еще не загружена */
+  font-size: 0 !important; /* Сжимаем и полностью прячем текстовый эмодзи */
   padding: 0;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s;
   
-  /* Настройки для будущих PNG-картинок */
+  /* Изображение бустера по центру */
   background-size: 32px 32px;
   background-repeat: no-repeat;
   background-position: center;
 }
+
+/* Назначаем картинки-фоны для каждой кнопки отдельно */
+#btnHammer { background-image: url('images/hammer.png'); }
+#btnGlove { background-image: url('images/glove.png'); }
+#btnBroom { background-image: url('images/broom.png'); }
+#btnWeight { background-image: url('images/weight.png'); }
+#btnFan { background-image: url('images/fan.png'); }
 
 /* Круглый счетчик количества бустеров (сверху справа) */
 .booster-btn .b-count {
