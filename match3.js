@@ -1058,20 +1058,17 @@
         el.addEventListener('click', onTileClick);
 
         // Если задана спавн-строка выше поля — фишка упадет плавно сверху
+ // Установка стартовой позиции фишки без задержек и наслоений
         if(spawnRow !== undefined && spawnRow !== row){
             el.style.transition = 'none';
             setTilePos(el, spawnRow, col);
+            if (boardEl) boardEl.appendChild(el);
+            void el.offsetWidth; // Заставляем браузер мгновенно обновить кадр
+            el.style.transition = '';
+            setTilePos(el, row, col);
         } else {
             setTilePos(el, row, col);
-        }
-
-        if (boardEl) boardEl.appendChild(el);
-
-        if(spawnRow !== undefined && spawnRow !== row){
-            setTimeout(() => {
-                el.style.transition = '';
-                setTilePos(el, tile.row, tile.col); 
-            }, 16); 
+            if (boardEl) boardEl.appendChild(el);
         }
         
         applySpecialClass(tile); // Навешиваем классы спецэффектов
