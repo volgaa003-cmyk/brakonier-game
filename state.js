@@ -1,14 +1,19 @@
 // ================================================
 // state.js (ОБНОВЛЕННЫЙ)
-// Модуль управления сохранениями, ресурсами, задачами и бустерами
 // ================================================
 
 (function() {
     const DEFAULT_STATE = {
         lives: 5,               
         stars: 1,               
-        cash: 1000, // Даем больше монет для тестов бустеров             
-        reputation: 10,         
+        cash: 1000,             
+        reputation: 10, // Общая репутация (устаревшая)
+        
+        // Три раздельные фракции интерактивного сценария
+        reputation_people: 0,       // Люди
+        reputation_underground: 0,  // Подполье
+        reputation_changed: 0,      // Измененные
+
         currentLevel: 1,        
         decor: {
             floor: "Гнилые доски",
@@ -19,20 +24,8 @@
             windows: "Забиты фанерой"
         },
         completedTasks: [],
-        // Склад пре-гейм бустеров
-        boostersPre: {
-            rainbow: 2,
-            combo: 2,
-            doublePlanes: 2
-        },
-        // Склад активных бустеров
-        boostersActive: {
-            hammer: 3,
-            glove: 3,
-            broom: 3,
-            weight: 3,
-            fan: 3
-        }
+        boostersPre: { rainbow: 2, combo: 2, doublePlanes: 2 },
+        boostersActive: { hammer: 3, glove: 3, broom: 3, weight: 3, fan: 3 }
     };
 
     let state = {};
@@ -53,6 +46,9 @@
                 if (!state.completedTasks) state.completedTasks = [];
                 if (!state.boostersPre) state.boostersPre = { rainbow: 2, combo: 2, doublePlanes: 2 };
                 if (!state.boostersActive) state.boostersActive = { hammer: 3, glove: 3, broom: 3, weight: 3, fan: 3 };
+                if (state.reputation_people === undefined) state.reputation_people = 0;
+                if (state.reputation_underground === undefined) state.reputation_underground = 0;
+                if (state.reputation_changed === undefined) state.reputation_changed = 0;
             } catch (e) {
                 state = JSON.parse(JSON.stringify(DEFAULT_STATE));
             }
@@ -73,7 +69,8 @@
         if (hudLives) hudLives.textContent = state.lives;
         if (hudStars) hudStars.textContent = state.stars;
         if (hudCash) hudCash.textContent = state.cash + "₽";
-        if (hudRep) hudRep.textContent = state.reputation;
+        // На HUD выводим сумму репутации или среднее значение
+        if (hudRep) hudRep.textContent = state.reputation_people + state.reputation_underground + state.reputation_changed;
     }
 
     function updateHideoutInterior() {
@@ -96,10 +93,14 @@
         getStars: () => state.stars,
         getLives: () => state.lives,
         getCash: () => state.cash,
-        getReputation: () => state.reputation,
         getCurrentLevel: () => state.currentLevel,
         getDecor: (item) => state.decor[item],
         
+        getReputation: () => state.reputation_people + state.reputation_underground + state.reputation_changed,
+        getReputationPeople: () => state.reputation_people,
+        getReputationUnderground: () => state.reputation_underground,
+        getReputationChanged: () => state.reputation_changed,
+
         getPreBoosterCount: (type) => state.boostersPre[type] || 0,
         getActiveBoosterCount: (type) => state.boostersActive[type] || 0,
 
@@ -135,8 +136,10 @@
             return false;
         },
 
-        addReputation: (amount) => {
-            state.reputation += amount;
+        addFactionRep: (faction, amount) => {
+            if (faction === 'people') state.reputation_people += amount;
+            else if (faction === 'underground') state.reputation_underground += amount;
+            else if (faction === 'changed') state.reputation_changed += amount;
             updateHUD();
             saveGame();
         },
@@ -177,7 +180,6 @@
             }
         },
 
-        // Использование или покупка бустеров перед началом уровня
         useOrBuyPreBooster: (type, cost) => {
             if (state.boostersPre[type] > 0) {
                 state.boostersPre[type]--;
@@ -192,7 +194,6 @@
             return false;
         },
 
-        // Использование или покупка активных бустеров
         useOrBuyActiveBooster: (type, cost) => {
             if (state.boostersActive[type] > 0) {
                 state.boostersActive[type]--;
@@ -229,6 +230,6 @@
 
     document.addEventListener("DOMContentLoaded", () => {
         loadGame();
-        console.log("state.js: Хранилище бустеров инициализировано!");
+        console.log("state.js: Система фракционной репутации инициализирована!");
     });
 })();
