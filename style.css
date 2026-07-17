@@ -315,6 +315,14 @@ body {
   animation: hazardPulse 1.5s infinite ease-in-out;
 }
 
+/* Заблокированный КПП должен выглядеть закрытым, а не "горячим":
+   без этого правила .node-checkpoint (та же специфичность, но ниже
+   по файлу) перебивал серый фон .locked своим оранжевым hazard-цветом */
+.map-node.node-checkpoint.locked {
+  background: #7d7a72;
+  border-style: solid;
+}
+
 @keyframes hazardPulse {
   0%, 100% { box-shadow: 0 0 0 0px rgba(255, 159, 67, 0.7); }
   50% { box-shadow: 0 0 0 10px rgba(255, 159, 67, 0); }
