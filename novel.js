@@ -1,35 +1,41 @@
 // ================================================
-// novel.js (ИСПРАВЛЕННЫЙ И СТАБИЛЬНЫЙ)
-// Движок визуальной новеллы (в стиле Клуба Романтики)
+// novel.js (ИСПРАВЛЕННЫЙ, ИНТЕРАКТИВНЫЙ И СТАБИЛЬНЫЙ)
 // ================================================
 
 (function() {
-    // Внутреннее состояние движка новеллы (Все переменные приведены к одному имени!)
-    let dialogueLines = [];         // Массив текущих реплик сцены
-    let currentLineIndex = 0;       // Номер текущей реплики
-    let onEndCallback = null;       // Функция, которая сработает после окончания диалога
+    // Внутреннее состояние движка новеллы
+    let activeStoryData = null;     // Данные текущей истории (массив или граф)
+    let currentSceneId = null;      // ID текущей сцены (для графа)
+    let currentSlideIndex = 0;      // Номер текущего слайда внутри сцены или линейного массива
+    let onEndCallback = null;       // Функция обратного вызова после завершения новеллы
     
-    let isTyping = false;           // Печатается ли текст прямо сейчас
-    let typingTimeoutId = null;     // ID таймера печати (нужен для пропуска)
-    let currentText = "";           // Полный текст текущей реплики
+    let isTyping = false;           // Идет ли анимация печати текста
+    let typingTimeoutId = null;     // ID таймера печатной машинки
+    let currentText = "";           // Полный текст текущей строки
 
-    // Находим HTML-элементы
+    // HTML-элементы
     const overlayDialogue = document.getElementById('overlayDialogue');
-    const dialogueBox = document.querySelector('.dialogue-window') || document.getElementById('dialogueBox');
+    const dialogueBox = document.getElementById('dialogueBox');
     const speakerNameEl = document.getElementById('dialogueSpeaker');
     const dialogueTextEl = document.getElementById('dialogueText');
     const dialogueChoicesEl = document.getElementById('dialogueChoices');
     const dialogueHintEl = document.getElementById('dialogueHint');
+    
+    // Новые элементы для графики
+    const dialogueBg = document.getElementById('dialogueBg');
+    const dialogueSprite = document.getElementById('dialogueSprite');
 
-    // 1. ЗАПУСК СЦЕНЫ ДИАЛОГА
-    function startDialogue(lines, onEnd) {
-        if (!lines || lines.length === 0) {
+    // Имена персонажей, у которых есть графические спрайты
+    const AVAILABLE_SPRITES = ["Брак", "Привратник", "Мужик в камуфляже", "Митрич"];
+
+    // 1. ЗАПУСК ДИАЛОГА (Универсальная точка входа)
+    function startDialogue(storyData, onEnd) {
+        if (!storyData) {
             if (onEnd) onEnd();
             return;
         }
 
-        dialogueLines = lines;
-        currentLineIndex = 0;
+        activeStoryData = storyData;
         onEndCallback = onEnd;
 
         // Показываем оверлей новеллы
@@ -37,12 +43,49 @@
             overlayDialogue.classList.remove('hidden');
         }
 
-        // Показываем первую реплику
-        showLine();
+        // Проверяем тип данных диалога: ветвящийся граф или простой массив
+        if (storyData.isGraph) {
+            // Режим графа (пролог)
+            currentSceneId = storyData.startSceneId;
+            currentSlideIndex = 0;
+            playScene(currentSceneId);
+        } else {
+            // Линейный режим (старый формат массива)
+            currentSceneId = null;
+            currentSlideIndex = 0;
+            
+            // Сбрасываем фоны и спрайты
+            if (dialogueBg) dialogueBg.style.backgroundImage = "none";
+            if (dialogueSprite) dialogueSprite.classList.remove('active');
+            
+            showLinearLine();
+        }
     }
 
-    // 2. ОТОБРАЖЕНИЕ ТЕКУЩЕЙ РЕПЛИКИ
-    function showLine() {
+    // 2. ВОСПРОИЗВЕДЕНИЕ СЦЕНЫ ИЗ ГРАФА
+    function playScene(sceneId) {
+        currentSceneId = sceneId;
+        currentSlideIndex = 0;
+
+        const scene = activeStoryData.scenes[sceneId];
+        if (!scene) {
+            endDialogue();
+            return;
+        }
+
+        // Установка фонового изображения сцены
+        if (dialogueBg && scene.background) {
+            dialogueBg.style.backgroundImage = `url('images/${scene.background}')`;
+        }
+
+        showGraphSlide();
+    }
+
+    // 3. ОТОБРАЖЕНИЕ СЛАЙДА В СЦЕНЕ ГРАФА
+    function showGraphSlide() {
+        const scene = activeStoryData.scenes[currentSceneId];
+        const slide = scene.slides[currentSlideIndex];
+
         // Очищаем старые кнопки выбора
         if (dialogueChoicesEl) {
             dialogueChoicesEl.classList.add('hidden');
@@ -52,24 +95,43 @@
             dialogueHintEl.classList.remove('hidden');
         }
 
-        const line = dialogueLines[currentLineIndex];
-        if (!line) {
+        // Имя говорящего
+        if (speakerNameEl) {
+            speakerNameEl.textContent = slide.name ? slide.name : "";
+        }
+
+        // Управление отображением спрайтов персонажей
+        updateCharacterSprite(slide.name);
+
+        currentText = slide.text || "";
+        typewriteText(currentText, () => {
+            // Если слайды закончились, проверяем наличие развилок
+            if (currentSlideIndex === scene.slides.length - 1) {
+                showSceneChoices(scene);
+            }
+        });
+    }
+
+    // 4. ОТОБРАЖЕНИЕ РЕПЛИКИ ДЛЯ ЛИНЕЙНОГО СЮЖЕТА
+    function showLinearLine() {
+        const slide = activeStoryData[currentSlideIndex];
+        if (!slide) {
             endDialogue();
             return;
         }
 
-        // Выводим имя персонажа
         if (speakerNameEl) {
-            speakerNameEl.textContent = line.name || "???";
+            speakerNameEl.textContent = slide.name ? slide.name : "";
         }
 
-        // Запускаем печатную машинку для текста реплики
-        currentText = line.text || "";
-        typewriteText(currentText);
+        updateCharacterSprite(slide.name);
+
+        currentText = slide.text || "";
+        typewriteText(currentText, null);
     }
 
-    // 3. ЭФФЕКТ ПЕЧАТНОЙ МАШИНКИ
-    function typewriteText(text) {
+    // 5. ЭФФЕКТ ПЕЧАТНОЙ МАШИНКИ
+    function typewriteText(text, callback) {
         if (typingTimeoutId) {
             clearTimeout(typingTimeoutId);
         }
@@ -82,18 +144,18 @@
             if (charIndex < text.length) {
                 dialogueTextEl.textContent += text.charAt(charIndex);
                 charIndex++;
-                typingTimeoutId = setTimeout(printChar, 25);
+                typingTimeoutId = setTimeout(printChar, 18); // Скорость печати
             } else {
                 isTyping = false;
                 typingTimeoutId = null;
-                checkAndShowChoices();
+                if (callback) callback();
             }
         }
 
         printChar();
     }
 
-    // Функция мгновенного показа текста
+    // Мгновенный пропуск вывода букв
     function skipTyping() {
         if (typingTimeoutId) {
             clearTimeout(typingTimeoutId);
@@ -101,105 +163,143 @@
         dialogueTextEl.textContent = currentText;
         isTyping = false;
         typingTimeoutId = null;
-        checkAndShowChoices();
-    }
 
-    // 4. ПРОВЕРКА НАЛИЧИЯ ВЫБОРОВ НА ЭТОМ ШАГЕ
-    function checkAndShowChoices() {
-        const line = dialogueLines[currentLineIndex];
-        
-        if (line && line.choices && line.choices.length > 0) {
-            if (dialogueHintEl) dialogueHintEl.classList.add('hidden');
-            
-            if (dialogueChoicesEl) {
-                dialogueChoicesEl.innerHTML = "";
-                dialogueChoicesEl.classList.remove('hidden');
-
-                line.choices.forEach(choice => {
-                    const btn = document.createElement('button');
-                    btn.className = 'choice-btn';
-                    
-                    let hasResource = true;
-                    let prefixText = "";
-
-                    if (choice.costRep) {
-                        prefixText += `[👑 Репутация: ${choice.costRep}] `;
-                        if (window.GameState && window.GameState.getReputation() < choice.costRep) {
-                            hasResource = false;
-                        }
-                    }
-                    if (choice.costCoins) {
-                        prefixText += `[💰 ${choice.costCoins}₽] `;
-                        if (window.GameState && window.GameState.getCash() < choice.costCoins) {
-                            hasResource = false;
-                        }
-                    }
-
-                    btn.textContent = prefixText + choice.text;
-
-                    if (choice.costRep || choice.costCoins) {
-                        btn.classList.add('premium');
-                    }
-
-                    if (!hasResource) {
-                        btn.disabled = true;
-                        btn.style.opacity = "0.45";
-                        btn.style.cursor = "not-allowed";
-                    } else {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation(); 
-                            handleChoiceSelection(choice);
-                        });
-                    }
-
-                    dialogueChoicesEl.appendChild(btn);
-                });
+        // Если это граф и слайды закончились — выводим кнопки
+        if (activeStoryData.isGraph) {
+            const scene = activeStoryData.scenes[currentSceneId];
+            if (currentSlideIndex === scene.slides.length - 1) {
+                showSceneChoices(scene);
             }
         }
     }
 
-    // 5. ОБРАБОТКА ВЫБРАННОГО ОТВЕТА
-    function handleChoiceSelection(choice) {
-        if (choice.costCoins && window.GameState) {
-            window.GameState.spendCash(choice.costCoins);
-        }
-        
-        if (choice.rewardRep && window.GameState) {
-            window.GameState.addReputation(choice.rewardRep);
-            showToast(`Репутация: +${choice.rewardRep} 👑`);
-        }
-        if (choice.rewardCoins && window.GameState) {
-            window.GameState.addCash(choice.rewardCoins);
-            showToast(`Валюта: +${choice.rewardCoins}₽ 💰`);
+    // 6. УПРАВЛЕНИЕ СПРАЙТОМ ПЕРСОНАЖА
+    function updateCharacterSprite(speakerName) {
+        if (!dialogueSprite) return;
+
+        // Нормализуем имя для сопоставления с именами файлов
+        let normalizedSpeaker = speakerName ? speakerName.trim() : null;
+
+        if (normalizedSpeaker === "Голос из темноты") {
+            normalizedSpeaker = "Mitrich";
         }
 
-        if (choice.nextScene && window.gameDialogs && window.gameDialogs[choice.nextScene]) {
-            startDialogue(window.gameDialogs[choice.nextScene], onEndCallback);
-        } else if (choice.nextDialogueLines) {
-            startDialogue(choice.nextDialogueLines, onEndCallback);
+        const hasSprite = normalizedSpeaker && AVAILABLE_SPRITES.includes(normalizedSpeaker);
+
+        if (hasSprite) {
+            // Переключаем картинку спрайта
+            dialogueSprite.src = `images/char_${normalizedSpeaker}.png`;
+            dialogueSprite.classList.add('active');
         } else {
-            advanceLine();
+            // Если говорит диктор (null) или фоновый персонаж — скрываем спрайт
+            dialogueSprite.classList.remove('active');
         }
     }
 
-    // 6. ПРОВЕРКА ПЕРЕХОДА НА СЛЕДУЮЩУЮ СТРОКУ
-    function advanceLine() {
-        currentLineIndex++;
-        if (currentLineIndex < dialogueLines.length) {
-            showLine();
+    // 7. ВЫВОД ВАРИАНТОВ ВЫБОРА НА ЭКРАН
+    function showSceneChoices(scene) {
+        // Если это терминальный конец (нет выборов)
+        if (!scene.choices || scene.choices.length === 0) {
+            if (dialogueHintEl) {
+                dialogueHintEl.textContent = "Нажмите на экран для завершения пролога...";
+                dialogueHintEl.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (dialogueHintEl) {
+            dialogueHintEl.classList.add('hidden');
+        }
+
+        if (dialogueChoicesEl) {
+            dialogueChoicesEl.innerHTML = "";
+            dialogueChoicesEl.classList.remove('hidden');
+
+            scene.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choice.text;
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Блокируем клик по самому окну
+                    handleChoiceSelection(choice);
+                });
+
+                dialogueChoicesEl.appendChild(btn);
+            });
+        }
+    }
+
+    // 8. ОБРАБОТКА ВЫБРАННОГО ВАРИАНТА ОТВЕТА
+    function handleChoiceSelection(choice) {
+        // Начисление фракционной репутации
+        if (choice.effects && window.GameState) {
+            let changesText = [];
+            if (choice.effects.people) {
+                window.GameState.addFactionRep('people', choice.effects.people);
+                changesText.push(`Люди: ${choice.effects.people > 0 ? '+' : ''}${choice.effects.people} 📈`);
+            }
+            if (choice.effects.underground) {
+                window.GameState.addFactionRep('underground', choice.effects.underground);
+                changesText.push(`Подполье: ${choice.effects.underground > 0 ? '+' : ''}${choice.effects.underground} 📈`);
+            }
+            if (choice.effects.changed) {
+                window.GameState.addFactionRep('changed', choice.effects.changed);
+                changesText.push(`Измененные: ${choice.effects.changed > 0 ? '+' : ''}${choice.effects.changed} 📈`);
+            }
+            if (changesText.length > 0) {
+                showToast(changesText.join('\n'));
+            }
+        }
+
+        // Переход к следующей сцене
+        if (choice.nextScene) {
+            playScene(choice.nextScene);
         } else {
             endDialogue();
         }
     }
 
-    // 7. КОНЕЦ СЦЕНЫ ДИАЛОГА
+    // 9. ПРОДВИЖЕНИЕ СЮЖЕТА ПО КЛИКУ НА ЭКРАН
+    function advanceDialogue() {
+        if (isTyping) {
+            skipTyping();
+            return;
+        }
+
+        if (activeStoryData.isGraph) {
+            // Режим графа
+            const scene = activeStoryData.scenes[currentSceneId];
+            if (currentSlideIndex < scene.slides.length - 1) {
+                currentSlideIndex++;
+                showGraphSlide();
+            } else {
+                // Если слайды закончились и выборов нет — это финал
+                if (!scene.choices || scene.choices.length === 0) {
+                    endDialogue();
+                }
+            }
+        } else {
+            // Линейный режим
+            if (currentSlideIndex < activeStoryData.length - 1) {
+                currentSlideIndex++;
+                showLinearLine();
+            } else {
+                endDialogue();
+            }
+        }
+    }
+
+    // 10. ЗАВЕРШЕНИЕ ДИЛОГА И ВОЗВРАТ НА КАРТУ
     function endDialogue() {
         if (overlayDialogue) {
             overlayDialogue.classList.add('hidden');
         }
-        
-        dialogueLines = [];
-        currentLineIndex = 0;
+
+        // Сбрасываем состояние
+        activeStoryData = null;
+        currentSceneId = null;
+        currentSlideIndex = 0;
 
         if (onEndCallback) {
             onEndCallback();
@@ -211,31 +311,28 @@
         if (toast) {
             toast.textContent = msg;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 1500);
+            setTimeout(() => toast.classList.remove('show'), 2000);
         }
     }
 
-    // Клик на саму плашку диалога продвигает текст вперед
+    // Вешаем клик на окно диалога для продвижения по сюжету
     if (dialogueBox) {
-        dialogueBox.addEventListener('click', () => {
-            if (isTyping) {
-                skipTyping();
-                return;
+        dialogueBox.addEventListener('click', (e) => {
+            // Если открыты кнопки развилок — клик мимо них не должен продвигать слайд
+            if (activeStoryData && activeStoryData.isGraph) {
+                const scene = activeStoryData.scenes[currentSceneId];
+                if (currentSlideIndex === scene.slides.length - 1 && scene.choices && scene.choices.length > 0) {
+                    return;
+                }
             }
-
-            const line = dialogueLines[currentLineIndex];
-            if (line && line.choices && line.choices.length > 0) {
-                return;
-            }
-
-            advanceLine();
+            advanceDialogue();
         });
     }
 
-    // Экспортируем движок новеллы глобально
+    // Экспортируем новый движок в глобальную видимость
     window.NovelEngine = {
         run: startDialogue
     };
 
-    console.log("novel.js: Опечатки в имени переменной исправлены!");
+    console.log("novel.js: Графовый движок интерактивной новеллы с поддержкой спрайтов запущен!");
 })();
