@@ -47,6 +47,17 @@ const DEFAULT_STATE = {
                 shower: 0        // 0 - ржавый таз, 1 - ванна с бойлером, 2 - душевой бокс, 3 - кабина с системой фильтрации
             }
         },
+
+        // Прогресс и инвентарь — раньше отсутствовали в DEFAULT_STATE,
+        // из-за чего при первом запуске (без сохранения) или после resetAll()
+        // падали методы вроде isTaskCompleted() (state.completedTasks.includes)
+        completedTasks: [],
+        inventory: [],
+        collectedCollectibleIds: [],
+        boostersPre: { rainbow: 2, combo: 2, doublePlanes: 2 },
+        boostersActive: { hammer: 3, glove: 3, broom: 3, weight: 3, fan: 3 }
+    };
+
     let state = {};
 
     function saveGame() {
