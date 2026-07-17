@@ -1252,3 +1252,179 @@ to { transform: scale(1.05) rotate(5deg); }
   z-index: 103 !important;
   bottom: 20px;
 }
+/* ==========================================================================
+   ИНТЕРАКТИВНЫЙ ИГРОВОЙ ХАБ (УБЕЖИЩЕ)
+   ========================================================================== */
+.hideout-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  border: 4px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: var(--panel-shadow);
+  overflow: hidden;
+  background: #110f14;
+}
+
+/* Слой фоновой картинки комнаты */
+.room-background {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: background-image 0.4s ease-in-out;
+  z-index: 1;
+}
+
+/* Стили хотспотов (точек на экране) */
+.hotspot {
+  position: absolute;
+  z-index: 5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+/* Хотспот-пульсар для улучшений */
+.hotspot.type-upgrade::before {
+  content: "🛠️";
+  font-size: 18px;
+  padding: 6px;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--gold);
+  animation: hotspotPulse 1.6s infinite ease-in-out;
+}
+
+/* Хотспот-портал для переходов в другие комнаты */
+.hotspot.type-portal::before {
+  content: "🚪";
+  font-size: 20px;
+  padding: 6px;
+  background: var(--sky);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--sky);
+  animation: hotspotPulse 2s infinite ease-in-out;
+}
+
+/* Хотспот скрытых предметов */
+.hotspot.type-collectible {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px dashed var(--gold);
+  border-radius: 4px;
+}
+.hotspot.type-collectible::after {
+  content: "🔍";
+  font-size: 12px;
+  opacity: 0.1;
+  transition: opacity 0.2s;
+}
+.hotspot.type-collectible:hover::after {
+  opacity: 1;
+}
+
+@keyframes hotspotPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 4px cubic-bezier(0.25, 1, 0.5, 1); }
+  50% { transform: scale(1.15); box-shadow: 0 0 15px cubic-bezier(0.25, 1, 0.5, 1); }
+}
+
+/* Панель инвентаря находок */
+.inventory-panel {
+  width: 100%;
+  background: rgba(13, 11, 15, 0.7);
+  border: 2px solid var(--paper);
+  border-radius: 12px;
+  padding: 10px;
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inv-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.inventory-slots {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.inventory-item {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+  animation: itemPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes itemPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Опции выбора мебели (карточки) */
+.upgrade-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upgrade-option-card {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.upgrade-option-card:hover {
+  background: #fbf8f0;
+}
+
+.upgrade-option-card.active-decor {
+  border-color: var(--toxic);
+  background: rgba(122, 154, 63, 0.15);
+  cursor: default;
+}
+
+.opt-info {
+  text-align: left;
+}
+
+.opt-name {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.opt-desc {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.opt-btn {
+  background: var(--toxic);
+  color: var(--paper);
+  font-family: 'Bangers', cursive;
+  font-size: 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 4px 10px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
