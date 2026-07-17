@@ -336,6 +336,92 @@
     window.NovelEngine = {
         run: startDialogue
     };
+// ================================================
+    // МЕНЕДЖЕР ВЫБОРА И СТАРТА ГЛАВ СЮЖЕТА
+    // ================================================
+    document.addEventListener("DOMContentLoaded", () => {
+        const btnOpenStory = document.getElementById('btnOpenStory');
+        const btnCloseStory = document.getElementById('btnCloseStory');
+        const overlayStory = document.getElementById('overlayStory');
+        const storyListContainer = document.getElementById('storyListContainer');
 
+        // Открытие книги сюжетов
+        if (btnOpenStory && overlayStory) {
+            btnOpenStory.addEventListener('click', () => {
+                renderStoryChapters();
+                overlayStory.classList.remove('hidden');
+            });
+        }
+
+        // Закрытие книги сюжетов
+        if (btnCloseStory && overlayStory) {
+            btnCloseStory.addEventListener('click', () => {
+                overlayStory.classList.add('hidden');
+            });
+        }
+
+        // Отрисовка списка глав
+        function renderStoryChapters() {
+            if (!storyListContainer) return;
+            storyListContainer.innerHTML = "";
+
+            const chapters = [
+                { id: "story_prologue", title: "Пролог: Черное Сердце", desc: "Прибытие в крепость к кочегару Митричу.", cost: 0 },
+                { id: "story_chapter1", title: "Глава 1: Пир", desc: "Кровавый Праздник молодежи на площади.", cost: 1 },
+                { id: "story_chapter2", title: "Глава 2: Братан", desc: "Спасение Коляна из лап измененных.", cost: 2 }
+            ];
+
+            chapters.forEach(chap => {
+                const item = document.createElement('div');
+                item.className = "task-item"; 
+                
+                const isCompleted = window.GameState && window.GameState.isTaskCompleted("completed_" + chap.id);
+                
+                let btnText = chap.cost === 0 ? "Читать" : `Открыть за ⭐ ${chap.cost}`;
+                if (isCompleted) {
+                    btnText = "Читать снова";
+                }
+
+                item.innerHTML = `
+                    <div class="task-info">
+                        <div class="task-title" style="color:var(--sky); font-weight:800; font-size:14px;">${chap.title}</div>
+                        <div style="font-size:11px; opacity:0.8; margin-top:2px;">${chap.desc}</div>
+                    </div>
+                    <button class="task-btn" id="btn_start_${chap.id}">${btnText}</button>
+                `;
+
+                storyListContainer.appendChild(item);
+
+                const btnStart = item.querySelector(`#btn_start_${chap.id}`);
+                if (btnStart) {
+                    btnStart.addEventListener('click', () => {
+                        if (isCompleted || chap.cost === 0) {
+                            startChapter(chap.id);
+                        } else {
+                            if (window.GameState && window.GameState.spendStars(chap.cost)) {
+                                window.GameState.completeTask("completed_" + chap.id);
+                                startChapter(chap.id);
+                            } else {
+                                alert("Недостаточно звезд ⭐! Добудьте их, проходя уровни в режиме Охоты.");
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Запуск конкретного диалога
+        function startChapter(chapId) {
+            if (overlayStory) overlayStory.classList.add('hidden');
+            const dialogData = window.gameDialogs ? window.gameDialogs[chapId] : null;
+            if (dialogData && window.NovelEngine) {
+                window.NovelEngine.run(dialogData, () => {
+                    console.log(`Глава ${chapId} успешно завершена.`);
+                });
+            } else {
+                alert("Не удалось загрузить диалоги. Проверьте, подключен ли dialogs.js");
+            }
+        }
+    });
     console.log("novel.js: Графовый движок интерактивной новеллы с поддержкой спрайтов запущен!");
 })();
