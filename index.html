@@ -44,33 +44,34 @@
     </div>
   </header>
 
-  <!-- ==================== ЭКРАН 1: УБЕЖИЩЕ (ХАБ ОБУСТРОЙСТВА) ==================== -->
+<!-- ==================== ЭКРАН 1: УБЕЖИЩЕ (ИНТЕРАКТИВНЫЙ ХАБ) ==================== -->
   <main id="screenHideout" class="game-screen">
-    <div class="location-banner">Комната 1: Жилой блок</div>
+    <!-- Шапка текущей комнаты -->
+    <div class="location-banner" id="hideoutRoomTitle">Комната: Жилой блок</div>
     
-    <!-- Интерактивная комната со статусом мебели -->
-    <section class="room-container">
-      <div class="decor-card">
-        <h3>Текущий интерьер:</h3>
-        <ul class="decor-list">
-          <li>🪵 Пол: <span id="decorFloor" class="decor-val">Гнилые доски</span></li>
-          <li>🧱 Стены: <span id="decorWalls" class="decor-val">Осыпающаяся штукатурка</span></li>
-          <li>🛏️ Кровать: <span id="decorBed" class="decor-val">Пыльный матрас</span></li>
-          <li>🪵 Стол: <span id="decorTable" class="decor-val">Шатающийся верстак</span></li>
-          <li>🚪 Шкаф: <span id="decorCabinet" class="decor-val">Сломанный комод</span></li>
-          <li>🪟 Окна: <span id="decorWindows" class="decor-val">Забиты фанерой</span></li>
-        </ul>
-      </div>
-    </section>
+    <!-- Интерактивный интерактивный вьюпорт комнаты -->
+    <div class="hideout-viewport" id="hideoutViewport">
+      <!-- Фоновый слой комнаты (меняется через JS) -->
+      <div class="room-background" id="roomBgLayer"></div>
+      
+      <!-- Контейнер для динамических хотспотов (улучшения, переходы, предметы) -->
+      <div id="hotspotsContainer"></div>
+    </div>
 
-    <!-- Нижняя панель навигации Убежища (ТРИ КНОПКИ) -->
+    <!-- Инвентарь игрока (Нижняя панель находок) -->
+    <div class="inventory-panel">
+      <span class="inv-title">🎒 Находки:</span>
+      <div class="inventory-slots" id="inventorySlots">
+        <!-- Сюда JS выводит собранные предметы -->
+      </div>
+    </div>
+
+    <!-- Нижняя панель навигации Убежища -->
     <footer class="screen-navigation">
-      <button class="menu-btn tasks-btn" id="btnOpenTasks" style="background:var(--gold); color:var(--ink);">🛠️ Ремонт</button>
       <button class="menu-btn story-btn" id="btnOpenStory" style="background:var(--sky); color:var(--paper);">📖 Сюжет</button>
       <button class="menu-btn hunt-btn" id="btnGoToMap" style="background:var(--blood); color:var(--paper);">🔫 Охота</button>
     </footer>
   </main>
-
   <!-- ==================== ЭКРАН 2: КАРТА И ПУТЬ ВЫЛАЗОК ==================== -->
   <main id="screenMap" class="game-screen hidden">
     <div class="location-banner">Охотничьи угодья</div>
@@ -231,6 +232,19 @@
         Вы получили: ⭐ +1 и 💰 +120₽
       </div>
       <button class="action-btn next-btn" id="btnResultsClose">Отлично</button>
+    </div>
+  </div>
+  <!-- ==================== ОВЕРЛЕЙ 6: ОКНО ВЫБОРА ВАРИАНТА РЕМОНТА ==================== -->
+  <div id="overlayUpgradeSelector" class="ui-overlay hidden">
+    <div class="ui-card upgrade-selector-card">
+      <h2 id="upgradeItemTitle">Модернизация: Дверь</h2>
+      <p style="font-size: 11px; text-align: center; margin-top:-10px; margin-bottom: 15px; color: var(--ink);">Выберите вариант улучшения за звезды ⭐:</p>
+      
+      <div class="upgrade-options-list" id="upgradeOptionsList">
+        <!-- Наполняется динамически из JS (3 варианта) -->
+      </div>
+      
+      <button class="action-btn cancel-btn" id="btnCancelUpgrade" style="margin-top: 15px;">Назад</button>
     </div>
   </div>
 
