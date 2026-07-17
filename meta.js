@@ -3,93 +3,128 @@
 // ================================================
 
 (function() {
-    // 1. БАЗА ДАННЫХ КОМНАТ, МЕБЕЛИ И ПРЕДМЕТОВ
-    // 1. БАЗА ДАННЫХ 6 КОМНАТ КВАРТИРЫ, ИХ МЕБЕЛИ, ПОРТАЛОВ И НАХОДОК
+// 1. БАЗА ДАННЫХ 8 КОМНАТ КВАРТИРЫ И ИХ ВЗАИМОСВЯЗЕЙ
     const ROOMS_DATABASE = {
-        "main_room": {
-            title: "Основная комната (Прихожая Гены)",
-            background: "room_main_room.jpg",
+        "corridor": {
+            title: "Прихожая-коридор квартиры",
+            background: "room_corridor.jpg",
             hotspots: [
-                // Портал в Спальню (слева)
-                {
-                    id: "portal_to_bedroom",
-                    type: "portal",
-                    x: 5, y: 35, w: 10, h: 50,
-                    targetRoom: "bedroom"
-                },
-                // Портал на Кухню
-                {
-                    id: "portal_to_kitchen",
-                    type: "portal",
-                    x: 20, y: 35, w: 10, h: 50,
-                    targetRoom: "kitchen"
-                },
-                // Портал в Ванную
-                {
-                    id: "portal_to_bathroom",
-                    type: "portal",
-                    x: 65, y: 35, w: 10, h: 50,
-                    targetRoom: "bathroom"
-                },
-                // Портал в Кладовку
-                {
-                    id: "portal_to_pantry",
-                    type: "portal",
-                    x: 80, y: 35, w: 10, h: 50,
-                    targetRoom: "pantry"
-                },
-                // Портал в Мастерскую (вниз, в подвал)
-                {
-                    id: "portal_to_workshop",
-                    type: "portal",
-                    x: 45, y: 75, w: 10, h: 20,
-                    targetRoom: "workshop"
-                },
+                // Из коридора -> на Кухню
+                { id: "portal_cor_to_kitchen", type: "portal", x: 8, y: 35, w: 9, h: 48, targetRoom: "kitchen" },
+                // Из коридора -> в Гостиную
+                { id: "portal_cor_to_living", type: "portal", x: 24, y: 35, w: 9, h: 48, targetRoom: "living_room" },
+                // Из коридора -> в Туалет
+                { id: "portal_cor_to_toilet", type: "portal", x: 42, y: 35, w: 9, h: 48, targetRoom: "toilet" },
+                // Из коридора -> в Ванную
+                { id: "portal_cor_to_bathroom", type: "portal", x: 58, y: 35, w: 9, h: 48, targetRoom: "bathroom" },
+                // Из коридора -> в Кладовую
+                { id: "portal_cor_to_pantry", type: "portal", x: 76, y: 35, w: 9, h: 48, targetRoom: "pantry" },
                 // Улучшение: Входная дверь в подъезд
                 {
                     id: "upgrade_entrance_door",
                     type: "upgrade",
                     itemKey: "entrance_door",
-                    x: 43, y: 22, w: 14, h: 50,
+                    x: 90, y: 22, w: 8, h: 60,
                     title: "Входная дверь в подъезд",
                     options: [
                         { name: "Деревянная дверь", desc: "Хлипкое полотно с простым замком.", cost: 1 },
                         { name: "Стальная сейфовая дверь", desc: "Толстая сталь и два надежных замка.", cost: 2 },
-                        { name: "Бронированный гермозатвор", desc: "Сейфовая дверь высшего класса защиты.", cost: 3 }
+                        { name: "Бронированный гермозатвор", desc: "Герметичная дверь высшего класса защиты.", cost: 3 }
                     ]
                 },
-                // Находка: Обрывок старой газеты
+                // Находка: Карта окрестностей
                 {
-                    id: "collectible_newspaper",
+                    id: "collectible_map",
                     type: "collectible",
                     x: 35, y: 70, w: 5, h: 6,
-                    itemName: "📰 Обрывок газеты",
-                    toastMsg: "Найден кусок газеты пятилетней давности с хрониками эпидемии..."
+                    itemName: "🗺️ Схема крепости",
+                    toastMsg: "Найдена запылившаяся схема крепости! На ней отмечен мукомольный завод."
+                }
+            ]
+        },
+        "kitchen": {
+            title: "Кухня Гены",
+            background: "room_kitchen.jpg",
+            hotspots: [
+                // Из кухни -> в Коридор
+                { id: "portal_kit_to_corridor", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "corridor" },
+                // Из кухни -> в Гостиную
+                { id: "portal_kit_to_living", type: "portal", x: 87, y: 40, w: 8, h: 45, targetRoom: "living_room" },
+                // Улучшение: Кухонный гарнитур
+                {
+                    id: "upgrade_kitchen_set",
+                    type: "upgrade",
+                    itemKey: "kitchen_set",
+                    x: 35, y: 40, w: 35, h: 45,
+                    title: "Кухонный гарнитур",
+                    options: [
+                        { name: "Советский кухонный стол", desc: "Стол с выдвижным ящиком и клеенкой.", cost: 1 },
+                        { name: "Современный кухонный шкаф", desc: "Вместительный шкаф с чистой мойкой.", cost: 2 },
+                        { name: "Плита и фильтры очистки", desc: "Электроплита и автономный фильтр питьевой воды.", cost: 3 }
+                    ]
+                },
+                // Находка: Тушенка
+                {
+                    id: "collectible_canned_food",
+                    type: "collectible",
+                    x: 75, y: 65, w: 4, h: 6,
+                    itemName: "🥫 Банка тушенки",
+                    toastMsg: "Найдена банка консервированной армейской тушенки!"
+                }
+            ]
+        },
+        "living_room": {
+            title: "Гостиная Гены",
+            background: "room_living_room.jpg",
+            hotspots: [
+                // Из гостиной -> в Коридор
+                { id: "portal_liv_to_corridor", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "corridor" },
+                // Из гостиной -> на Кухню
+                { id: "portal_liv_to_kitchen", type: "portal", x: 45, y: 40, w: 8, h: 45, targetRoom: "kitchen" },
+                // Из гостиной -> в Спальню
+                { id: "portal_liv_to_bedroom", type: "portal", x: 87, y: 40, w: 8, h: 45, targetRoom: "bedroom" },
+                // Улучшение: Диван
+                {
+                    id: "upgrade_sofa",
+                    type: "upgrade",
+                    itemKey: "sofa",
+                    x: 18, y: 55, w: 22, h: 32,
+                    title: "Мягкий диван",
+                    options: [
+                        { name: "Простой чистый диван", desc: "Обычный диван из Икеи, без дыр.", cost: 1 },
+                        { name: "Кожаный солидный диван", desc: "Крепкая кожаная обивка, легко мыть.", cost: 2 },
+                        { name: "Угловой тактический диван", desc: "Огромное спальное место со скрытым ящиком.", cost: 3 }
+                    ]
+                },
+                // Находка: Серебряный кабель
+                {
+                    id: "collectible_silver",
+                    type: "collectible",
+                    x: 60, y: 78, w: 5, h: 6,
+                    itemName: "🥈 Серебряный кабель",
+                    toastMsg: "Найден моток серебряного провода! Отлично плавится в пули."
                 }
             ]
         },
         "bedroom": {
-            title: "Убежище: Спальня Гены",
+            title: "Спальня Гены",
             background: "room_bedroom.jpg",
             hotspots: [
-                // Назад в Прихожую
-                {
-                    id: "portal_bedroom_to_main",
-                    type: "portal",
-                    x: 3, y: 40, w: 8, h: 45,
-                    targetRoom: "main_room"
-                },
+                // Из спальни -> в Гостиную
+                { id: "portal_bed_to_living", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "living_room" },
+                // Из спальни -> в Мастерскую
+                { id: "portal_bed_to_workshop", type: "portal", x: 87, y: 40, w: 8, h: 45, targetRoom: "workshop" },
                 // Улучшение: Кровать
                 {
                     id: "upgrade_bed",
                     type: "upgrade",
                     itemKey: "bed",
-                    x: 25, y: 50, w: 25, h: 40,
-                    title: "Спальное место",
+                    x: 20, y: 50, w: 22, h: 35,
+                    title: "Удобная кровать",
                     options: [
-                        { name: "Армейская раскладушка", desc: "Простой брезент на алюминиевой раме.", cost: 1 },
-                        { name: "Крепкая дубовая кровать", desc: "Удобная постель с теплым одеялом.", cost: 2 },
-                        { name: "Тактический спальный бокс", desc: "Капсула с климатической вентиляцией.", cost: 3 }
+                        { name: "Раскладушка на раме", desc: "Алюминиевый каркас, жестко но спать можно.", cost: 1 },
+                        { name: "Крепкая дубовая кровать", desc: "Большое спальное место с мягким матрасом.", cost: 2 },
+                        { name: "Капсульный спальный бокс", desc: "Герметичная капсула сна с климат-контролем.", cost: 3 }
                     ]
                 },
                 // Улучшение: Шкаф
@@ -97,148 +132,43 @@
                     id: "upgrade_wardrobe",
                     type: "upgrade",
                     itemKey: "wardrobe",
-                    x: 70, y: 25, w: 15, h: 60,
-                    title: "Платяной шкаф",
+                    x: 50, y: 25, w: 15, h: 60,
+                    title: "Шкаф для одежды",
                     options: [
-                        { name: "Вешалка-стойка", desc: "Просто пара крючков на металлической трубе.", cost: 1 },
-                        { name: "Вместительный шкаф-купе", desc: "Шкаф с зеркальной раздвижной дверью.", cost: 2 },
-                        { name: "Гардеробная ниша с подсветкой", desc: "Множество полок для экипировки и одежды.", cost: 3 }
+                        { name: "Обычный платяной шкаф", desc: "Простой шкаф с парой створок.", cost: 1 },
+                        { name: "Большой шкаф-купе", desc: "Вместительный шкаф с раздвижными зеркалами.", cost: 2 },
+                        { name: "Гардеробная ниша под снаряжение", desc: "Все вешалки и полки подсвечены неоном.", cost: 3 }
                     ]
                 },
-                // Находка: Фонарик Гены
+                // Находка: Старый Фонарик
                 {
                     id: "collectible_flashlight",
                     type: "collectible",
-                    x: 55, y: 78, w: 4, h: 6,
+                    x: 40, y: 78, w: 4, h: 6,
                     itemName: "🔦 Старый фонарик",
-                    toastMsg: "Найден старый батарейный фонарик! Светит тускло, но надежно."
-                }
-            ]
-        },
-        "kitchen": {
-            title: "Убежище: Кухня",
-            background: "room_kitchen.jpg",
-            hotspots: [
-                // Назад в Прихожую
-                {
-                    id: "portal_kitchen_to_main",
-                    type: "portal",
-                    x: 3, y: 40, w: 8, h: 45,
-                    targetRoom: "main_room"
-                },
-                // Улучшение: Кухонный гарнитур
-                {
-                    id: "upgrade_kitchen_set",
-                    type: "upgrade",
-                    itemKey: "kitchen_set",
-                    x: 40, y: 40, w: 35, h: 45,
-                    title: "Кухонный уголок",
-                    options: [
-                        { name: "Советский кухонный стол", desc: "Пара ящиков для ложек и старая клеенка.", cost: 1 },
-                        { name: "Современный модульный гарнитур", desc: "Удобные навесные шкафы и чистая раковина.", cost: 2 },
-                        { name: "Профессиональный блок готовки", desc: "Электроплита, вытяжка и система очистки воды.", cost: 3 }
-                    ]
-                },
-                // Находка: Тушенка
-                {
-                    id: "collectible_canned_food",
-                    type: "collectible",
-                    x: 82, y: 62, w: 5, h: 6,
-                    itemName: "🥫 Банка тушенки",
-                    toastMsg: "Найдена запылившаяся банка армейской тушенки. Завтрак обеспечен!"
-                }
-            ]
-        },
-        "pantry": {
-            title: "Убежище: Кладовка",
-            background: "room_pantry.jpg",
-            hotspots: [
-                // Назад в Прихожую
-                {
-                    id: "portal_pantry_to_main",
-                    type: "portal",
-                    x: 3, y: 40, w: 8, h: 45,
-                    targetRoom: "main_room"
-                },
-                // Улучшение: Стеллажи припасов
-                {
-                    id: "upgrade_shelves",
-                    type: "upgrade",
-                    itemKey: "shelves",
-                    x: 30, y: 25, w: 45, h: 65,
-                    title: "Система хранения припасов",
-                    options: [
-                        { name: "Дощатые хлипкие полки", desc: "Простые деревянные перекрытия.", cost: 1 },
-                        { name: "Стальные прочные стеллажи", desc: "Выдержат сотни килограмм тушенки и воды.", cost: 2 },
-                        { name: "Герметичные оружейные боксы", desc: "Шкафы с климат-контролем против влаги.", cost: 3 }
-                    ]
-                },
-                // Находка: Медный кабель
-                {
-                    id: "collectible_copper_wire",
-                    type: "collectible",
-                    x: 85, y: 75, w: 4, h: 6,
-                    itemName: "🔌 Медный кабель",
-                    toastMsg: "Найден медный кабель! Медь пригодится для заземления генератора."
-                }
-            ]
-        },
-        "bathroom": {
-            title: "Убежище: Ванная комната",
-            background: "room_bathroom.jpg",
-            hotspots: [
-                // Назад в Прихожую
-                {
-                    id: "portal_bathroom_to_main",
-                    type: "portal",
-                    x: 3, y: 40, w: 8, h: 45,
-                    targetRoom: "main_room"
-                },
-                // Улучшение: Сантехника Гены
-                {
-                    id: "upgrade_plumbing",
-                    type: "upgrade",
-                    itemKey: "plumbing",
-                    x: 35, y: 45, w: 30, h: 45,
-                    title: "Сантехника и водоснабжение",
-                    options: [
-                        { name: "Простая раковина", desc: "Вода течет ржавая, но умыться можно.", cost: 1 },
-                        { name: "Чугунная отмытая ванна", desc: "Вода нагревается через бойлер.", cost: 2 },
-                        { name: "Душевая кабина с фильтром", desc: "Автономный замкнутый цикл очистки воды.", cost: 3 }
-                    ]
-                },
-                // Находка: Стерильный бинт
-                {
-                    id: "collectible_medkit",
-                    type: "collectible",
-                    x: 75, y: 55, w: 5, h: 6,
-                    itemName: "🩹 Стерильный бинт",
-                    toastMsg: "Найден чистый стерильный бинт. Отличный перевязочный материал."
+                    toastMsg: "Найден тяжелый металлический фонарик."
                 }
             ]
         },
         "workshop": {
-            title: "Мастерская: Оружейный бокс Гены",
+            title: "Оружейная мастерская",
             background: "room_workshop.jpg",
             hotspots: [
-                // Назад в Прихожую (подъем наверх)
-                {
-                    id: "portal_workshop_to_main",
-                    type: "portal",
-                    x: 45, y: 5, w: 10, h: 15,
-                    targetRoom: "main_room"
-                },
+                // Из мастерской -> в Спальню
+                { id: "portal_wrk_to_bedroom", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "bedroom" },
+                // Из мастерской -> в Кладовую
+                { id: "portal_wrk_to_pantry", type: "portal", x: 87, y: 40, w: 8, h: 45, targetRoom: "pantry" },
                 // Улучшение: Верстак
                 {
                     id: "upgrade_workbench",
                     type: "upgrade",
                     itemKey: "workbench",
-                    x: 10, y: 50, w: 30, h: 40,
+                    x: 15, y: 50, w: 25, h: 40,
                     title: "Слесарный верстак",
                     options: [
-                        { name: "Деревянный стол с тисками", desc: "Удобен для мелкого ручного ремонта.", cost: 1 },
-                        { name: "Тяжелый стальной верстак", desc: "Выдержит сверлильный станок и тяжелые детали.", cost: 2 },
-                        { name: "Электронная сборочная станция", desc: "Для работы с точной механикой и оптикой.", cost: 3 }
+                        { name: "Деревянный стол с тисками", desc: "Крепкая столешница для ручного ремонта.", cost: 1 },
+                        { name: "Тяжелый металлический верстак", desc: "Стальной каркас выдержит сверлильный станок.", cost: 2 },
+                        { name: "Цифровая рабочая станция", desc: "Для ремонта электроники, оптики и точной механики.", cost: 3 }
                     ]
                 },
                 // Улучшение: Станок для патронов
@@ -246,21 +176,110 @@
                     id: "upgrade_ammo_press",
                     type: "upgrade",
                     itemKey: "ammo_press",
-                    x: 65, y: 40, w: 25, h: 50,
+                    x: 50, y: 40, w: 22, h: 45,
                     title: "Патронный пресс",
                     options: [
-                        { name: "Ручной пресс Lee Precision", desc: "Качественная, но медленная ручная сборка патронов.", cost: 1 },
-                        { name: "Полуавтоматический прогрессивный станок", desc: "Снаряжает до 100 патронов в час.", cost: 2 },
-                        { name: "Электронная станция дозирования пороха", desc: "Высочайшая точность навески для снайперских выстрелов.", cost: 3 }
+                        { name: "Ручной пресс для гильз", desc: "Качественная, но долгая сборка патронов вручную.", cost: 1 },
+                        { name: "Автоматический патронный станок", desc: "Калибрует, засыпает порох и ставит пулю сам.", cost: 2 },
+                        { name: "Высокоточная патронная станция", desc: "Электронный дозатор веса снайперской навески.", cost: 3 }
                     ]
                 },
-                // Находка: Оружейное масло
+                // Находка: Оружейное Масло
                 {
                     id: "collectible_oil",
                     type: "collectible",
-                    x: 47, y: 72, w: 4, h: 6,
+                    x: 42, y: 72, w: 4, h: 6,
                     itemName: "🛢️ Оружейное масло",
-                    toastMsg: "Найдена масленка с нейтральным маслом для смазки затворов."
+                    toastMsg: "Найдена масленка с нейтральным маслом для чистки винтовок."
+                }
+            ]
+        },
+        "pantry": {
+            title: "Кладовая припасов",
+            background: "room_pantry.jpg",
+            hotspots: [
+                // Из кладовой -> в Коридор
+                { id: "portal_pan_to_corridor", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "corridor" },
+                // Из кладовой -> в Мастерскую
+                { id: "portal_pan_to_workshop", type: "portal", x: 87, y: 40, w: 8, h: 45, targetRoom: "workshop" },
+                // Улучшение: Стеллажи припасов
+                {
+                    id: "upgrade_shelves",
+                    type: "upgrade",
+                    itemKey: "shelves",
+                    x: 25, y: 25, w: 45, h: 65,
+                    title: "Система стеллажей",
+                    options: [
+                        { name: "Простые деревянные полки", desc: "Обычные хвойные доски под грузы.", cost: 1 },
+                        { name: "Стальные прочные стеллажи", desc: "Железный каркас под тяжелые консервы.", cost: 2 },
+                        { name: "Запираемые герметичные ящики", desc: "Влагостойкие шкафы с кодовыми замками.", cost: 3 }
+                    ]
+                },
+                // Находка: Медный Кабель
+                {
+                    id: "collectible_copper_wire",
+                    type: "collectible",
+                    x: 80, y: 75, w: 4, h: 6,
+                    itemName: "🔌 Медный кабель",
+                    toastMsg: "Найден отрезок толстого медного провода."
+                }
+            ]
+        },
+        "toilet": {
+            title: "Санузел (Туалет)",
+            background: "room_toilet.jpg",
+            hotspots: [
+                // Из туалета -> назад в Коридор
+                { id: "portal_toi_to_corridor", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "corridor" },
+                // Улучшение: Сантехнический узел
+                {
+                    id: "upgrade_toilet_plumbing",
+                    type: "upgrade",
+                    itemKey: "toilet_plumbing",
+                    x: 35, y: 35, w: 30, h: 55,
+                    title: "Санитарный узел",
+                    options: [
+                        { name: "Простой унитаз", desc: "Подключен к общей трубе, вода течет слабо.", cost: 1 },
+                        { name: "Автономный биотуалет с баком", desc: "Работает чисто, не зависит от городской сети.", cost: 2 },
+                        { name: "Био-очистная тактическая кабина", desc: "Полное расщепление отходов, датчики запаха.", cost: 3 }
+                    ]
+                },
+                // Находка: Чистая Ветошь
+                {
+                    id: "collectible_rags",
+                    type: "collectible",
+                    x: 75, y: 65, w: 5, h: 6,
+                    itemName: "🧻 Чистая ветошь",
+                    toastMsg: "Найдена упаковка чистых хлопковых тряпок. Пойдет на чистку стволов."
+                }
+            ]
+        },
+        "bathroom": {
+            title: "Ванная комната Гены",
+            background: "room_bathroom.jpg",
+            hotspots: [
+                // Из ванной -> назад в Коридор
+                { id: "portal_bat_to_corridor", type: "portal", x: 5, y: 40, w: 8, h: 45, targetRoom: "corridor" },
+                // Улучшение: Ванна и душ
+                {
+                    id: "upgrade_shower",
+                    type: "upgrade",
+                    itemKey: "shower",
+                    x: 30, y: 45, w: 40, h: 45,
+                    title: "Душ и нагрев воды",
+                    options: [
+                        { name: "Электрический проточный бойлер", desc: "Быстро нагреет воду для умывания.", cost: 1 },
+                        { name: "Ванна с баком-накопителем", desc: "Удобно хранить запас чистой горячей воды.", cost: 2 },
+                        { name: "Душевой бокс с замкнутым фильтром", desc: "Очищает мыльную воду до питьевой для повторного мытья.", cost: 3 }
+                    ]
+                },
+                // Находка: Бинт
+                {
+                    id: "collectible_medkit",
+                    type: "collectible",
+                    x: 80, y: 55, w: 5, h: 6,
+                    itemName: "🩹 Стерильный бинт",
+                    toastMsg: "Найден чистый бинт в герметичной упаковке."
                 }
             ]
         }
