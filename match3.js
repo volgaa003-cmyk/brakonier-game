@@ -1617,7 +1617,9 @@
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.dataset.pos = `${r},${c}`; 
-
+                    // Устанавливаем точные координаты ячейки подложки на поле (ИСПРАВЛЕНО)
+                    cell.style.left = (c * 100 / SIZE) + '%';
+                    cell.style.top = (r * 100 / SIZE) + '%';
                     // Умный расчет внешнего ободка поля (определяем пустоту рядом)
                     if (r === 0 || levelLayout[r - 1][c] === 0) cell.classList.add('edge-top');
                     if (r === SIZE - 1 || levelLayout[r + 1][c] === 0) cell.classList.add('edge-bottom');
