@@ -1693,15 +1693,61 @@ to { transform: scale(1.05) rotate(5deg); }
   background-repeat: no-repeat !important;
 }
 /* ==========================================================================
-   ФИГУРНЫЙ СЕРЫЙ КОНТУР И ШАХМАТНЫЙ УЗОР ИГРОВОГО ПОЛЯ (КАК В HOMESCAPES)
+   ФИГУРНЫЙ МАТОВЫЙ КОНТУР И ШАХМАТНЫЙ УЗОР ИГРОВОГО ПОЛЯ (КАК В HOMESCAPES)
    ========================================================================== */
 
-/* Убираем черную квадратную коробку, делая её невидимой */
+/* Убираем старую черную квадратную коробку вокруг всей сетки */
 #boardWrap {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+}
+
+/* Настраиваем плотные, матовые серо-голубые ячейки */
+.grid-cell {
+  position: absolute;
+  width: calc(100% / var(--size));
+  height: calc(100% / var(--size));
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Очень тонкая светлая сеточка швов */
+  box-sizing: border-box;
+  opacity: 1 !important;
+}
+
+/* Благородный матовый шахматный узор подложки (непрозрачный) */
+.grid-cell:nth-child(even) {
+  background-color: #8da1b9 !important; /* Базовый серо-голубой цвет */
+}
+.grid-cell:nth-child(odd) {
+  background-color: #8195af !important; /* Чуть темнее для шахматного эффекта */
+}
+
+/* Толстый красивый ободок по краям фигурного поля */
+.grid-cell.edge-top {
+  border-top: 5px solid #4a5d78 !important;
+}
+.grid-cell.edge-bottom {
+  border-bottom: 5px solid #4a5d78 !important;
+}
+.grid-cell.edge-left {
+  border-left: 5px solid #4a5d78 !important;
+}
+.grid-cell.edge-right {
+  border-right: 5px solid #4a5d78 !important;
+}
+
+/* Плавное закругление внешних углов фигурного контура */
+.grid-cell.edge-top.edge-left {
+  border-top-left-radius: 12px;
+}
+.grid-cell.edge-top.edge-right {
+  border-top-right-radius: 12px;
+}
+.grid-cell.edge-bottom.edge-left {
+  border-bottom-left-radius: 12px;
+}
+.grid-cell.edge-bottom.edge-right {
+  border-bottom-right-radius: 12px;
 }
 
 /* ИСПРАВЛЕНО: раньше здесь был непрозрачный серо-голубой шахматный узор с рамками
