@@ -2969,5 +2969,14 @@ if(aSpecial && bSpecial){
 
     // Экспортируем функцию открытия пре-экрана глобально для карты
     window.openPreLevelScreen = openPreLevelScreen;
+    // Находим самую нижнюю активную ячейку для конкретной колонки
+    function getLowestPlayableRow(c) {
+        for (let r = SIZE - 1; r >= 0; r--) {
+            if (levelLayout[r] && levelLayout[r][c] !== 0) {
+                return r;
+            }
+        }
+        return -1; // Если вся колонка пустая
+    }
     console.log("match3.js: Все модули игры успешно запущены в едином пространстве!");
 })();
