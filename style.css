@@ -554,8 +554,8 @@ to { transform: scale(1.05) rotate(5deg); }
   backdrop-filter: none; 
   z-index: 6;
 }
-.tile.frozen-2 .tile-inner::after { background-image: url('images/frozen-2.png') !important; }
-.tile.frozen-1 .tile-inner::after { background-image: url('images/frozen-1.png') !important; }
+.tile.frozen-2 .tile-inner::after { background-image: url('images/ice_2.png') !important; }
+.tile.frozen-1 .tile-inner::after { background-image: url('images/ice_1.png') !important; }
 
 .tile.chained .tile-inner::after { 
   content: "" !important; 
@@ -566,8 +566,8 @@ to { transform: scale(1.05) rotate(5deg); }
   background-position: center;
   z-index: 7; /* Отображаем строго поверх фишки */
 }
-.tile.chain-2 .tile-inner::after { background-image: url('images/chain-2.png') !important; }
-.tile.chain-1 .tile-inner::after { background-image: url('images/chain-1.png') !important; }
+.tile.chain-2 .tile-inner::after { background-image: url('images/chain_2.png') !important; }
+.tile.chain-1 .tile-inner::after { background-image: url('images/chain_1.png') !important; }
 
 @keyframes iceShimmer {
   0%, 100% { filter: brightness(1); }
