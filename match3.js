@@ -190,10 +190,11 @@
         };
         const pColor = colorPalette[type] || '#ffffff';
         const cellWidth = boardEl.offsetWidth / SIZE;
+        const cellHeight = boardEl.offsetHeight / SIZE;
         
         // Вычисляем центр ячейки для старта разлета частиц
         const startX = (c + 0.5) * cellWidth;
-        const startY = (r + 0.5) * cellWidth;
+        const startY = (r + 0.5) * cellHeight;
 
         for (let i = 0; i < count; i++) {
             const spark = document.createElement('div');
@@ -373,10 +374,11 @@
     function animatePlaneEffect(fromRow, fromCol, toRow, toCol, callback) {
         if (!boardEl) return;
         const cellWidth = boardEl.offsetWidth / SIZE;
+        const cellHeight = boardEl.offsetHeight / SIZE;
         const startX = (fromCol + 0.5) * cellWidth;
-        const startY = (fromRow + 0.5) * cellWidth;
+        const startY = (fromRow + 0.5) * cellHeight;
         const endX = (toCol + 0.5) * cellWidth;
-        const endY = (toRow + 0.5) * cellWidth;
+        const endY = (toRow + 0.5) * cellHeight;
 
         // Создаем DOM-элемент самолетика
         const projectile = document.createElement('div');
@@ -400,7 +402,7 @@
                 const curX = parseFloat(projectile.style.left);
                 const curY = parseFloat(projectile.style.top);
                 spawnMatchParticles(
-                    Math.floor(curY / cellWidth),
+                    Math.floor(curY / cellHeight),
                     Math.floor(curX / cellWidth),
                     'coin'
                 );
@@ -420,8 +422,9 @@
     function animateBombEffect(row, col) {
         if (!boardEl) return;
         const cellWidth = boardEl.offsetWidth / SIZE;
+        const cellHeight = boardEl.offsetHeight / SIZE;
         const x = (col + 0.5) * cellWidth;
-        const y = (row + 0.5) * cellWidth;
+        const y = (row + 0.5) * cellHeight;
 
         // ЭФФЕКТ НАДУВАНИЯ: Создаем временную бомбу для эффекта предвкушения взрыва
         const tempBomb = document.createElement('div');
@@ -468,8 +471,9 @@
     function animateRocketEffect(row, col, isRowDirection) {
         if (!boardEl) return;
         const cellWidth = boardEl.offsetWidth / SIZE;
+        const cellHeight = boardEl.offsetHeight / SIZE;
         const startX = (col + 0.5) * cellWidth;
-        const startY = (row + 0.5) * cellWidth;
+        const startY = (row + 0.5) * cellHeight;
 
         // ЭФФЕКТ НАТЯЖЕНИЯ: Создаем временную сжимающуюся ракету перед стартом
         const tempRocket = document.createElement('div');
@@ -515,7 +519,7 @@
                     
                     // Шлейф патронов-искр вслед за ракетой
                     let trail = setInterval(() => {
-                        const trRow = Math.floor(parseFloat(proj.style.top) / cellWidth);
+                        const trRow = Math.floor(parseFloat(proj.style.top) / cellHeight);
                         const trCol = Math.floor(parseFloat(proj.style.left) / cellWidth);
                         if (trRow >= 0 && trRow < SIZE && trCol >= 0 && trCol < SIZE) {
                             spawnMatchParticles(trRow, trCol, 'bullet');
@@ -536,12 +540,13 @@
         if (!boardEl) return;
         triggerBoardShake('shake-mild');
         const cellWidth = boardEl.offsetWidth / SIZE;
+        const cellHeight = boardEl.offsetHeight / SIZE;
         const startX = (fromCol + 0.5) * cellWidth;
-        const startY = (fromRow + 0.5) * cellWidth;
+        const startY = (fromRow + 0.5) * cellHeight;
 
         targets.forEach(({r, c}) => {
             const endX = (c + 0.5) * cellWidth;
-            const endY = (r + 0.5) * cellWidth;
+            const endY = (r + 0.5) * cellHeight;
 
             const dx = endX - startX;
             const dy = endY - startY;
@@ -586,8 +591,9 @@
         b.el.classList.add('merging');
 
         const cellWidth = boardEl.offsetWidth / SIZE;
+        const cellHeight = boardEl.offsetHeight / SIZE;
         const midX = ((a.col + b.col) / 2 + 0.5) * cellWidth;
-        const midY = ((a.row + b.row) / 2 + 0.5) * cellWidth;
+        const midY = ((a.row + b.row) / 2 + 0.5) * cellHeight;
         const flash = document.createElement('div');
         flash.className = 'm3-merge-flash';
         flash.style.left = midX + 'px';
