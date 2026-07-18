@@ -1676,73 +1676,74 @@
         return count;
     }
 
-    // 2. Движок пошаговой гравитации: вертикальное падение фишек и диагональное огибание препятствий
-function applyGravityAndRefill(){
-    let moved = true;
-    let loops = 0;
-    const maxLoops = 100; // Предохранитель от бесконечного цикла
+// Движок пошаговой гравитации (ИСПРАВЛЕННЫЙ БАЛАНС СКОБОК)
+    function applyGravityAndRefill(){
+        let moved = true;
+        let loops = 0;
+        const maxLoops = 100; // Предохранитель от бесконечного цикла
 
-    // Этот цикл крутится до тех пор, пока на поле двигается хоть одна фишка
-    while (moved && loops < maxLoops) {
-        moved = false; 
-        loops++;
-        
-        // 1. Сдвигаем существующие фишки вниз
-        for (let r = SIZE - 1; r >= 0; r--) {
-            for (let c = 0; c < SIZE; c++) {
-                if (levelLayout[r][c] !== 0 && grid[r][c] === null) {
-                    let sourceRow = -1;
-                    let sourceCol = c;
-                    const cellKey = key(r, c);
+        // Этот цикл крутится до тех пор, пока на поле двигается хоть одна фишка
+        while (moved && loops < maxLoops) {
+            moved = false; 
+            loops++;
+            
+            // 1. Сдвигаем существующие фишки вниз
+            for (let r = SIZE - 1; r >= 0; r--) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (levelLayout[r][c] !== 0 && grid[r][c] === null) {
+                        let sourceRow = -1;
+                        let sourceCol = c;
+                        const cellKey = key(r, c);
 
-                    // Проверяем порталы
-                    if (portals[cellKey]) {
-                        const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
-                        if (grid[ep_r] && grid[ep_r][ep_c] && isMovable(grid[ep_r][ep_c])) {
-                            sourceRow = ep_r;
-                            sourceCol = ep_c;
-                        }
-                    } else {
-                        // Ищем ближайшую подвижную фишку СТРОГО выше по вертикали
-                        for (let checkR = r - 1; checkR >= 0; checkR--) {
-                            if (levelLayout[checkR][c] === 0) break; // Уперлись в пустоту на карте
-                            if (grid[checkR][c] !== null) {
-                                if (isMovable(grid[checkR][c])) {
-                                    sourceRow = checkR;
+                        // Проверяем порталы
+                        if (portals[cellKey]) {
+                            const [ep_r, ep_c] = portals[cellKey].split(',').map(Number);
+                            if (grid[ep_r] && grid[ep_r][ep_c] && isMovable(grid[ep_r][ep_c])) {
+                                sourceRow = ep_r;
+                                sourceCol = ep_c;
+                            }
+                        } else {
+                            // Ищем ближайшую подвижную фишку СТРОГО выше по вертикали
+                            for (let checkR = r - 1; checkR >= 0; checkR--) {
+                                if (levelLayout[checkR][c] === 0) break; // Уперлись в пустоту на карте
+                                if (grid[checkR][c] !== null) {
+                                    if (isMovable(grid[checkR][c])) {
+                                        sourceRow = checkR;
+                                    }
+                                    break; // Нашли объект, дальше вверх не смотрим
                                 }
-                                break; // Нашли объект, дальше вверх не смотрим
                             }
                         }
-                    }
 
-                    // Если нашли фишку, которая может упасть на это пустое место
-                    if (sourceRow >= 0) {
-                        const t = grid[sourceRow][sourceCol];
-                        grid[r][c] = t; 
-                        grid[sourceRow][sourceCol] = null;
-                        moveTileTo(t, r, c); 
-                        moved = true;
-                        continue;
-                    }
+                        // Если нашли фишку, которая может упасть на это пустое место
+                        if (sourceRow >= 0) {
+                            const t = grid[sourceRow][sourceCol];
+                            grid[r][c] = t; 
+                            grid[sourceRow][sourceCol] = null;
+                            moveTileTo(t, r, c); 
+                            moved = true;
+                            continue;
+                        }
 
-                    // Диагональное сползание, если путь вниз прегражден статичным ящиком
-                    if (grid[r][c] === null && !portals[cellKey]) {
-                        const sideDirections = [-1, 1];
-                        if (Math.random() < 0.5) sideDirections.reverse();
+                        // Диагональное сползание, если путь вниз прегражден статичным ящиком
+                        if (grid[r][c] === null && !portals[cellKey]) {
+                            const sideDirections = [-1, 1];
+                            if (Math.random() < 0.5) sideDirections.reverse();
 
-                        for (const dc of sideDirections) {
-                            const diagCol = c + dc;
-                            const diagRow = r - 1;
+                            for (const dc of sideDirections) {
+                                const diagCol = c + dc;
+                                const diagRow = r - 1;
 
-                            if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
-                                if (levelLayout[diagRow][diagCol] !== 0) {
-                                    const t = grid[diagRow][diagCol];
-                                    if (t && isMovable(t)) {
-                                        grid[r][c] = t;
-                                        grid[diagRow][diagCol] = null;
-                                        moveTileTo(t, r, c);
-                                        moved = true;
-                                        break;
+                                if (diagRow >= 0 && diagCol >= 0 && diagCol < SIZE) {
+                                    if (levelLayout[diagRow][diagCol] !== 0) {
+                                        const t = grid[diagRow][diagCol];
+                                        if (t && isMovable(t)) {
+                                            grid[r][c] = t;
+                                            grid[diagRow][diagCol] = null;
+                                            moveTileTo(t, r, c);
+                                            moved = true;
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -1766,12 +1767,11 @@ function applyGravityAndRefill(){
                 }
             }
         }
-    }
-    
-    collectDoughnuts();
-    processThreatsAndJesters();
-    resetHintTimer(); 
-}
+        
+        collectDoughnuts();
+        processThreatsAndJesters();
+        resetHintTimer(); 
+    } // Конец функции (ровно одна скобка)
 
 // Сбор пончиков у физического низа каждой колонки поля (ИСПРАВЛЕНО ДЛЯ ФИГУРНЫХ КАРТ)
 function collectDoughnuts() {
