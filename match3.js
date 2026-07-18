@@ -94,6 +94,15 @@
     let busy = false;             // Флаг блокировки интерфейса во время анимаций взрывов/падений
     let tileIdCounter = 0;        // Генератор уникальных ID для DOM-элементов плиток
 
+    // ДОБАВЛЕНО: поддержка уровней из НЕСКОЛЬКИХ частей поля («зон»).
+    // Когда у уровня есть zoneQueue — по достижении локальной цели текущей части
+    // поле "перекатывается" (используются готовые CSS-классы #board.scroll-out/scroll-in)
+    // на следующую часть. Общий пул ходов один на весь уровень, а панель бустеров
+    // внизу экрана не является частью #board, поэтому всегда остаётся на месте.
+    let zoneQueue = [];            // Оставшиеся впереди части поля (без учета текущей)
+    let currentZoneNumber = 1;     // Номер текущей части поля (1, 2, ...)
+    let totalZonesForLevel = 1;    // Сколько всего частей в этом уровне
+
     // Бустеры и комбо
     let activeBooster = null;     // Имя выбранного активного инструмента (glove, hammer и т.д.)
     let activePlanesCount = 0;    // Счетчик летящих в данный момент самолетиков
@@ -335,16 +344,20 @@
                 to   { transform: rotate(360deg); }
             }
 
-            /* ✨ Слияние двух бустеров при свапе: увеличиваются, светятся и крутятся навстречу друг другу */
+            /* ✨ Слияние двух бустеров при свапе: увеличиваются, светятся и кружатся,
+               меняясь местами (сама траектория движения задается через JS в
+               animateBoosterMerge — здесь только "раздувание" и контурное свечение
+               самой картинки, а не квадрата вокруг неё) */
             .tile.merging { z-index: 60; }
             .tile.merging .tile-inner {
-                animation: boosterMergeSpin 0.42s cubic-bezier(.34,1.56,.64,1) forwards;
-                box-shadow: 0 0 22px 8px rgba(255,255,255,0.9), 0 0 40px 14px rgba(255,214,90,0.6);
+                animation: boosterMergeSpin var(--merge-ms, 0.48s) cubic-bezier(.34,1.56,.64,1) forwards;
+                filter: drop-shadow(0 0 8px rgba(255,255,255,0.95)) drop-shadow(0 0 18px rgba(255,214,90,0.75));
             }
+            .tile.merging.merge-front { z-index: 62; }
             @keyframes boosterMergeSpin {
-                0%   { transform: scale(1) rotate(0deg); filter: brightness(1); }
-                55%  { transform: scale(1.55) rotate(200deg); filter: brightness(1.6); }
-                100% { transform: scale(1.3) rotate(380deg); filter: brightness(1.3); }
+                0%   { transform: scale(1) rotate(0deg); }
+                55%  { transform: scale(1.5) rotate(200deg); }
+                100% { transform: scale(1.15) rotate(360deg); }
             }
 
             /* Яркая вспышка в точке слияния двух бустеров */
@@ -580,31 +593,69 @@
     }
 
     // Время (мс), на которое включается анимация слияния — должно совпадать с boosterMergeSpin в CSS
-    const MERGE_ANIM_MS = 420;
+    const MERGE_ANIM_MS = 480;
 
     // Анимация слияния двух бустеров при свапе: оба увеличиваются, светятся
-    // и крутятся навстречу друг другу, в точке между ними — яркая вспышка
+    // и по-настоящему кружатся друг вокруг друга, меняясь местами (как в вихре),
+    // при этом поочередно слегка заслоняя друг друга; в центре — яркая вспышка
     function animateBoosterMerge(a, b) {
         if (!boardEl) return;
         triggerBoardShake('shake-mild');
         a.el.classList.add('merging');
         b.el.classList.add('merging');
+        a.el.style.setProperty('--merge-ms', MERGE_ANIM_MS + 'ms');
+        b.el.style.setProperty('--merge-ms', MERGE_ANIM_MS + 'ms');
 
         const cellWidth = boardEl.offsetWidth / SIZE;
         const cellHeight = boardEl.offsetHeight / SIZE;
-        const midX = ((a.col + b.col) / 2 + 0.5) * cellWidth;
-        const midY = ((a.row + b.row) / 2 + 0.5) * cellHeight;
+        const ax = (a.col + 0.5) * cellWidth, ay = (a.row + 0.5) * cellHeight;
+        const bx = (b.col + 0.5) * cellWidth, by = (b.row + 0.5) * cellHeight;
+        const midX = (ax + bx) / 2, midY = (ay + by) / 2;
+        const radius = Math.max(6, Math.hypot(bx - ax, by - ay) / 2);
+
         const flash = document.createElement('div');
         flash.className = 'm3-merge-flash';
         flash.style.left = midX + 'px';
         flash.style.top = midY + 'px';
         boardEl.appendChild(flash);
 
-        setTimeout(() => {
-            a.el.classList.remove('merging');
-            b.el.classList.remove('merging');
-            flash.remove();
-        }, MERGE_ANIM_MS);
+        // Стартовые углы каждого бустера относительно общего центра вращения
+        const startAngleA = Math.atan2(ay - midY, ax - midX);
+        const startAngleB = startAngleA + Math.PI;
+        const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        const startTime = performance.now();
+        function frame(now) {
+            const t = Math.min(1, (now - startTime) / MERGE_ANIM_MS);
+            const eased = easeInOutCubic(t);
+            const sweep = eased * Math.PI; // за всю анимацию — ровно пол-оборота, т.е. обмен местами
+            const angA = startAngleA + sweep;
+            const angB = startAngleB + sweep;
+
+            const axTarget = midX + Math.cos(angA) * radius;
+            const ayTarget = midY + Math.sin(angA) * radius;
+            const bxTarget = midX + Math.cos(angB) * radius;
+            const byTarget = midY + Math.sin(angB) * radius;
+
+            a.el.style.transform = `translate(${(axTarget - ax).toFixed(1)}px, ${(ayTarget - ay).toFixed(1)}px)`;
+            b.el.style.transform = `translate(${(bxTarget - bx).toFixed(1)}px, ${(byTarget - by).toFixed(1)}px)`;
+
+            // Каждую примерно четверть оборота меняем, кто кого "слегка заслоняет"
+            const aInFront = Math.floor(sweep / (Math.PI / 2)) % 2 === 0;
+            a.el.classList.toggle('merge-front', aInFront);
+            b.el.classList.toggle('merge-front', !aInFront);
+
+            if (t < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                a.el.style.transform = '';
+                b.el.style.transform = '';
+                a.el.classList.remove('merging', 'merge-front');
+                b.el.classList.remove('merging', 'merge-front');
+                flash.remove();
+            }
+        }
+        requestAnimationFrame(frame);
     }
 
     // Вычисление математической зоны поражения (сетки ячеек) для одного конкретного бустера
@@ -1637,14 +1688,21 @@
             }
         }
 
-        // 3. ИСПРАВЛЕНО: Только ПОСЛЕ того как все фишки созданы, заменяем 1-2 верхние на Пончики
+        // 3. ИСПРАВЛЕНО: заменяем на Пончики 1-2 фишки у ВЕРХА КАЖДОГО отдельного сегмента поля
+        // (а не только у самой верхней строки 0) — на фигурных картах вроде "islands"/"fortress"
+        // у поля может быть несколько независимых "заходов" сверху, и пончик должен уметь
+        // появиться в любом из них, а не только в самом первом ряду доски.
         if (targetType === "donut") {
             let spawned = 0;
-            for (let c = 0; c < SIZE; c++) {
-                if (grid[0][c] && grid[0][c].type !== 'box' && spawned < 2 && Math.random() < 0.3) {
-                    grid[0][c].el.remove(); // Безопасно удаляем фишку (так как она уже гарантированно создана)
-                    grid[0][c] = createTile(0, c, "donut", 0); // Ставим на её место пончик
-                    spawned++;
+            for (let c = 0; c < SIZE && spawned < 2; c++) {
+                for (let r = 0; r < SIZE && spawned < 2; r++) {
+                    const isSegmentTop = levelLayout[r][c] === 1 && (r === 0 || levelLayout[r - 1][c] === 0);
+                    if (isSegmentTop && grid[r][c] && grid[r][c].type !== 'box' && Math.random() < 0.3) {
+                        grid[r][c].el.remove(); // Безопасно удаляем фишку (так как она уже гарантированно создана)
+                        grid[r][c] = createTile(r, c, "donut", r); // Ставим на её место пончик
+                        spawned++;
+                        break; // Один пончик на колонку максимум при первичной расстановке
+                    }
                 }
             }
         }
@@ -1794,6 +1852,9 @@ function collectDoughnuts() {
         pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
         applyGravityAndRefill(); // Запуск гравитации на освободившиеся места
     }
+} // ИСПРАВЛЕНО: закрываем collectDoughnuts() здесь — раньше функция ниже случайно
+  // оказывалась вложена внутрь неё и была недоступна снаружи (ReferenceError на каждом ходу)
+
     // 4. Обработка движения угроз: перемещение попугаев, рост плюща и мыльной пены
     function processThreatsAndJesters() {
         let spawnedFoam = false;
@@ -1880,6 +1941,10 @@ function collectDoughnuts() {
         } else {
             m3GoalText.textContent = `${hearts}/${GOAL_HEARTS} ❤️`;
         }
+
+        if (totalZonesForLevel > 1) {
+            m3GoalText.textContent += ` · ч.${currentZoneNumber}/${totalZonesForLevel}`;
+        }
     }
     function getCarpetCount() {
         let count = 0;
@@ -1890,6 +1955,56 @@ function collectDoughnuts() {
         }
         return count;
     }
+    // ДОБАВЛЕНО: переход к следующей части поля у многочастевых уровней
+    function advanceToNextZone() {
+        busy = true;
+        pulseToast('✅ Часть поля зачищена! Заходим дальше...');
+
+        if (boardEl) boardEl.classList.add('scroll-out');
+
+        setTimeout(() => {
+            const nextZone = zoneQueue.shift();
+            currentZoneNumber++;
+
+            // Применяем конфигурацию новой части поля поверх текущих глобальных переменных
+            levelLayout = JSON.parse(JSON.stringify(nextZone.layout));
+            targetType = nextZone.targetType || 'heart';
+            GOAL_HEARTS = nextZone.heartsGoal || 12;
+            portals = nextZone.portals || {};
+
+            carpetGrid = []; iceGrid = []; chainGrid = []; jellyGrid = [];
+            for (let r = 0; r < SIZE; r++) {
+                carpetGrid.push(new Array(SIZE).fill(false));
+                iceGrid.push(new Array(SIZE).fill(0));
+                chainGrid.push(new Array(SIZE).fill(0));
+                jellyGrid.push(new Array(SIZE).fill(0));
+            }
+            if (nextZone.iceLayout && nextZone.iceLayout.length) iceGrid = JSON.parse(JSON.stringify(nextZone.iceLayout));
+            if (nextZone.carpetLayout && nextZone.carpetLayout.length) carpetGrid = JSON.parse(JSON.stringify(nextZone.carpetLayout));
+            if (nextZone.chainLayout && nextZone.chainLayout.length) chainGrid = JSON.parse(JSON.stringify(nextZone.chainLayout));
+
+            synchronizeObstaclesAndGoals();
+
+            // Сбрасываем прогресс по целям новой части (пул ходов НЕ трогаем — он общий на весь уровень)
+            hearts = 0; boxesBroken = 0; iceMelted = 0; donutsCollected = 0; vasesBroken = 0;
+            cookiesBroken = 0; cherriesCollected = 0; nutsBroken = 0; ringsCollected = 0;
+            stoneFiguresCreated = 0; iviesCleared = 0; plaidsCleared = 0;
+
+            buildInitialGrid();
+            updateMatch3HUD();
+
+            if (boardEl) {
+                boardEl.classList.remove('scroll-out');
+                boardEl.classList.add('scroll-in'); // мгновенно уводим новое поле за правый край, без перехода
+                void boardEl.offsetWidth;            // форсируем перерисовку кадра
+                boardEl.classList.remove('scroll-in'); // и сразу отпускаем — поле плавно въезжает обратно
+            }
+
+            busy = false;
+            resetHintTimer();
+        }, 260);
+    }
+
     // Проверка условий победы или поражения (завершение раунда)
     function checkEndConditions(){
 // ИСПРАВЛЕНО: Добавлены все новые условия победы для ультимативного пака
@@ -1909,6 +2024,14 @@ function collectDoughnuts() {
 
         if(isVictory){
             clearTimeout(hintTimeout);
+
+            // ДОБАВЛЕНО: если впереди есть еще части поля — не заканчиваем уровень,
+            // а перекатываем поле дальше. Общий пул ходов сохраняется как есть.
+            if (zoneQueue.length > 0) {
+                advanceToNextZone();
+                return;
+            }
+
             const rewards = getRewards(levelDifficulty, moves);
             if (window.GameState) {
                 window.GameState.addStars(rewards.stars);
@@ -2486,6 +2609,15 @@ function collectDoughnuts() {
 
     function toggleActiveBooster(type) {
         if (busy) return;
+
+        // Короткая анимация "нажатия" на круглую кнопку инструмента
+        const tappedBtn = document.getElementById(`btn${type.charAt(0).toUpperCase()}${type.slice(1)}`);
+        if (tappedBtn) {
+            tappedBtn.classList.remove('tapped');
+            void tappedBtn.offsetWidth; // рестарт анимации при повторном клике
+            tappedBtn.classList.add('tapped');
+            setTimeout(() => tappedBtn.classList.remove('tapped'), 260);
+        }
         
         if (type === 'fan') {
             if (window.GameState && window.GameState.useOrBuyActiveBooster('fan', ACTIVE_BOOSTER_COSTS.fan)) {
@@ -2822,6 +2954,12 @@ if(aSpecial && bSpecial){
         levelDifficulty = levelData.difficulty;
         targetType = levelData.targetType || "heart";
         GOAL_HEARTS = levelData.heartsGoal || 12; // Синхронизируем цель с базой уровней
+
+        // ДОБАВЛЕНО: если у уровня заданы дополнительные части поля (levelData.zones),
+        // готовим очередь — они будут подключаться одна за другой по ходу игры.
+        zoneQueue = (levelData.zones && levelData.zones.length) ? levelData.zones.slice() : [];
+        currentZoneNumber = 1;
+        totalZonesForLevel = 1 + zoneQueue.length;
         
         selectedPreBoosters = { rainbow: false, combo: false, doublePlanes: false };
         updatePreBoostersUI();
@@ -2872,7 +3010,8 @@ if(aSpecial && bSpecial){
                 plaid: "🛏️ Пледов",
                 ivy: "🥀 Побегов Плюща"
             };
-            goalVal.textContent = `${GOAL_HEARTS} ${GOAL_LABELS[targetType] || '❤️ Вампирских Сердец'}`;
+            goalVal.textContent = `${GOAL_HEARTS} ${GOAL_LABELS[targetType] || '❤️ Вампирских Сердец'}` +
+                (totalZonesForLevel > 1 ? ` (часть 1 из ${totalZonesForLevel})` : '');
         }
 
         const rewards = getRewards(levelDifficulty, START_MOVES);
