@@ -2940,14 +2940,14 @@ if(aSpecial && bSpecial){
             if (overlayPreLevel) overlayPreLevel.classList.add('hidden');
             if (window.showScreen) window.showScreen('screenMatch3');
 
-// Полностью обнуляем все показатели раунда
+            // Полностью обнуляем все показатели раунда
             hearts = 0; 
             boxesBroken = 0; 
             iceMelted = 0; 
             donutsCollected = 0;
             vasesBroken = 0;
-            cookiesBroken = 0;   // ИСПРАВЛЕНО: Обнуляем печенье перед раундом
-            cherriesCollected = 0; // ИСПРАВЛЕНО: Обнуляем вишни перед раундом
+            cookiesBroken = 0;   
+            cherriesCollected = 0; 
             nutsBroken = 0;
             ringsCollected = 0;
             stoneFiguresCreated = 0;
@@ -2967,8 +2967,6 @@ if(aSpecial && bSpecial){
         });
     }
 
-    // Экспортируем функцию открытия пре-экрана глобально для карты
-    window.openPreLevelScreen = openPreLevelScreen;
     // Находим самую нижнюю активную ячейку для конкретной колонки
     function getLowestPlayableRow(c) {
         for (let r = SIZE - 1; r >= 0; r--) {
@@ -2978,5 +2976,8 @@ if(aSpecial && bSpecial){
         }
         return -1; // Если вся колонка пустая
     }
+
+    // Экспортируем функцию открытия пре-экрана глобально для карты
+    window.openPreLevelScreen = openPreLevelScreen;
     console.log("match3.js: Все модули игры успешно запущены в едином пространстве!");
 })();
