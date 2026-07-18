@@ -28,6 +28,16 @@
     // Имена персонажей, у которых есть графические спрайты
     const AVAILABLE_SPRITES = ["Брак", "Привратник", "Мужик в камуфляже", "Митрич"];
 
+    // Реальные файлы картинок в /images/ названы латиницей (char_Brak.png и т.д.),
+    // а имена спикеров в диалогах — кириллицей. Без этой карты браузер всегда
+    // запрашивал несуществующий файл вида "images/char_Брак.png" и портрет не грузился.
+    const SPRITE_FILE_MAP = {
+        "Брак": "Brak",
+        "Привратник": "Privratnik",
+        "Мужик в камуфляже": "Muzhik",
+        "Митрич": "Mitrich"
+    };
+
     // 1. ЗАПУСК ДИАЛОГА (Универсальная точка входа)
     function startDialogue(storyData, onEnd) {
         if (!storyData) {
@@ -190,7 +200,7 @@
 
         if (hasSprite) {
             // Меняем картинку, убираем блокирующий скрытый класс и делаем активным
-            dialogueSprite.src = `images/char_${normalizedSpeaker}.png`;
+            dialogueSprite.src = `images/char_${SPRITE_FILE_MAP[normalizedSpeaker] || normalizedSpeaker}.png`;
             dialogueSprite.classList.remove('hidden'); 
             dialogueSprite.classList.add('active');
         } else {
