@@ -483,4 +483,73 @@
     document.addEventListener("DOMContentLoaded", () => {
         setTimeout(renderRoom, 100);
     });
+    // ================================================
+    // ЛОГИКА ПАНОРАМИРОВАНИЯ (КАТАНИЯ) КВАРТИРЫ ПАЛЬЦЕМ
+    // ================================================
+    document.addEventListener("DOMContentLoaded", () => {
+        const viewport = document.getElementById('hideoutViewport');
+        const content = document.getElementById('roomContent');
+        const hotspots = document.getElementById('hotspotsContainer');
+        if (!viewport || !content) return;
+
+        let isDragging = false;
+        let startX = 0;
+        let startLeft = 0;
+        let dragDistance = 0; // Дистанция сдвига, чтобы отличать клик от таскания
+
+        viewport.addEventListener('mousedown', dragStart);
+        viewport.addEventListener('touchstart', dragStart, { passive: true });
+
+        function dragStart(e) {
+            isDragging = true;
+            dragDistance = 0;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            startX = clientX;
+            startLeft = content.offsetLeft;
+            
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const dx = clientX - startX;
+            dragDistance = Math.abs(dx);
+
+            // Блокируем дефолтный скролл страницы на телефонах
+            if (e.cancelable) e.preventDefault();
+
+            let targetLeft = startLeft + dx;
+
+            // Рассчитываем ограничения (чтобы не утащить за края картинки)
+            const maxLeft = 0;
+            const minLeft = viewport.offsetWidth - content.offsetWidth;
+
+            if (targetLeft > maxLeft) targetLeft = maxLeft;
+            if (targetLeft < minLeft) targetLeft = minLeft;
+
+            content.style.left = targetLeft + 'px';
+        }
+
+        function dragEnd() {
+            isDragging = false;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchend', dragEnd);
+        }
+
+        // Защита: блокируем срабатывание кнопок и порталов, если пользователь просто тащил экран
+        if (hotspots) {
+            hotspots.addEventListener('click', (e) => {
+                if (dragDistance > 8) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }, true); // true включает перехват на ранней стадии
+        }
+    });
 })();
