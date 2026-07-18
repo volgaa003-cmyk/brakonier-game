@@ -54,8 +54,8 @@ const DEFAULT_STATE = {
         completedTasks: [],
         inventory: [],
         collectedCollectibleIds: [],
-        boostersPre: { rainbow: 2, combo: 2, doublePlanes: 2 },
-        boostersActive: { hammer: 3, glove: 3, broom: 3, weight: 3, fan: 3 }
+        boostersPre: { rainbow: 3, combo: 3, doublePlanes: 3 },
+        boostersActive: { hammer: 5, glove: 5, broom: 5, weight: 5, fan: 5 }
     };
 
     let state = {};
