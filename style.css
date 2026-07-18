@@ -1693,10 +1693,10 @@ to { transform: scale(1.05) rotate(5deg); }
   background-repeat: no-repeat !important;
 }
 /* ==========================================================================
-   ФИГУРНЫЙ МАТОВЫЙ КОНТУР И ШАХМАТНЫЙ УЗОР ИГРОВОГО ПОЛЯ (КАК В HOMESCAPES)
+   ПОЛУПРОЗРАЧНЫЙ ФИГУРНЫЙ КОНТУР И ШАХМАТНЫЙ УЗОР ПОЛЯ (КАК В HOMESCAPES)
    ========================================================================== */
 
-/* Убираем старую черную квадратную коробку вокруг всей сетки */
+/* Убираем черную квадратную коробку вокруг всего поля */
 #boardWrap {
   background: transparent !important;
   border: none !important;
@@ -1704,61 +1704,49 @@ to { transform: scale(1.05) rotate(5deg); }
   padding: 0 !important;
 }
 
-/* Настраиваем плотные, матовые серо-голубые ячейки */
+/* Настраиваем полупрозрачные ячейки поля с эффектом размытия заднего плана */
 .grid-cell {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Очень тонкая светлая сеточка швов */
+  border: 1px solid rgba(255, 255, 255, 0.12); /* Тонкие полупрозрачные швы */
   box-sizing: border-box;
   opacity: 1 !important;
+  backdrop-filter: blur(2.5px); /* Красивое размытие обоев квартиры под полем */
 }
 
-/* Благородный матовый шахматный узор подложки (непрозрачный) */
+/* Мягкий полупрозрачный серо-голубой шахматный узор подложки */
 .grid-cell:nth-child(even) {
-  background-color: #8da1b9 !important; /* Базовый серо-голубой цвет */
+  background-color: rgba(141, 161, 185, 0.82) !important; /* Базовый полупрозрачный */
 }
 .grid-cell:nth-child(odd) {
-  background-color: #8195af !important; /* Чуть темнее для шахматного эффекта */
+  background-color: rgba(121, 141, 169, 0.82) !important; /* Чуть темнее для шахматного узора */
 }
 
-/* Толстый красивый ободок по краям фигурного поля */
+/* Плотный темный ободок по внешнему контуру поля (как на референсе) */
 .grid-cell.edge-top {
-  border-top: 5px solid #4a5d78 !important;
+  border-top: 5px solid #38475e !important;
 }
 .grid-cell.edge-bottom {
-  border-bottom: 5px solid #4a5d78 !important;
+  border-bottom: 5px solid #38475e !important;
 }
 .grid-cell.edge-left {
-  border-left: 5px solid #4a5d78 !important;
+  border-left: 5px solid #38475e !important;
 }
 .grid-cell.edge-right {
-  border-right: 5px solid #4a5d78 !important;
+  border-right: 5px solid #38475e !important;
 }
 
-/* Плавное закругление внешних углов фигурного контура */
+/* Округление внешних углов фигурного поля для мягкого сглаженного контура */
 .grid-cell.edge-top.edge-left {
-  border-top-left-radius: 12px;
+  border-top-left-radius: 14px !important;
 }
 .grid-cell.edge-top.edge-right {
-  border-top-right-radius: 12px;
+  border-top-right-radius: 14px !important;
 }
 .grid-cell.edge-bottom.edge-left {
-  border-bottom-left-radius: 12px;
+  border-bottom-left-radius: 14px !important;
 }
 .grid-cell.edge-bottom.edge-right {
-  border-bottom-right-radius: 12px;
-}
-
-/* ИСПРАВЛЕНО: раньше здесь был непрозрачный серо-голубой шахматный узор с рамками
-   через !important — именно он (а не первое определение .grid-cell выше) реально
-   побеждал в каскаде и заставлял игрока видеть квадратные клетки поля. Поле должно
-   выглядеть "зафиксированным" — видимыми остаются только сами фишки. */
-.grid-cell {
-  position: absolute;
-  width: calc(100% / var(--size));
-  height: calc(100% / var(--size));
-  border: none;
-  background: transparent;
-  box-sizing: border-box;
+  border-bottom-right-radius: 14px !important;
 }
