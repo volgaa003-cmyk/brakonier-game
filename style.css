@@ -1625,3 +1625,35 @@ to { transform: scale(1.05) rotate(5deg); }
 #screenHideout .screen-navigation .menu-btn {
   pointer-events: auto; /* Но сами кнопки остаются кликабельными */
 }
+/* ==========================================================================
+   ИДЕАЛЬНОЕ ВЫРАВНИВАНИЕ И СТРОГИЙ КВАДРАТ 1:1 ИГРОВОГО ПОЛЯ
+   ========================================================================== */
+#boardWrap {
+  width: 100% !important;
+  max-width: 410px !important; /* Оптимальный, аккуратный и ровный размер поля */
+  margin: 0 auto !important;   /* Строгая центровка по горизонтали */
+  box-sizing: border-box !important;
+}
+
+#board {
+  aspect-ratio: 1/1 !important; /* Гарантированный квадрат 1 к 1 на любом устройстве */
+  width: 100% !important;
+  height: auto !important;       /* Снимаем любые попытки растянуть поле по вертикали */
+}
+/* ==========================================================================
+   КОРРЕКЦИЯ ПРОПОРЦИЙ ФИШЕК (СТРОГО 1 К 1 БЕЗ ИСКАЖЕНИЯ)
+   ========================================================================== */
+.tile .tile-inner,
+.tile.box .tile-inner,
+.tile.vase .tile-inner,
+.tile.nut .tile-inner,
+.tile.cookie .tile-inner,
+.tile.plaid .tile-inner,
+.tile.ring-case .tile-inner,
+.tile.stone .tile-inner,
+.tile.surprise-box .tile-inner,
+.tile.carpet-roll .tile-inner {
+  background-size: contain !important; /* Вписываем картинку идеально 1:1 */
+  background-position: center !important; /* Центрируем её в ячейке */
+  background-repeat: no-repeat !important;
+}
