@@ -225,6 +225,30 @@
         completed: false, bestScore: 0, stars: 0
     };
 
+    // ================================================
+    // ДОБАВЛЕНО: уровни из НЕСКОЛЬКИХ частей поля.
+    // Каждая часть — это отдельный layout/цель/лед/ковры/порталы. Игрок зачищает
+    // локальную цель первой части — поле само перекатывается на следующую часть,
+    // и так до конца списка zones. Панель бустеров всегда остаётся на месте,
+    // так как она не является частью #board.
+    // Задействуем это точечно ("на некоторых уровнях"), чтобы не трогать
+    // остальные 10000+ уровней и не рисковать балансом всей игры разом.
+    // ================================================
+    function buildExtraZone(levelId, layoutKey, tType) {
+        const zone = {
+            layout: JSON.parse(JSON.stringify(LAYOUTS[layoutKey])),
+            iceLayout: [], carpetLayout: [], chainLayout: [], portals: {},
+            targetType: tType,
+            heartsGoal: 8 + Math.floor(Math.random() * 6)
+        };
+        return zone;
+    }
+
+    for (let i = 12; i <= TOTAL_LEVELS; i += 15) {
+        if (!LEVELS[i - 1]) continue;
+        LEVELS[i - 1].zones = [ buildExtraZone(i, i % 2 === 0 ? "cross" : "centerHole", "heart") ];
+    }
+
     window.LEVELS = LEVELS;
     console.log(`levels.js: База уровней успешно переработана под цепи, порталы и пончики!`);
 })();
