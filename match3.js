@@ -1773,27 +1773,27 @@ function applyGravityAndRefill(){
     resetHintTimer(); 
 }
 
-    // 3. Сбор пончиков у самого низа игрового поля (аналог лимонадов из Homescapes)
-    function collectDoughnuts() {
-        let collectedThisTurn = 0;
-        for (let c = 0; c < SIZE; c++) {
-            const t = grid[SIZE - 1][c]; // Проверяем самую нижнюю строку
+// Сбор пончиков у физического низа каждой колонки поля (ИСПРАВЛЕНО ДЛЯ ФИГУРНЫХ КАРТ)
+function collectDoughnuts() {
+    let collectedThisTurn = 0;
+    for (let c = 0; c < SIZE; c++) {
+        const lowestR = getLowestPlayableRow(c); // Находим реальный край поля в этой колонке
+        if (lowestR >= 0) {
+            const t = grid[lowestR][c];
             if (t && t.type === 'donut') {
                 t.el.classList.add('clearing');
-                grid[SIZE - 1][c] = null;
+                grid[lowestR][c] = null;
                 donutsCollected++;
                 collectedThisTurn++;
-                // Удаляем визуальный DOM-элемент пончика
                 setTimeout(((tileToKill) => () => tileToKill.el.remove())(t), CLEAR_MS);
             }
         }
-        if (collectedThisTurn > 0) {
-            updateMatch3HUD();
-            pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
-            applyGravityAndRefill(); // Снова запускаем гравитацию на освободившиеся места
-        }
     }
-
+    if (collectedThisTurn > 0) {
+        updateMatch3HUD();
+        pulseToast(`🍩 Собрано пончиков: ${donutsCollected}!`);
+        applyGravityAndRefill(); // Запуск гравитации на освободившиеся места
+    }
     // 4. Обработка движения угроз: перемещение попугаев, рост плюща и мыльной пены
     function processThreatsAndJesters() {
         let spawnedFoam = false;
