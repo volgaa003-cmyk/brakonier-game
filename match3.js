@@ -324,6 +324,44 @@
             .tile.plaid.layer-3 .tile-inner { background: linear-gradient(135deg, #1976d2, #1e88e5); }
             .tile.plaid.layer-2 .tile-inner { background: linear-gradient(135deg, #2196f3, #42a5f5); }
             .tile.plaid.layer-1 .tile-inner { background: #90caf9; }
+
+            /* 🌈 Радужный шар крутится сам по себе, как диско-шар */
+            .tile.rainbow .tile-inner {
+                animation: specialGlow .7s ease-in-out infinite, rainbowTileSpin 2.4s linear infinite;
+            }
+            @keyframes rainbowTileSpin {
+                from { transform: rotate(0deg); }
+                to   { transform: rotate(360deg); }
+            }
+
+            /* ✨ Слияние двух бустеров при свапе: увеличиваются, светятся и крутятся навстречу друг другу */
+            .tile.merging { z-index: 60; }
+            .tile.merging .tile-inner {
+                animation: boosterMergeSpin 0.42s cubic-bezier(.34,1.56,.64,1) forwards;
+                box-shadow: 0 0 22px 8px rgba(255,255,255,0.9), 0 0 40px 14px rgba(255,214,90,0.6);
+            }
+            @keyframes boosterMergeSpin {
+                0%   { transform: scale(1) rotate(0deg); filter: brightness(1); }
+                55%  { transform: scale(1.55) rotate(200deg); filter: brightness(1.6); }
+                100% { transform: scale(1.3) rotate(380deg); filter: brightness(1.3); }
+            }
+
+            /* Яркая вспышка в точке слияния двух бустеров */
+            .m3-merge-flash {
+                position: absolute;
+                width: 10px; height: 10px;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 65;
+                background: radial-gradient(circle, #fff 0%, #ffe27a 35%, rgba(255,226,122,0) 70%);
+                transform: translate(-50%, -50%) scale(0);
+                animation: mergeFlashPop 0.45s ease-out forwards;
+            }
+            @keyframes mergeFlashPop {
+                0%   { transform: translate(-50%, -50%) scale(0);  opacity: 0.9; }
+                60%  { transform: translate(-50%, -50%) scale(9);  opacity: 0.7; }
+                100% { transform: translate(-50%, -50%) scale(13); opacity: 0; }
+            }
         `;
         document.head.appendChild(style);
     })();
@@ -534,6 +572,33 @@
                 setTimeout(() => laser.remove(), 200);
             }, 300);
         });
+    }
+
+    // Время (мс), на которое включается анимация слияния — должно совпадать с boosterMergeSpin в CSS
+    const MERGE_ANIM_MS = 420;
+
+    // Анимация слияния двух бустеров при свапе: оба увеличиваются, светятся
+    // и крутятся навстречу друг другу, в точке между ними — яркая вспышка
+    function animateBoosterMerge(a, b) {
+        if (!boardEl) return;
+        triggerBoardShake('shake-mild');
+        a.el.classList.add('merging');
+        b.el.classList.add('merging');
+
+        const cellWidth = boardEl.offsetWidth / SIZE;
+        const midX = ((a.col + b.col) / 2 + 0.5) * cellWidth;
+        const midY = ((a.row + b.row) / 2 + 0.5) * cellWidth;
+        const flash = document.createElement('div');
+        flash.className = 'm3-merge-flash';
+        flash.style.left = midX + 'px';
+        flash.style.top = midY + 'px';
+        boardEl.appendChild(flash);
+
+        setTimeout(() => {
+            a.el.classList.remove('merging');
+            b.el.classList.remove('merging');
+            flash.remove();
+        }, MERGE_ANIM_MS);
     }
 
     // Вычисление математической зоны поражения (сетки ячеек) для одного конкретного бустера
@@ -2571,6 +2636,8 @@ function applyGravityAndRefill(){
             const aSpecial = isSpecial(a.type), bSpecial = isSpecial(b.type);
 if(aSpecial && bSpecial){
             moves--; updateMatch3HUD();
+            animateBoosterMerge(a, b);
+            setTimeout(() => {
             const kinds = [a.type, b.type];
             
             // Если одно из спец-средств — Радужный шар
@@ -2630,6 +2697,7 @@ if(aSpecial && bSpecial){
             if (cells.size > 0) {
                 clearAndContinue(cells, []);
             }
+            }, MERGE_ANIM_MS);
             return;
             }
             if(aSpecial || bSpecial){
