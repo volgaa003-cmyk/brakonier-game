@@ -398,23 +398,17 @@ body {
   will-change: transform, opacity;
 }
 
-/* Базовый дизайн ячеек поля */
+/* Базовый дизайн ячеек поля — полностью невидимые: поле выглядит "зафиксированным",
+   игрок видит только фишки и спецэффекты (ковёр/желе), а не клетки-квадраты под ними */
 .grid-cell {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: none;
+  background: transparent;
   z-index: 0;
   pointer-events: none;
   transition: background 0.3s ease;
-}
-
-/* Эффект шахматной доски (светлые и темные плитки попеременно) */
-.grid-cell:nth-child(even) {
-  background: rgba(255, 255, 255, 0.08); /* Светлая плитка */
-}
-.grid-cell:nth-child(odd) {
-  background: rgba(0, 0, 0, 0.15); /* Темная плитка */
 }
 
 /* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА */
@@ -585,7 +579,7 @@ to { transform: scale(1.05) rotate(5deg); }
 
 .tile.selected .tile-inner {
   transform: scale(1.12) rotate(-4deg);
-  box-shadow: 0 0 0 3px var(--gold);
+  filter: drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 7px var(--gold));
   z-index: 2;
 }
 
@@ -595,7 +589,7 @@ to { transform: scale(1.05) rotate(5deg); }
 }
 .tile.dragging .tile-inner {
   transform: scale(1.1);
-  box-shadow: 0 8px 16px rgba(0,0,0,.35);
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,.4));
 }
 
 .tile.shake .tile-inner { animation: shake .25s ease; }
@@ -603,6 +597,23 @@ to { transform: scale(1.05) rotate(5deg); }
   0%,100% { transform: translateX(0); }
   25% { transform: translateX(-3.5px); }
   75% { transform: translateX(3.5px); }
+}
+
+/* ДОБАВЛЕНО: подсветка контура фишки во время авто-подсказки хода (раньше класс
+   .match-hint навешивался в JS, но для него нигде не было CSS — подсказка была
+   полностью невидима на экране) */
+.tile.match-hint .tile-inner {
+  animation: hintPulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes hintPulse {
+  from {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(255,214,90,0.5));
+  }
+  to {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px rgba(255,214,90,0.95)) drop-shadow(0 0 18px rgba(255,214,90,0.5));
+  }
 }
 
 .tile.clearing .tile-inner {
@@ -624,10 +635,12 @@ to { transform: scale(1.05) rotate(5deg); }
   to { opacity: 0; transform: scale(1.5); }
 }
 
-/* Эффекты пульсации специальных бонусов */
+/* Эффекты пульсации специальных бонусов — ИСПРАВЛЕНО: box-shadow заменен на
+   drop-shadow, поэтому свечение теперь повторяет силуэт самой картинки (PNG),
+   а не рисует квадратный/прямоугольный ореол вокруг клетки */
 @keyframes specialGlow {
-  0%,100% { box-shadow: 0 0 6px 1px rgba(255,255,255,0.45); }
-  50% { box-shadow: 0 0 14px 4px rgba(255,255,255,0.75); }
+  0%,100% { filter: drop-shadow(0 0 4px rgba(255,255,255,0.55)) drop-shadow(0 0 2px rgba(255,255,255,0.6)); }
+  50% { filter: drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8)); }
 }
 
 .tile.bomb .tile-inner {
@@ -1118,6 +1131,16 @@ to { transform: scale(1.05) rotate(5deg); }
   white-space: nowrap;
   box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
   z-index: 5;
+}
+
+/* ДОБАВЛЕНО: короткий отклик-"бамп" при нажатии на круглую кнопку инструмента */
+.booster-btn.tapped {
+  animation: boosterTap 0.26s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes boosterTap {
+  0%   { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,214,90,0)); }
+  40%  { transform: scale(1.28); filter: drop-shadow(0 0 10px rgba(255,214,90,0.9)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,214,90,0)); }
 }
 
 /* Стиль при наведении/активации бустера */
@@ -1669,47 +1692,15 @@ to { transform: scale(1.05) rotate(5deg); }
   padding: 0 !important;
 }
 
-/* Настраиваем базовые серые ячейки поля */
+/* ИСПРАВЛЕНО: раньше здесь был непрозрачный серо-голубой шахматный узор с рамками
+   через !important — именно он (а не первое определение .grid-cell выше) реально
+   побеждал в каскаде и заставлял игрока видеть квадратные клетки поля. Поле должно
+   выглядеть "зафиксированным" — видимыми остаются только сами фишки. */
 .grid-cell {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Очень тонкая белая внутренняя сетка */
+  border: none;
+  background: transparent;
   box-sizing: border-box;
-}
-
-/* Красивый серо-голубой шахматный узор */
-.grid-cell:nth-child(even) {
-  background-color: #8da1b9 !important; /* Светло-серый базовый */
-}
-.grid-cell:nth-child(odd) {
-  background-color: #8195af !important; /* Чуть темнее для контраста */
-}
-
-/* Толстый серый ободок, огибающий края поля */
-.grid-cell.edge-top {
-  border-top: 5px solid #4a5d78 !important;
-}
-.grid-cell.edge-bottom {
-  border-bottom: 5px solid #4a5d78 !important;
-}
-.grid-cell.edge-left {
-  border-left: 5px solid #4a5d78 !important;
-}
-.grid-cell.edge-right {
-  border-right: 5px solid #4a5d78 !important;
-}
-
-/* Закругление внешних углов фигурного поля */
-.grid-cell.edge-top.edge-left {
-  border-top-left-radius: 12px;
-}
-.grid-cell.edge-top.edge-right {
-  border-top-right-radius: 12px;
-}
-.grid-cell.edge-bottom.edge-left {
-  border-bottom-left-radius: 12px;
-}
-.grid-cell.edge-bottom.edge-right {
-  border-bottom-right-radius: 12px;
 }
