@@ -1559,18 +1559,24 @@
         grid = [];
         for(let r=0;r<SIZE;r++) grid.push(new Array(SIZE).fill(null));
 
-// 1. Сначала строим визуальные ячейки-подложки на поле (сетка 8х8 ковров и желе)
+// 1. Сначала строим визуальные ячейки-подложки на поле (С АВТОМАТИЧЕСКИМ РАСЧЕТОМ КРАЯ ПОЛЯ)
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 if (levelLayout[r][c] !== 0) {
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.dataset.pos = `${r},${c}`; 
+
+                    // Умный расчет внешнего ободка поля (определяем пустоту рядом)
+                    if (r === 0 || levelLayout[r - 1][c] === 0) cell.classList.add('edge-top');
+                    if (r === SIZE - 1 || levelLayout[r + 1][c] === 0) cell.classList.add('edge-bottom');
+                    if (c === 0 || levelLayout[r][c - 1] === 0) cell.classList.add('edge-left');
+                    if (c === SIZE - 1 || levelLayout[r][c + 1] === 0) cell.classList.add('edge-right');
                     
                     // Рисуем ковер
                     if (carpetGrid[r] && carpetGrid[r][c]) cell.classList.add('carpet');
                     
-                    // ИСПРАВЛЕНО: Рисуем малиновое желе с вишенкой
+                    // Рисуем малиновое желе с вишенкой
                     if (jellyGrid[r] && jellyGrid[r][c] > 0) {
                         cell.classList.add('jelly', `jelly-${jellyGrid[r][c]}`);
                     }
@@ -1579,7 +1585,6 @@
                 }
             }
         }
-        
         // 2. Затем генерируем и выставляем на поле все стартовые фишки и коробки
         for(let r=0;r<SIZE;r++){
             for(let c=0;c<SIZE;c++){
