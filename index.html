@@ -48,14 +48,14 @@
   <main id="screenHideout" class="game-screen">
     <!-- Шапка текущей комнаты -->
     <div class="location-banner" id="hideoutRoomTitle">Комната: Жилой блок</div>
-    
     <!-- Интерактивный интерактивный вьюпорт комнаты -->
     <div class="hideout-viewport" id="hideoutViewport">
-      <!-- Фоновый слой комнаты (меняется через JS) -->
+      <div class="room-content" id="roomContent">
+    <!-- Фоновый слой комнаты (меняется через JS) -->
       <div class="room-background" id="roomBgLayer"></div>
-      
-      <!-- Контейнер для динамических хотспотов (улучшения, переходы, предметы) -->
-      <div id="hotspotsContainer"></div>
+    
+    <!-- Контейнер для динамических хотспотов (улучшения, переходы, предметы) -->
+    <div id="hotspotsContainer"></div>
     </div>
 
     <!-- Инвентарь игрока (Нижняя панель находок) -->
