@@ -1657,3 +1657,59 @@ to { transform: scale(1.05) rotate(5deg); }
   background-position: center !important; /* Центрируем её в ячейке */
   background-repeat: no-repeat !important;
 }
+/* ==========================================================================
+   ФИГУРНЫЙ СЕРЫЙ КОНТУР И ШАХМАТНЫЙ УЗОР ИГРОВОГО ПОЛЯ (КАК В HOMESCAPES)
+   ========================================================================== */
+
+/* Убираем черную квадратную коробку, делая её невидимой */
+#boardWrap {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Настраиваем базовые серые ячейки поля */
+.grid-cell {
+  position: absolute;
+  width: calc(100% / var(--size));
+  height: calc(100% / var(--size));
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Очень тонкая белая внутренняя сетка */
+  box-sizing: border-box;
+}
+
+/* Красивый серо-голубой шахматный узор */
+.grid-cell:nth-child(even) {
+  background-color: #8da1b9 !important; /* Светло-серый базовый */
+}
+.grid-cell:nth-child(odd) {
+  background-color: #8195af !important; /* Чуть темнее для контраста */
+}
+
+/* Толстый серый ободок, огибающий края поля */
+.grid-cell.edge-top {
+  border-top: 5px solid #4a5d78 !important;
+}
+.grid-cell.edge-bottom {
+  border-bottom: 5px solid #4a5d78 !important;
+}
+.grid-cell.edge-left {
+  border-left: 5px solid #4a5d78 !important;
+}
+.grid-cell.edge-right {
+  border-right: 5px solid #4a5d78 !important;
+}
+
+/* Закругление внешних углов фигурного поля */
+.grid-cell.edge-top.edge-left {
+  border-top-left-radius: 12px;
+}
+.grid-cell.edge-top.edge-right {
+  border-top-right-radius: 12px;
+}
+.grid-cell.edge-bottom.edge-left {
+  border-bottom-left-radius: 12px;
+}
+.grid-cell.edge-bottom.edge-right {
+  border-bottom-right-radius: 12px;
+}
