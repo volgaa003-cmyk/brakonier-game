@@ -90,16 +90,18 @@
         }
 
         // Базовые параметры сложности
+        // СМЯГЧЕНО: цель ниже, ходов больше — игрок чаще успевает собрать бустеры
+        // и почти всегда доходит до цели с запасом, как в Homescapes.
         if (i <= 20) {
-            heartsGoal = 10 + Math.floor(i * 1.1);
-            moves = 24 - Math.floor(i / 10);
+            heartsGoal = 8 + Math.floor(i * 0.8);
+            moves = 26 - Math.floor(i / 14);
         } else {
-            heartsGoal = 32 + Math.floor((i - 20) * 0.8);
-            moves = 22 - Math.floor((i - 20) / 15);
+            heartsGoal = 24 + Math.floor((i - 20) * 0.55);
+            moves = 24 - Math.floor((i - 20) / 20);
         }
 
-        heartsGoal = Math.max(10, heartsGoal + Math.floor(Math.random() * 5) - 2);
-        moves = Math.max(10, moves + Math.floor(Math.random() * 3) - 1);
+        heartsGoal = Math.max(8, heartsGoal + Math.floor(Math.random() * 3) - 1);
+        moves = Math.max(14, moves + Math.floor(Math.random() * 3));
 
         // Распределение типов целей
         let targetType = "heart";
@@ -160,10 +162,10 @@
             // Уровни с плющом 🥀 (растет и расползается по полю каждый ход!)
             targetType = "ivy";
             heartsGoal = 5 + Math.floor(Math.random() * 4);
-} else if (i >= 15 && i % 2 === 1) {
+} else if (i >= 22 && i % 2 === 1) {
             targetType = "ice";
-            // Постепенно увеличиваем количество льда от 8 до 16 блоков в зависимости от уровня
-            let targetIceCount = Math.min(16, 8 + Math.floor(i / 15));
+            // Постепенно увеличиваем количество льда, но мягче и позже, чем раньше
+            let targetIceCount = Math.min(11, 5 + Math.floor(i / 20));
             let frozenCount = 0, safety = 0;
             while (frozenCount < targetIceCount && safety < 150) {
                 safety++;
@@ -178,8 +180,8 @@
             targetType = "box";
         }
 
-        // Случайный спавн цепей на высоких уровнях
-        if (i >= 8 && i % 3 === 0) {
+        // Случайный спавн цепей на высоких уровнях (реже и позже, чем раньше)
+        if (i >= 14 && i % 5 === 0) {
             chainLayout[Math.floor(Math.random()*3)+2][Math.floor(Math.random()*4)+2] = 1;
         }
 
