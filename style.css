@@ -1248,25 +1248,46 @@ to { transform: scale(1.05) rotate(5deg); }
 /* ==========================================================================
    ИНТЕРАКТИВНЫЙ ИГРОВОЙ ХАБ (УБЕЖИЩЕ)
    ========================================================================== */
+/* Настройки полноэкранного вьюпорта квартиры */
 .hideout-viewport {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/10;
-  border: 4px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: var(--panel-shadow);
+  flex: 1; /* Заполняем всё доступное пространство по высоте под баннером */
   overflow: hidden;
   background: #110f14;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-/* Слой фоновой картинки комнаты */
+/* Широкий контейнер комнаты для эффекта панорамирования */
+.room-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1250px; /* Ширина панорамы для прокрутки */
+  height: 100%;
+  will-change: left;
+}
+
 .room-background {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
-  transition: background-image 0.4s ease-in-out;
   z-index: 1;
+}
+
+#hotspotsContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Делаем так, чтобы по кнопкам улучшений можно было кликать поверх прозрачного слоя */
+.hotspot {
+  pointer-events: auto !important;
 }
 
 /* Стили хотспотов (точек на экране) */
