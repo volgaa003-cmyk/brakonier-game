@@ -381,19 +381,18 @@ body {
 }
 
 #boardWrap {
-  background: var(--ink);
-  border: 4px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: 8px 8px 0 rgba(0,0,0,0.55);
-  padding: 6px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
   width: 100%;
-  overflow: hidden; 
+  overflow: visible;
 }
 
 #board {
   position: relative;
   width: 100%;
-  aspect-ratio: 1/1;
+  aspect-ratio: 3/4; /* Вертикальное поле, как в Homescapes, а не квадрат */
   touch-action: none;
   transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease-out;
   will-change: transform, opacity;
