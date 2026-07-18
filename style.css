@@ -1559,3 +1559,10 @@ to { transform: scale(1.05) rotate(5deg); }
   letter-spacing: 0px !important; /* Убираем лишний разброс букв для лучшей читаемости */
   font-weight: 800 !important;   /* Делаем заголовки сочными и четкими */
 }
+/* Фиксация меню навигации Убежища на экране (ИСПРАВЛЕНО) */
+#screenHideout {
+  height: 100%;
+  overflow: hidden; /* Запрещаем общий скролл экрана, чтобы кнопки не улетали вниз */
+  display: flex;
+  flex-direction: column;
+}
