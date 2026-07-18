@@ -398,18 +398,30 @@ body {
   will-change: transform, opacity;
 }
 
-/* Базовый дизайн ячеек поля — полностью невидимые: поле выглядит "зафиксированным",
-   игрок видит только фишки и спецэффекты (ковёр/желе), а не клетки-квадраты под ними */
+/* ДОБАВЛЕНО: карточный фон поля "как на референсе" — плоский светло-лавандовый
+   цвет ячейки, скругление только по внешнему контуру фигуры (используем уже
+   готовые классы edge-top/edge-bottom/edge-left/edge-right, которые JS сам
+   расставляет по краю фигурного поля), тонкий зазор между ячейками и мягкая
+   тень снизу, чтобы поле читалось как приподнятая карточка, а не плоские квадраты.
+   Ковёр/желе (ниже по файлу) переопределяют этот фон уже на самой .grid-cell —
+   поэтому карточный вид задаём тоже прямо на .grid-cell, а не на псевдоэлементе,
+   чтобы они не перекрывали друг друга по слоям. */
 .grid-cell {
   position: absolute;
   width: calc(100% / var(--size));
   height: calc(100% / var(--size));
-  border: none;
-  background: transparent;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #d9daf4 0%, #c7c8ea 100%);
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06);
+  margin: 1px; /* тонкий зазор между ячейками, как на референсе */
   z-index: 0;
   pointer-events: none;
-  transition: background 0.3s ease;
 }
+.grid-cell.edge-top   { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+.grid-cell.edge-bottom{ border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06), 0 6px 10px rgba(30,20,10,0.18); }
+.grid-cell.edge-left  { border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+.grid-cell.edge-right { border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
 
 /* 🌿 СТИЛИ ЗЕЛЕНОГО КОВРА */
 .grid-cell.carpet {
