@@ -481,13 +481,26 @@ body {
 }
 
 @media(min-width:460px){ .tile-inner { font-size: 26px; } }
-/* Стили для Печенья 🍪 (только цвет-подстраховка на случай, если картинка не загрузится) */
-.tile.cookie.layer-3 .tile-inner { background: #5c4033; }
-.tile.cookie.layer-2 .tile-inner { background: #8b5a2b; }
-.tile.cookie.layer-1 .tile-inner { background: #cd853f; }
-
-/* Стили для Рулона ковра */
-.tile.carpet-roll .tile-inner { background: linear-gradient(135deg, #e91e63, #c2185b); }
+/* ИСПРАВЛЕНО: раньше тут были сплошные цветные подложки (коричневый градиент под ящиком,
+   серый камень под фигуркой, синий плед и т.д.). Если у PNG-картинки есть прозрачные поля
+   по краям (обычное дело для игровых иконок), то через них проглядывала эта цветная
+   подложка — и выглядело это как "рамка" вокруг препятствия. Теперь фон полностью
+   прозрачный: если картинка не подгрузится — будет просто пустая клетка, зато никаких
+   лишних рамок/квадратов вокруг препятствий. */
+.tile.cookie .tile-inner,
+.tile.carpet-roll .tile-inner,
+.tile.surprise-box .tile-inner,
+.tile.nut .tile-inner,
+.tile.purple-foam .tile-inner,
+.tile.ring-case .tile-inner,
+.tile.ribbon .tile-inner,
+.tile.stone .tile-inner,
+.tile.ivy .tile-inner,
+.tile.plaid .tile-inner,
+.tile.box .tile-inner,
+.tile.foam .tile-inner {
+  background: transparent;
+}
 
 /* Стили для малинового Желе под фишками с вишней ::after */
 .grid-cell.jelly {
@@ -521,43 +534,6 @@ body {
 from { transform: scale(0.9) rotate(-5deg); }
 to { transform: scale(1.05) rotate(5deg); }
 }
-/* Стили для Коробки-сюрприза 🎁 */
-.tile.surprise-box.layer-5 .tile-inner { background: linear-gradient(135deg, #ffd700, #ff8c00); }
-.tile.surprise-box.layer-4 .tile-inner { background: linear-gradient(135deg, #ff8c00, #d2691e); }
-.tile.surprise-box.layer-3 .tile-inner { background: linear-gradient(135deg, #d2691e, #a0522d); }
-.tile.surprise-box.layer-2 .tile-inner { background: #cd853f; }
-.tile.surprise-box.layer-1 .tile-inner { background: #f4a460; }
-
-/* Стили для Орехов 🌰 */
-.tile.nut.layer-3 .tile-inner { background: #3d251a; }
-.tile.nut.layer-2 .tile-inner { background: #5c3a21; }
-.tile.nut.layer-1 .tile-inner { background: #8b5a2b; }
-
-/* Стили для Фиолетовой пены 🧼💜 */
-.tile.purple-foam.layer-2 .tile-inner { background: radial-gradient(circle, #b39ddb 0%, #4a148c 100%); }
-.tile.purple-foam.layer-1 .tile-inner { background: radial-gradient(circle, #e1bee7 0%, #8e24aa 100%); }
-
-/* Стили для Футляров с Кольцами 💍 */
-.tile.ring-case.layer-3 .tile-inner { background: #4a0000; }
-.tile.ring-case.layer-2 .tile-inner { background: #800000; }
-.tile.ring-case.layer-1 .tile-inner { background: #c0c0c0; }
-
-/* Стили для Ленты с бантами 🎀 */
-.tile.ribbon .tile-inner { background: linear-gradient(135deg, #ff4081, #f50057); }
-
-/* Стили для Каменных Фигурок 🗿 */
-.tile.stone.layer-3 .tile-inner { background: #424242; }
-.tile.stone.layer-2 .tile-inner { background: #616161; }
-.tile.stone.layer-1 .tile-inner { background: #9e9e9e; }
-
-/* Стили для Плюща 🥀 */
-.tile.ivy .tile-inner { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
-
-/* Стили для Пледа 🛏️ */
-.tile.plaid.layer-4 .tile-inner { background: linear-gradient(135deg, #0d47a1, #1565c0); }
-.tile.plaid.layer-3 .tile-inner { background: linear-gradient(135deg, #1976d2, #1e88e5); }
-.tile.plaid.layer-2 .tile-inner { background: linear-gradient(135deg, #2196f3, #42a5f5); }
-.tile.plaid.layer-1 .tile-inner { background: #90caf9; }
 /* 🧊 СТИЛИ МОРОЗНОГО ЛЬДА */
 .tile.frozen {
   cursor: not-allowed;
@@ -1035,7 +1011,6 @@ to { transform: scale(1.05) rotate(5deg); }
 
 /* Препятствие: Коробка/Ящик в стиле Homescapes */
 .tile.box .tile-inner {
-  background: linear-gradient(135deg, #a0522d, #8b4513); /* Фолбэк-цвет, если картинка не загрузилась */
   z-index: 5;
 }
 .tile.box.clearing .tile-inner {
