@@ -745,32 +745,53 @@
             else if (tile.type === 'rocketRow') animateRocketEffect(tile.row, tile.col, true);
             else if (tile.type === 'rocketCol') animateRocketEffect(tile.row, tile.col, false);
             else if (tile.type === 'plane') {
-                // ИСПРАВЛЕНО: раньше doublePlanesActive учитывался только при свайпе двух самолётиков
-                // друг о друга. Теперь пре-бустер удваивает число летящих самолётиков при ЛЮБОМ запуске.
+                // ============================================================
+                // ИСПРАВЛЕНО (баг "сыпется поле при бусте"):
+                // Раньше самолётик запускал СРАЗУ несколько независимых цепочек
+                // clearAndContinue() — по одной на каждый прилёт + ещё одну на
+                // крест вокруг себя (в общей строке ниже). Каждая из них отдельно
+                // гоняла applyGravityAndRefill() и переключала общий флаг busy,
+                // из-за чего гравитации накладывались друг на друга и поле
+                // "осыпалось" по нескольку раз подряд.
+                //
+                // Теперь как в комбо-ветке plane+plane: сначала ОДНОЙ цепочкой
+                // разбираем крест вокруг самолётика, и только по её завершении
+                // (onComplete) запускаем перелёты. Счётчик activePlanesCount
+                // держит busy=true, пока не долетит и не отработает последний
+                // самолётик. Обязательный return — чтобы не сработала общая
+                // строка clearAndContinue ниже.
+                // ============================================================
                 const planeCount = doublePlanesActive ? 2 : 1;
-                const usedTargets = new Set();
-                for (let i = 0; i < planeCount; i++) {
-                    const target = findBestTargetForPlane(tile.row, tile.col, usedTargets);
-                    if (target) {
-                        usedTargets.add(key(target.r, target.c));
-                        // 1. Запускаем красивый полет самолетика к далекой цели
-                        animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
-                            // По прилету взрываем далекую цель
-                            clearAndContinue(new Set([key(target.r, target.c)]), [], null, null, false, false, true);
-                        });
+                const footprint = new Set();
+                footprintFor(tile).forEach(([r, c]) => footprint.add(key(r, c)));
+
+                activePlanesCount += planeCount;
+
+                clearAndContinue(footprint, [], null, () => {
+                    const usedTargets = new Set();
+                    for (let i = 0; i < planeCount; i++) {
+                        const target = findBestTargetForPlane(tile.row, tile.col, usedTargets);
+                        if (target) {
+                            usedTargets.add(key(target.r, target.c));
+                            animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
+                                clearAndContinue(new Set([key(target.r, target.c)]), [], null, () => {
+                                    activePlanesCount--;
+                                    if (activePlanesCount === 0) { busy = false; checkEndConditions(); }
+                                }, false, false, true);
+                            });
+                        } else {
+                            // Цель не нашлась — всё равно закрываем счётчик,
+                            // иначе busy навсегда останется true и поле "зависнет".
+                            activePlanesCount--;
+                            if (activePlanesCount === 0) { busy = false; checkEndConditions(); }
+                        }
                     }
-                }
-                
-                // 2. В момент взлета мгновенно уничтожаем крест из 5 клеток вокруг самого самолетика
-                cells = new Set();
-                footprintFor(tile).forEach(([r, c]) => {
-                    cells.add(key(r, c));
-                });
+                }, false, false, true);
+
+                return;
             }
-            
-            if (tile.type !== 'plane') {
-                cells = computeActivationFootprint(tile);
-            }
+
+            cells = computeActivationFootprint(tile);
         }
 
         clearAndContinue(cells, [], null, null, false, false, true);
