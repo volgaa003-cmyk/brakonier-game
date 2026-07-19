@@ -94,6 +94,25 @@
     let busy = false;             // Флаг блокировки интерфейса во время анимаций взрывов/падений
     let tileIdCounter = 0;        // Генератор уникальных ID для DOM-элементов плиток
 
+    // ==========================================================================
+    // ЕДИНЫЙ ШЛЮЗ РАЗБОРА ПОЛЯ (общий замок).
+    // Раньше каждый источник разбора (свайп, одиночный бустер, комбо, прилёт
+    // самолётика, каскад) сам дёргал clearAndContinue() и переключал общий флаг
+    // busy. Из-за этого несколько корневых цепочек могли крутить
+    // applyGravityAndRefill() одновременно и накладывать гравитации друг на друга
+    // — поле "осыпалось" и рассинхронизировалось.
+    //
+    // Теперь ВСЕ внешние запросы на разбор кладутся в очередь chainQueue, и в
+    // каждый момент выполняется ровно одна корневая цепочка (chainActive).
+    // Каскады ВНУТРИ цепочки (applyResolutionFull) идут напрямую через
+    // runClearChain(), не проходя очередь, — иначе цепочка ждала бы саму себя
+    // (дедлок). pendingWork держит замок закрытым, пока в воздухе есть
+    // самолётики или отложенные (setTimeout) разборы.
+    // ==========================================================================
+    let chainActive = false;      // true, пока крутится корневая цепочка разбора
+    const chainQueue = [];        // очередь корневых запросов [args...]
+    let pendingWork = 0;          // отложенная работа (планы в полёте, задержанные разборы)
+
     // ДОБАВЛЕНО: поддержка уровней из НЕСКОЛЬКИХ частей поля («зон»).
     // Когда у уровня есть zoneQueue — по достижении локальной цели текущей части
     // поле "перекатывается" (используются готовые CSS-классы #board.scroll-out/scroll-in)
@@ -756,7 +775,7 @@
                 //
                 // Теперь как в комбо-ветке plane+plane: сначала ОДНОЙ цепочкой
                 // разбираем крест вокруг самолётика, и только по её завершении
-                // (onComplete) запускаем перелёты. Счётчик activePlanesCount
+                // (onComplete) запускаем перелёты. Счётчик pendingWork
                 // держит busy=true, пока не долетит и не отработает последний
                 // самолётик. Обязательный return — чтобы не сработала общая
                 // строка clearAndContinue ниже.
@@ -765,7 +784,9 @@
                 const footprint = new Set();
                 footprintFor(tile).forEach(([r, c]) => footprint.add(key(r, c)));
 
-                activePlanesCount += planeCount;
+                // pendingWork держит замок закрытым, пока самолётики в полёте:
+                // насос не разблокирует ввод, пока pendingWork не вернётся к 0.
+                pendingWork += planeCount;
 
                 clearAndContinue(footprint, [], null, () => {
                     const usedTargets = new Set();
@@ -775,15 +796,14 @@
                             usedTargets.add(key(target.r, target.c));
                             animatePlaneEffect(tile.row, tile.col, target.r, target.c, () => {
                                 clearAndContinue(new Set([key(target.r, target.c)]), [], null, () => {
-                                    activePlanesCount--;
-                                    if (activePlanesCount === 0) { busy = false; checkEndConditions(); }
+                                    pendingWork--; // прилетевший самолётик отработал
                                 }, false, false, true);
                             });
                         } else {
-                            // Цель не нашлась — всё равно закрываем счётчик,
-                            // иначе busy навсегда останется true и поле "зависнет".
-                            activePlanesCount--;
-                            if (activePlanesCount === 0) { busy = false; checkEndConditions(); }
+                            // Цель не нашлась — освобождаем единицу работы и пинаем
+                            // насос, чтобы он мог разблокироваться, если это была последняя.
+                            pendingWork--;
+                            pumpChainQueue();
                         }
                     }
                 }, false, false, true);
@@ -2219,7 +2239,37 @@ function collectDoughnuts() {
     // ----------------------------------------------------------------------
 
 // Функция очистки совпавших фишек, спавна бустеров и запуска цепной реакции
+    // Внешняя точка входа: кладёт корневой запрос разбора в очередь и запускает насос.
+    // Каскады внутри цепочки этот путь НЕ используют — они зовут runClearChain() напрямую.
     function clearAndContinue(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
+        chainQueue.push([clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion]);
+        pumpChainQueue();
+    }
+
+    // Насос очереди: гарантирует, что одновременно крутится только одна корневая цепочка.
+    function pumpChainQueue(){
+        if (chainActive) return; // цепочка уже идёт — новый запрос подождёт в очереди
+        if (chainQueue.length === 0){
+            // Очередь пуста и ничего не крутится. Разблокируем ввод и проверяем конец
+            // уровня ТОЛЬКО когда в воздухе нет самолётиков и нет отложенных разборов.
+            if (pendingWork === 0){
+                busy = false;
+                checkEndConditions();
+            }
+            return;
+        }
+        chainActive = true;
+        busy = true;
+        const [clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion] = chainQueue.shift();
+        runClearChain(clearSet, specialSpawns, scoreSet, () => {
+            // Корневая цепочка (со всеми своими каскадами) полностью завершилась.
+            chainActive = false;
+            if (onComplete) onComplete(); // может добавить новые корни в очередь / запустить планы
+            pumpChainQueue();             // берём следующий корень либо разблокируемся
+        }, preventCarpet, forceCarpet, isExplosion);
+    }
+
+    function runClearChain(clearSet, specialSpawns, scoreSet, onComplete, preventCarpet, forceCarpet, isExplosion){
         specialSpawns = specialSpawns || [];
         const scoring = scoreSet || clearSet;
         let heartsGained=0;
@@ -2340,18 +2390,21 @@ function collectDoughnuts() {
                                      result.rainbows.length || result.squares.length ||
                                      result.normalCells.size;
                 if (hasAnyMatch) {
-                    applyResolutionFull(result);
-                } else if (onComplete) {
-                    onComplete();
+                    // Каскад — это продолжение ТЕКУЩЕЙ цепочки. Пробрасываем тот же
+                    // колбэк завершения вниз, чтобы замок открылся только когда
+                    // осядет самый глубокий каскад.
+                    applyResolutionFull(result, onComplete);
                 } else {
-                    busy = false;
-                    checkEndConditions();
+                    // Совпадений больше нет — цепочка завершена. onComplete здесь
+                    // гарантированно задан насосом (pumpChainQueue), он и снимет
+                    // chainActive / разблокирует ввод.
+                    onComplete();
                 }
             }, FALL_MS + 20);
         }, CLEAR_MS);
     }
 // Сборка карт взрыва по типам бустеров
-    function applyResolutionFull(result){
+    function applyResolutionFull(result, done){
         const specialSpawns = [];
         const scoreSet = new Set();
         
@@ -2372,7 +2425,14 @@ function collectDoughnuts() {
         const clearSet = new Set();
         scoreSet.forEach(k=>{ if(!atKeys.has(k)) clearSet.add(k); });
         
-        clearAndContinue(clearSet, specialSpawns, scoreSet);
+        if (done === undefined) {
+            // Корневой вызов (например, из performSwap после удачного свайпа) —
+            // проходит через очередь как новая цепочка.
+            clearAndContinue(clearSet, specialSpawns, scoreSet);
+        } else {
+            // Продолжение уже идущей цепочки (каскад) — напрямую, с тем же колбэком.
+            runClearChain(clearSet, specialSpawns, scoreSet, done, false, false, false);
+        }
     }
 
     // Совместная активация (свайп) двух соседних бустеров
@@ -2421,16 +2481,24 @@ function collectDoughnuts() {
 
         if (has('plane') && has('plane')) {
             cells = computeActivationFootprint(a);
-            activePlanesCount += doublePlanesActive ? 6 : 3;
+            const planeCount = doublePlanesActive ? 6 : 3;
+            pendingWork += planeCount;
             clearAndContinue(cells, [], null, () => {
-                for (let i = 0; i < (doublePlanesActive ? 6 : 3); i++) {
-                    const target = findBestTargetForPlane(a.row, a.col);
+                const usedTargets = new Set();
+                for (let i = 0; i < planeCount; i++) {
+                    const target = findBestTargetForPlane(a.row, a.col, usedTargets);
                     if (target) {
+                        usedTargets.add(key(target.r, target.c));
                         animatePlaneEffect(a.row, a.col, target.r, target.c, () => {
                             clearAndContinue(new Set([key(target.r, target.c)]), [], null, () => {
-                                activePlanesCount--; if(activePlanesCount===0){ busy=false; checkEndConditions(); }
+                                pendingWork--;
                             }, false, false, true);
                         });
+                    } else {
+                        // ИСПРАВЛЕНО: если целей меньше, чем самолётиков, лишние
+                        // единицы работы раньше не закрывались и busy зависал навсегда.
+                        pendingWork--;
+                        pumpChainQueue();
                     }
                 }
             }, false, false, true);
@@ -2850,7 +2918,12 @@ if(aSpecial && bSpecial){
                             }
                         }
                         if (cellsToExplode.size > 0) {
+                            // Держим замок закрытым в 150-мс зазоре до второго взрыва,
+                            // иначе насос успел бы разблокировать поле и проверить конец
+                            // уровня раньше времени.
+                            pendingWork++;
                             setTimeout(() => {
+                                pendingWork--;
                                 clearAndContinue(cellsToExplode, [], null, null, false, false, true);
                             }, 150);
                         }
