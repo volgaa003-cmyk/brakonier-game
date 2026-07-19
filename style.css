@@ -1750,3 +1750,10 @@ to { transform: scale(1.05) rotate(5deg); }
 .grid-cell.edge-bottom.edge-right {
   border-bottom-right-radius: 14px !important;
 }
+
+/* ============================================================
+   Убрано название-баннер на главном экране (Убежище).
+   Скрываем только #hideoutRoomTitle — баннеры на карте
+   ("Охотничьи угодья") и в бою остаются на месте.
+   ============================================================ */
+#hideoutRoomTitle { display: none !important; }
