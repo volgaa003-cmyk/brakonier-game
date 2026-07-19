@@ -1173,7 +1173,7 @@
     document.addEventListener('touchcancel', handleDragEnd);
 
     // Фабрика создания фишек: генерирует DOM-элемент, рассчитывает слои прочности и вешает обработчики жестов
-    function createTile(row, col, type, spawnRow){
+    function createTile(row, col, type, spawnRow, fallDelay){
         const id = 'tile'+(tileIdCounter++);
         const el = document.createElement('div');
         el.className = `tile tile-${type}`;
@@ -1224,19 +1224,50 @@
         el.addEventListener('click', onTileClick);
 
         // Если задана спавн-строка выше поля — фишка упадет плавно сверху
- // Установка стартовой позиции фишки без задержек и наслоений
+        // ИСПРАВЛЕНО: раньше здесь был `void el.offsetWidth` — принудительный синхронный
+        // reflow НА КАЖДУЮ фишку. При старте уровня это вызывалось до 64 раз подряд в одном
+        // цикле (по одному на каждую клетку 8х8), что блокировало главный поток и превращало
+        // плавное падение фишек в дёрганую, "сыпящуюся" анимацию на слабых телефонах.
+        // Теперь вместо принудительного reflow используем двойной requestAnimationFrame —
+        // это гарантированно запускает CSS-переход без блокирующего пересчёта layout.
         if(spawnRow !== undefined && spawnRow !== row){
             el.style.transition = 'none';
+            el.style.transitionDelay = '0ms';
             setTilePos(el, spawnRow, col);
             if (boardEl) boardEl.appendChild(el);
-            void el.offsetWidth; // Заставляем браузер мгновенно обновить кадр
-            el.style.transition = '';
-            setTilePos(el, row, col);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    el.style.transition = '';
+                    if (fallDelay) el.style.transitionDelay = fallDelay + 'ms';
+                    setTilePos(el, row, col);
+                });
+            });
         } else {
             setTilePos(el, row, col);
             if (boardEl) boardEl.appendChild(el);
         }
-        
+
+        // ДОБАВЛЕНО: мягкий "пружинящий" отскок фишки в момент приземления.
+        // Слушаем конец CSS-перехода именно по свойству "top" (вертикальное движение) —
+        // это происходит и при первом падении фишек на старте уровня, и при обычной
+        // гравитации после схлопывания матчей. transitionDelay сбрасываем сразу после
+        // срабатывания, чтобы задержка не "прилипала" к последующим обычным ходам фишки.
+        el.addEventListener('transitionend', (e) => {
+            if (e.propertyName !== 'top') return;
+            el.style.transitionDelay = '0ms';
+            if (el.classList.contains('clearing')) return;
+            const innerEl = el.querySelector('.tile-inner');
+            if (!innerEl) return;
+            innerEl.classList.remove('tile-land-bounce');
+            void innerEl.offsetWidth; // разрешаем повторный запуск анимации при следующем приземлении
+            innerEl.classList.add('tile-land-bounce');
+        });
+        el.addEventListener('animationend', (e) => {
+            if (e.animationName === 'tileLandBounce') {
+                el.querySelector('.tile-inner')?.classList.remove('tile-land-bounce');
+            }
+        });
+
         applySpecialClass(tile); // Навешиваем классы спецэффектов
         return tile;
     }
@@ -1726,7 +1757,16 @@
                         (c>=2 && grid[r][c-1] && grid[r][c-2] && grid[r][c-1].type===t && grid[r][c-2].type===t) ||
                         (r>=2 && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].type===t && grid[r-2][c].type===t)
                     ));
-                    grid[r][c] = createTile(r, c, t, r - SIZE);
+                    // ДОБАВЛЕНО: раньше стартовая строка спавна была `r - SIZE`, то есть фишка
+                    // самого нижнего ряда (r=7) стартовала всего в 1 клетке над своим местом,
+                    // а фишка верхнего ряда (r=0) — в 8 клетках над полем. При одинаковой
+                    // длительности CSS-перехода это давало совершенно разную скорость падения
+                    // у разных рядов и визуально выглядело как "рассыпающееся" поле.
+                    // Теперь все фишки стартуют с одинаковой высоты (чуть выше видимого поля)
+                    // и падают с одинаковой скоростью, а через задержку по номеру ряда
+                    // получаем красивую волну заполнения сверху вниз.
+                    const initialFallDelay = r * 35 + Math.floor(Math.random() * 30);
+                    grid[r][c] = createTile(r, c, t, -2, initialFallDelay);
                 }
             }
         }
@@ -2043,8 +2083,12 @@ function collectDoughnuts() {
                 boardEl.classList.remove('scroll-in'); // и сразу отпускаем — поле плавно въезжает обратно
             }
 
-            busy = false;
-            resetHintTimer();
+            // ДОБАВЛЕНО: не снимаем блокировку сразу — ждём, пока фишки новой части
+            // поля закончат каскадное падение (см. аналогичный таймаут при старте уровня).
+            setTimeout(() => {
+                busy = false;
+                resetHintTimer();
+            }, (SIZE - 1) * 35 + 30 + 280 + 120);
         }, 260);
     }
 
@@ -3199,6 +3243,13 @@ if(aSpecial && bSpecial){
             moves = START_MOVES;
             buildInitialGrid();
             updateMatch3HUD();
+
+            // ДОБАВЛЕНО: блокируем ходы, пока фишки ещё каскадом падают и заполняют поле —
+            // иначе игрок может успеть свайпнуть ещё летящую фишку прямо во время анимации.
+            // Максимальная задержка приземления — у нижнего ряда (SIZE-1)*35мс + сама
+            // длительность падения (~280мс), плюс небольшой запас.
+            busy = true;
+            setTimeout(() => { busy = false; resetHintTimer(); }, (SIZE - 1) * 35 + 30 + 280 + 120);
         });
     }
 
