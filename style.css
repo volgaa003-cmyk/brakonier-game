@@ -464,6 +464,22 @@ body {
   will-change: transform, opacity;
 }
 
+/* ДОБАВЛЕНО: мягкий пружинящий отскок в момент приземления фишки (после падения
+   на старте уровня или после гравитации). Лёгкое сплющивание по вертикали и
+   растяжение по горизонтали в момент удара, с быстрым возвратом к нормальной форме —
+   классический "squash & stretch" эффект. */
+@keyframes tileLandBounce {
+  0%   { transform: scale(1, 1); }
+  30%  { transform: scale(1.16, 0.82); }
+  55%  { transform: scale(0.90, 1.12); }
+  75%  { transform: scale(1.05, 0.96); }
+  100% { transform: scale(1, 1); }
+}
+.tile-inner.tile-land-bounce {
+  animation: tileLandBounce 0.32s cubic-bezier(.36, 0, .66, 1);
+  transform-origin: 50% 85%;
+}
+
 @media(min-width:460px){ .tile-inner { font-size: 26px; } }
 /* Стили для Печенья 🍪 */
 .tile.cookie.layer-3 .tile-inner { background: #5c4033; border-color: #3d251a; }
