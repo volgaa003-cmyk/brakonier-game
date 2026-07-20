@@ -89,23 +89,34 @@
             chainLayout.push(new Array(SIZE).fill(0));
         }
 
-        // Базовые параметры сложности
-        // СМЯГЧЕНО: цель ниже, ходов больше — игрок чаще успевает собрать бустеры
-        // и почти всегда доходит до цели с запасом, как в Homescapes.
-        if (i <= 20) {
-            heartsGoal = 8 + Math.floor(i * 0.8);
-            moves = 26 - Math.floor(i / 14);
+        // Базовые параметры сложности - УЛЬТРА-ЛЕГКИЙ режим как в Homescapes
+        // Игрок должен почти всегда побеждать с запасом ходов
+        if (i <= 10) {
+            // Первые 10 уровней - максимально легкие для обучения
+            heartsGoal = 6 + Math.floor(i * 0.5); // Цели от 6 до 11
+            moves = 28 - Math.floor(i / 5); // Ходов от 26 до 28
+        } else if (i <= 25) {
+            // Ранние уровни - легкие
+            heartsGoal = 10 + Math.floor((i - 10) * 0.6); // Цели от 10 до 19
+            moves = 27 - Math.floor((i - 10) / 8); // Ходов от 24 до 27
+        } else if (i <= 50) {
+            // Средние уровни - средней сложности
+            heartsGoal = 18 + Math.floor((i - 25) * 0.4); // Цели от 18 до 28
+            moves = 25 - Math.floor((i - 25) / 10); // Ходов от 22 до 25
         } else {
-            heartsGoal = 24 + Math.floor((i - 20) * 0.55);
-            moves = 24 - Math.floor((i - 20) / 20);
+            // Поздние уровни - чуть сложнее
+            heartsGoal = 26 + Math.floor((i - 50) * 0.3); // Цели от 26+
+            moves = 23 - Math.floor((i - 50) / 15); // Ходов от 20+
         }
 
-        heartsGoal = Math.max(8, heartsGoal + Math.floor(Math.random() * 3) - 1);
-        moves = Math.max(14, moves + Math.floor(Math.random() * 3));
+        // Небольшая вариативность для разнообразия
+        heartsGoal = Math.max(6, heartsGoal + Math.floor(Math.random() * 2) - 1);
+        moves = Math.max(16, moves + Math.floor(Math.random() * 2));
 
-        // Распределение типов целей
+        // Распределение типов целей с ограничением max 3 препятствия на уровень
         let targetType = "heart";
         
+        // ЭТАП 1: Обучающие уровни (1-5) - только простые механики
         if (i === 3) {
             // Обучающий уровень 3: Цепи 🔗
             targetType = "heart";
@@ -116,73 +127,198 @@
         } else if (i === 4) {
             // Обучающий уровень 4: Порталы 🌌
             targetType = "heart";
-            portals = { "7,1": "0,6", "7,6": "0,1" }; // Снизу уходим наверх по диагонали
-        } else if (i === 6 || (i > 5 && i % 4 === 1)) {
-            // Уровни с пончиками 🍩
-            targetType = "donut";
-            heartsGoal = i < 15 ? 2 : 3; 
-        } else if (i >= 20 && i % 12 === 0) {
-            // ИСПРАВЛЕНО: Раньше это условие (i % 5 === 0) было практически недостижимо — оно стояло
-            // ПОСЛЕ веток "ice" (нечетные i>=15) и "box" (все четные i>5), которые перехватывали
-            // почти все номера уровней раньше, чем до него доходила очередь. Теперь у ковров
-            // есть свой зарезервированный слот, до которого ветки ice/box не добираются.
-            targetType = "carpet";
-            heartsGoal = 14 + Math.floor(Math.random() * 8);
-            carpetLayout[3][3] = 1;
-            carpetLayout[3][4] = 1;
-            carpetLayout[4][3] = 1;
-            carpetLayout[4][4] = 1;
-        } else if (i >= 22 && i % 12 === 3) {
-            // Уровни с вазами 🏺 (2 слоя прочности каждая, разбиваются как ящики)
-            targetType = "vase";
-            heartsGoal = 6 + Math.floor(Math.random() * 5);
-        } else if (i >= 24 && i % 12 === 6) {
-            // Уровни с печеньем 🍪 (3 слоя прочности)
-            targetType = "cookie";
-            heartsGoal = 6 + Math.floor(Math.random() * 5);
-        } else if (i >= 26 && i % 12 === 8) {
-            // Уровни с орехами 🌰 (иммунитет к обычным матчам — только взрывы бонусов!)
-            // ИСПРАВЛЕНО: остаток 9 всегда означал i % 4 === 1, что уже перехватывалось
-            // веткой "donut" выше — орехи были математически недостижимы.
-            targetType = "nut";
-            heartsGoal = 5 + Math.floor(Math.random() * 4);
-        } else if (i >= 28 && i % 18 === 5) {
-            // Уровни с футлярами колец 💍
-            targetType = "ring";
-            heartsGoal = 4 + Math.floor(Math.random() * 4);
-        } else if (i >= 30 && i % 18 === 11) {
-            // Уровни с каменными фигурками 🗿 (иммунитет к обычным матчам — только 3 взрыва бонусов!)
-            targetType = "stone";
-            heartsGoal = 4 + Math.floor(Math.random() * 3);
-        } else if (i >= 32 && i % 18 === 17) {
-            // Уровни с пледами 🛏️ (4 слоя прочности)
-            targetType = "plaid";
-            heartsGoal = 4 + Math.floor(Math.random() * 3);
-        } else if (i >= 34 && i % 15 === 7) {
-            // Уровни с плющом 🥀 (растет и расползается по полю каждый ход!)
-            targetType = "ivy";
-            heartsGoal = 5 + Math.floor(Math.random() * 4);
-} else if (i >= 22 && i % 2 === 1) {
-            targetType = "ice";
-            // Постепенно увеличиваем количество льда, но мягче и позже, чем раньше
-            let targetIceCount = Math.min(11, 5 + Math.floor(i / 20));
-            let frozenCount = 0, safety = 0;
-            while (frozenCount < targetIceCount && safety < 150) {
-                safety++;
-                const r = Math.floor(Math.random() * SIZE);
-                const c = Math.floor(Math.random() * SIZE);
-                if (layout[r][c] === 1) {
-                    iceLayout[r][c] = 1;
-                    frozenCount++;
-                }
+            portals = { "7,1": "0,6", "7,6": "0,1" };
+        } 
+        // ЭТАП 2: Ранние уровни (6-15) - 1 тип препятствия
+        else if (i >= 6 && i <= 15) {
+            if (i % 4 === 2) {
+                // Пончики 🍩
+                targetType = "donut";
+                heartsGoal = 2;
+            } else if (i % 2 === 0) {
+                // Ящики 📦
+                targetType = "box";
+            } else {
+                targetType = "heart";
             }
-        }else if (i > 5 && i % 2 === 0) {
-            targetType = "box";
         }
-
-        // Случайный спавн цепей на высоких уровнях (реже и позже, чем раньше)
-        if (i >= 14 && i % 5 === 0) {
-            chainLayout[Math.floor(Math.random()*3)+2][Math.floor(Math.random()*4)+2] = 1;
+        // ЭТАП 3: Средние уровни (16-30) - 1-2 типа препятствий
+        else if (i >= 16 && i <= 30) {
+            const levelMod = i % 8;
+            if (levelMod === 0) {
+                // Ковры 🟩
+                targetType = "carpet";
+                heartsGoal = 12 + Math.floor(Math.random() * 4);
+                carpetLayout[3][3] = 1;
+                carpetLayout[3][4] = 1;
+                carpetLayout[4][3] = 1;
+                carpetLayout[4][4] = 1;
+            } else if (levelMod === 2) {
+                // Вазы 🏺
+                targetType = "vase";
+                heartsGoal = 5 + Math.floor(Math.random() * 3);
+            } else if (levelMod === 4) {
+                // Печенье 🍪
+                targetType = "cookie";
+                heartsGoal = 5 + Math.floor(Math.random() * 3);
+            } else if (levelMod === 6) {
+                // Пончики + легкий лед
+                targetType = "donut";
+                heartsGoal = 2;
+                // Добавляем немного льда (2-3 клетки)
+                let iceCount = 0;
+                while (iceCount < 2) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+            } else if (i % 2 === 0) {
+                // Ящики + цепи
+                targetType = "box";
+                chainLayout[3][3] = 1;
+            } else {
+                targetType = "heart";
+            }
+        }
+        // ЭТАП 4: Поздние уровни (31-60) - 2-3 типа препятствий
+        else if (i >= 31 && i <= 60) {
+            const levelMod = i % 10;
+            if (levelMod === 0) {
+                // Орехи 🌰 + лед
+                targetType = "nut";
+                heartsGoal = 4 + Math.floor(Math.random() * 2);
+                let iceCount = 0;
+                while (iceCount < 3) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+            } else if (levelMod === 2) {
+                // Футляры колец 💍 + цепи
+                targetType = "ring";
+                heartsGoal = 3 + Math.floor(Math.random() * 2);
+                chainLayout[3][2] = 1;
+                chainLayout[4][4] = 1;
+            } else if (levelMod === 4) {
+                // Каменные фигурки 🗿 + ковер
+                targetType = "stone";
+                heartsGoal = 3 + Math.floor(Math.random() * 2);
+                carpetLayout[3][3] = 1;
+                carpetLayout[4][4] = 1;
+            } else if (levelMod === 6) {
+                // Пледы 🛏️ + лед + цепи (максимум 3 препятствия)
+                targetType = "plaid";
+                heartsGoal = 3 + Math.floor(Math.random() * 2);
+                let iceCount = 0;
+                while (iceCount < 2) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+                chainLayout[3][3] = 1;
+            } else if (levelMod === 8) {
+                // Плющ 🥀 + ковер + цепи (максимум 3 препятствия)
+                targetType = "ivy";
+                heartsGoal = 4 + Math.floor(Math.random() * 2);
+                carpetLayout[3][4] = 1;
+                carpetLayout[4][3] = 1;
+                chainLayout[4][4] = 1;
+            } else if (i % 2 === 0) {
+                // Ящики + лед + ковер (максимум 3 препятствия)
+                targetType = "box";
+                let iceCount = 0;
+                while (iceCount < 3) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+                carpetLayout[3][3] = 1;
+            } else {
+                targetType = "heart";
+            }
+        }
+        // ЭТАП 5: Экспертные уровни (61+) - до 3 препятствий, но более сложные комбинации
+        else {
+            const levelMod = i % 12;
+            if (levelMod === 0) {
+                // Комбо: орехи + лед + цепи
+                targetType = "nut";
+                heartsGoal = 5 + Math.floor(Math.random() * 3);
+                let iceCount = 0;
+                while (iceCount < 4) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+                chainLayout[3][2] = 1;
+                chainLayout[4][4] = 1;
+            } else if (levelMod === 3) {
+                // Комбо: каменные фигурки + ковер + лед
+                targetType = "stone";
+                heartsGoal = 4 + Math.floor(Math.random() * 3);
+                carpetLayout[3][3] = 1;
+                carpetLayout[4][4] = 1;
+                let iceCount = 0;
+                while (iceCount < 3) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+            } else if (levelMod === 6) {
+                // Комбо: плющ + цепи + лед
+                targetType = "ivy";
+                heartsGoal = 5 + Math.floor(Math.random() * 3);
+                chainLayout[3][3] = 1;
+                chainLayout[4][4] = 1;
+                let iceCount = 0;
+                while (iceCount < 3) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+            } else if (levelMod === 9) {
+                // Комбо: пледы + ковер + цепи
+                targetType = "plaid";
+                heartsGoal = 4 + Math.floor(Math.random() * 3);
+                carpetLayout[3][4] = 1;
+                carpetLayout[4][3] = 1;
+                chainLayout[3][3] = 1;
+            } else if (i % 2 === 0) {
+                // Ящики + лед (2 препятствия)
+                targetType = "box";
+                let iceCount = 0;
+                while (iceCount < 4) {
+                    const r = Math.floor(Math.random() * SIZE);
+                    const c = Math.floor(Math.random() * SIZE);
+                    if (layout[r][c] === 1 && !iceLayout[r][c]) {
+                        iceLayout[r][c] = 1;
+                        iceCount++;
+                    }
+                }
+            } else {
+                targetType = "heart";
+            }
         }
 
         LEVELS.push({
