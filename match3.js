@@ -280,13 +280,13 @@
         const style = document.createElement('style');
         style.textContent = `
             /* Стили для визуального изменения ящиков по слоям прочности */
-            .tile.layer-3 .tile-inner { background: linear-gradient(135deg, #4d2b12, #2b1404); border-color: #ffd700; box-shadow: inset 0 0 12px #000; }
-            .tile.layer-2 .tile-inner { background: linear-gradient(135deg, #82431a, #59290a); border-color: #c0c0c0; }
+            .tile.layer-3 .tile-inner { background: linear-gradient(135deg, #4d2b12, #2b1404); box-shadow: inset 0 0 12px #000; }
+            .tile.layer-2 .tile-inner { background: linear-gradient(135deg, #82431a, #59290a); }
             .tile.layer-1 .tile-inner { background: linear-gradient(135deg, #b06530, #80441b); }
             
             /* Стили для льда: 2 слоя (толстый) и 1 слой (тонкий треснувший) */
-            .tile.frozen-2 .tile-inner::after { border-color: #00b0ff; background: rgba(0, 176, 255, 0.45); box-shadow: inset 0 0 10px #fff; }
-            .tile.frozen-1 .tile-inner::after { border-color: #80deea; background: rgba(128, 222, 234, 0.25); }
+            .tile.frozen-2 .tile-inner::after { background: rgba(0, 176, 255, 0.45); box-shadow: inset 0 0 10px #fff; }
+            .tile.frozen-1 .tile-inner::after { background: rgba(128, 222, 234, 0.25); }
 
             /* Стили для цепей: двойные и одинарные */
             .tile.chain-2 .tile-inner::after { content: "⛓️" !important; font-size: 30px !important; }
@@ -305,8 +305,8 @@
             .booster-btn .b-count { position: absolute; top: -5px; right: -5px; background: var(--blood); color: #fff; font-size: 10px; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-family: sans-serif; border: 1.5px solid var(--ink); font-weight: bold; }
 
             /* Стили для Печенья 🍪 (3 уровня прочности) */
-            .tile.cookie.layer-3 .tile-inner { background: #5c4033; border-color: #3d251a; }
-            .tile.cookie.layer-2 .tile-inner { background: #8b5a2b; border-color: #5c3a21; }
+            .tile.cookie.layer-3 .tile-inner { background: #5c4033; }
+            .tile.cookie.layer-2 .tile-inner { background: #8b5a2b; }
             .tile.cookie.layer-1 .tile-inner { background: #cd853f; }
 
             /* Стили для Рулона ковра */
@@ -346,39 +346,39 @@
             }
 
             /* Стили для Коробки-сюрприза 🎁 */
-            .tile.surprise-box.layer-5 .tile-inner { background: linear-gradient(135deg, #ffd700, #ff8c00); border-color: #ff4500; }
-            .tile.surprise-box.layer-4 .tile-inner { background: linear-gradient(135deg, #ff8c00, #d2691e); border-color: #8b4513; }
+            .tile.surprise-box.layer-5 .tile-inner { background: linear-gradient(135deg, #ffd700, #ff8c00); }
+            .tile.surprise-box.layer-4 .tile-inner { background: linear-gradient(135deg, #ff8c00, #d2691e); }
             .tile.surprise-box.layer-3 .tile-inner { background: linear-gradient(135deg, #d2691e, #a0522d); }
             .tile.surprise-box.layer-2 .tile-inner { background: #cd853f; }
             .tile.surprise-box.layer-1 .tile-inner { background: #f4a460; }
 
             /* Стили для Орехов 🌰 */
-            .tile.nut.layer-3 .tile-inner { background: #3d251a; border-color: #1a0f0a; box-shadow: inset 0 0 10px #000; }
-            .tile.nut.layer-2 .tile-inner { background: #5c3a21; border-color: #3d251a; }
+            .tile.nut.layer-3 .tile-inner { background: #3d251a; box-shadow: inset 0 0 10px #000; }
+            .tile.nut.layer-2 .tile-inner { background: #5c3a21; }
             .tile.nut.layer-1 .tile-inner { background: #8b5a2b; }
 
             /* Стили для Фиолетовой пены 🧼💜 */
-            .tile.purple-foam.layer-2 .tile-inner { background: radial-gradient(circle, #b39ddb 0%, #4a148c 100%); border-color: #7b1fa2; }
+            .tile.purple-foam.layer-2 .tile-inner { background: radial-gradient(circle, #b39ddb 0%, #4a148c 100%); }
             .tile.purple-foam.layer-1 .tile-inner { background: radial-gradient(circle, #e1bee7 0%, #8e24aa 100%); }
 
             /* Стили для Футляров с Кольцами 💍 */
-            .tile.ring-case.layer-3 .tile-inner { background: #4a0000; border-color: #ffd700; }
-            .tile.ring-case.layer-2 .tile-inner { background: #800000; border-color: #c0c0c0; }
+            .tile.ring-case.layer-3 .tile-inner { background: #4a0000; }
+            .tile.ring-case.layer-2 .tile-inner { background: #800000; }
             .tile.ring-case.layer-1 .tile-inner { background: #c0c0c0; }
 
             /* Стили для Ленты с бантами 🎀 */
-            .tile.ribbon .tile-inner { background: linear-gradient(135deg, #ff4081, #f50057); border-color: #ff4081; box-shadow: 0 0 8px #ff4081; }
+            .tile.ribbon .tile-inner { background: linear-gradient(135deg, #ff4081, #f50057); box-shadow: 0 0 8px #ff4081; }
 
             /* Стили для Каменных Фигурок 🗿 */
-            .tile.stone.layer-3 .tile-inner { background: #424242; border-color: #212121; }
-            .tile.stone.layer-2 .tile-inner { background: #616161; border-color: #424242; }
+            .tile.stone.layer-3 .tile-inner { background: #424242; }
+            .tile.stone.layer-2 .tile-inner { background: #616161; }
             .tile.stone.layer-1 .tile-inner { background: #9e9e9e; }
 
             /* Стили для Плюща 🥀 */
-            .tile.ivy .tile-inner { background: linear-gradient(135deg, #2e7d32, #1b5e20); border-color: #00c853; box-shadow: inset 0 0 8px #00c853; }
+            .tile.ivy .tile-inner { background: linear-gradient(135deg, #2e7d32, #1b5e20); box-shadow: inset 0 0 8px #00c853; }
 
             /* Стили для Пледа 🛏️ */
-            .tile.plaid.layer-4 .tile-inner { background: linear-gradient(135deg, #0d47a1, #1565c0); border-color: #0d47a1; }
+            .tile.plaid.layer-4 .tile-inner { background: linear-gradient(135deg, #0d47a1, #1565c0); }
             .tile.plaid.layer-3 .tile-inner { background: linear-gradient(135deg, #1976d2, #1e88e5); }
             .tile.plaid.layer-2 .tile-inner { background: linear-gradient(135deg, #2196f3, #42a5f5); }
             .tile.plaid.layer-1 .tile-inner { background: #90caf9; }
