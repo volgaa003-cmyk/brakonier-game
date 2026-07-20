@@ -87,7 +87,6 @@ const DEFAULT_STATE = {
         }
         
         updateHUD();
-        updateHideoutInterior();
     }
 
     function updateHUD() {
@@ -103,28 +102,11 @@ const DEFAULT_STATE = {
         if (hudRep) hudRep.textContent = state.reputation_people + state.reputation_underground + state.reputation_changed;
     }
 
-    function updateHideoutInterior() {
-        const dFloor = document.getElementById('decorFloor');
-        const dWalls = document.getElementById('decorWalls');
-        const dBed = document.getElementById('decorBed');
-        const dTable = document.getElementById('decorTable');
-        const dCabinet = document.getElementById('decorCabinet');
-        const dWindows = document.getElementById('decorWindows');
-
-        if (dFloor && state.decor.floor) dFloor.textContent = state.decor.floor;
-        if (dWalls && state.decor.walls) dWalls.textContent = state.decor.walls;
-        if (dBed && state.decor.bed) dBed.textContent = state.decor.bed;
-        if (dTable && state.decor.table) dTable.textContent = state.decor.table;
-        if (dCabinet && state.decor.cabinet) dCabinet.textContent = state.decor.cabinet;
-        if (dWindows && state.decor.windows) dWindows.textContent = state.decor.windows;
-    }
-
     const GameState = {
         getStars: () => state.stars,
         getLives: () => state.lives,
         getCash: () => state.cash,
         getCurrentLevel: () => state.currentLevel,
-        getDecor: (item) => state.decor[item],
         
         getReputation: () => state.reputation_people + state.reputation_underground + state.reputation_changed,
         getReputationPeople: () => state.reputation_people,
@@ -224,14 +206,6 @@ const DEFAULT_STATE = {
             saveGame();
         },
 
-        updateDecorItem: (item, newValue) => {
-            if (state.decor.hasOwnProperty(item)) {
-                state.decor[item] = newValue;
-                updateHideoutInterior();
-                saveGame();
-            }
-        },
-
         completeTask: (taskId) => {
             if (!state.completedTasks.includes(taskId)) {
                 state.completedTasks.push(taskId);
@@ -280,7 +254,6 @@ const DEFAULT_STATE = {
         resetAll: () => {
             state = JSON.parse(JSON.stringify(DEFAULT_STATE));
             updateHUD();
-            updateHideoutInterior();
             saveGame();
         }
     };
